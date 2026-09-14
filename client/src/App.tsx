@@ -54,7 +54,7 @@ type Teacher = { id: number; name: string; initials: string; subject: string; ph
 type SchoolClass = { id: number; name: string; teacher: string; room: string; schedule: string; days: string[]; time: string; enrolled: number; capacity: number; status: "Ouvert" | "Complet" | "Annulé"; subject: string; color: string; roster: number[] };
 type Payment = { id: number; student: string; course: string; total: number; paid: number; balance: number; date: string; method: string; status: "Payé" | "Partiel" | "En retard" };
 
-type PageKey = "dashboard" | "pipeline" | "contacts" | "students" | "classes" | "attendance" | "payments" | "tasks" | "teachers" | "certificates" | "settings";
+type PageKey = "dashboard" | "prospects" | "students" | "formations" | "teachers" | "groups" | "planning" | "attendance" | "payments" | "certificates" | "settings";
 
 const COLORS = {
   ink: "#17202A",
@@ -333,7 +333,7 @@ function Dashboard({ goTo, setNotice }: { goTo: (key: PageKey) => void; setNotic
   const tasksToday = initialTasks.filter((task) => task.due === "Aujourd'hui");
   const atRisk = people.filter((person) => person.attendance > 0 && person.attendance < 75);
   return <>
-    <PageHeader eyebrow="Lundi 14 septembre 2026" title="Bonjour Nadia," description="Voici ce qui se passe dans votre école aujourd'hui." action actionLabel="Nouvelle inscription" onAction={() => { goTo("contacts"); setNotice("Formulaire de nouvelle inscription ouvert depuis Contacts."); }} />
+    <PageHeader eyebrow="Lundi 14 septembre 2026" title="Bonjour Nadia," description="Voici ce qui se passe dans votre école aujourd'hui." action actionLabel="Nouvelle inscription" onAction={() => { goTo("prospects"); setNotice("Formulaire de nouvelle inscription ouvert depuis Prospects."); }} />
     <div className="metrics-grid">
       <MetricCard label="Leads ce mois" value="48" note="vs 39 le mois dernier" trend="+23%" icon="users" accent={COLORS.coral} />
       <MetricCard label="Étudiants actifs" value="69" note="sur 5 formations" icon="graduation" accent={COLORS.teal} />
@@ -343,7 +343,7 @@ function Dashboard({ goTo, setNotice }: { goTo: (key: PageKey) => void; setNotic
       <MetricCard label="Taux d'abandon" value="4,8%" note="objectif : moins de 6%" icon="warning" accent={COLORS.red} />
     </div>
     <div className="dashboard-grid top-grid">
-      <Panel title="Conversion du pipeline" action={<Button variant="ghost" icon="arrow" onClick={() => goTo("pipeline")}>Voir le pipeline</Button>}>
+      <Panel title="Conversion du pipeline" action={<Button variant="ghost" icon="arrow" onClick={() => goTo("prospects")}>Voir les prospects</Button>}>
         <div className="funnel-wrap"><div className="funnel-chart">{funnel.map((item) => <div className="funnel-row" key={item.label}><div className="funnel-label"><span>{item.label}</span><strong>{item.value}</strong></div><div className="funnel-bar-track"><div className="funnel-bar" style={{ width: `${item.width}%`, background: item.color }} /></div></div>)}</div><div className="conversion-kpi"><span className="conversion-ring">37<span>%</span></span><div><strong>Conversion globale</strong><p>de prospect à inscrit</p></div></div></div>
       </Panel>
       <Panel title="Inscriptions 2026" action={<select className="compact-select" defaultValue="2026"><option>2026</option><option>2025</option></select>}>
@@ -351,7 +351,7 @@ function Dashboard({ goTo, setNotice }: { goTo: (key: PageKey) => void; setNotic
       </Panel>
     </div>
     <div className="dashboard-grid lower-grid">
-      <Panel title="À faire aujourd'hui" action={<Button variant="ghost" icon="arrow" onClick={() => goTo("tasks")}>Toutes les tâches</Button>}>
+      <Panel title="À faire aujourd'hui" action={<Button variant="ghost" icon="arrow" onClick={() => setNotice("Le module Tâches reste disponible pour une prochaine évolution.")}>Toutes les tâches</Button>}>
         <div className="task-list">{tasksToday.map((task) => <div className="task-row" key={task.id}><span className={`task-check ${task.status === "Terminé" ? "done" : ""}`} onClick={() => setNotice(`Tâche « ${task.title} » marquée comme terminée.`)}>{task.status === "Terminé" && <Icon name="check" size={13} />}</span><div className="task-copy"><strong>{task.title}</strong><span>{task.contact} · {task.assignee}</span></div><Badge tone={task.priority === "Haute" ? "danger" : task.priority === "Moyenne" ? "warning" : "neutral"}>{task.priority}</Badge></div>)}</div>
       </Panel>
       <Panel title="Présence à surveiller" action={<Button variant="ghost" icon="arrow" onClick={() => goTo("students")}>Voir les étudiants</Button>}>
@@ -406,9 +406,26 @@ function Students({ contacts, setSelected, setNotice, goTo }: { contacts: Person
 function Classes({ setSelectedClass, setNotice }: { setSelectedClass: (item: SchoolClass) => void; setNotice: (message: string) => void }) {
   const days = ["Dim", "Lun", "Mar", "Mer", "Jeu", "Ven", "Sam"];
   return <>
-    <PageHeader eyebrow="Organisation pédagogique" title="Classes & emploi du temps" description="Une vue claire des salles, des formateurs et des capacités." action actionLabel="Créer une classe" onAction={() => setNotice("Création de classe : formulaire prêt à être connecté.")} />
+    <PageHeader eyebrow="Organisation pédagogique" title="Groupes" description="Une vue claire des groupes, des salles, des formateurs et des capacités." action actionLabel="Créer un groupe" onAction={() => setNotice("Création de groupe : formulaire prêt à être connecté.")} />
     <div className="class-cards">{classes.map((item) => <div className="class-card" key={item.id} onClick={() => setSelectedClass(item)}><div className="class-color" style={{ background: item.color }} /><div className="class-card-main"><div className="class-card-top"><Badge tone={statusTone(item.status)} dot>{item.status}</Badge><button className="row-menu" onClick={(e) => { e.stopPropagation(); setNotice(`Options pour ${item.name}`); }}><Icon name="dots" size={16} /></button></div><h3>{item.name}</h3><p><Icon name="teacher" size={14} /> {item.teacher} · {item.room}</p><p><Icon name="calendar" size={14} /> {item.schedule}</p><div className="capacity"><div><span>Capacité</span><strong>{item.enrolled}/{item.capacity}</strong></div><div className="capacity-track"><i style={{ width: `${(item.enrolled / item.capacity) * 100}%`, background: item.enrolled === item.capacity ? COLORS.coral : item.color }} /></div></div></div></div>)}</div>
     <Panel title="Planning hebdomadaire" action={<div className="week-switch"><button>‹</button><strong>14 — 20 septembre 2026</strong><button>›</button></div>}><div className="calendar-grid"><div className="time-col"><span /><span>08:00</span><span>10:00</span><span>12:00</span><span>14:00</span><span>16:00</span><span>18:00</span><span>20:00</span></div>{days.map((day) => <div className="day-col" key={day}><div className="day-head">{day}<small>{day === "Lun" ? "14" : day === "Mar" ? "15" : day === "Mer" ? "16" : day === "Jeu" ? "17" : day === "Ven" ? "18" : day === "Sam" ? "19" : "13"}</small></div><div className="day-slots">{[0, 1, 2, 3, 4, 5].map((slot) => <div className="calendar-slot" key={slot} />)}{classes.filter((item) => item.days.includes(day)).map((item, index) => <div className="calendar-event" key={item.id} style={{ top: `${item.time === "09:00" ? 11 : item.time === "14:00" ? 47 : 83}%`, background: `${item.color}18`, borderLeftColor: item.color }} onClick={() => setSelectedClass(item)}><strong>{item.name.split(" — ")[0]}</strong><span>{item.time} · {item.room}</span></div>)}</div></div>)}</div></Panel>
+  </>;
+}
+
+function Formations({ setNotice }: { setNotice: (message: string) => void }) {
+  return <>
+    <PageHeader eyebrow="Catalogue pédagogique" title="Formations" description="Pilotez votre catalogue, les tarifs et les places disponibles par parcours." action actionLabel="Nouvelle formation" onAction={() => setNotice("Nouvelle formation : formulaire prêt à être connecté.")} />
+    <div className="class-cards">{courses.map((course) => <div className="class-card" key={course.id} onClick={() => setNotice(`Formation « ${course.name} » sélectionnée.`)}><div className="class-color" style={{ background: course.color }} /><div className="class-card-main"><div className="class-card-top"><Badge tone="success" dot>Active</Badge><button className="row-menu" onClick={(event) => { event.stopPropagation(); setNotice(`Options pour ${course.name}`); }}><Icon name="dots" size={16} /></button></div><h3>{course.name}</h3><p><Icon name="clock" size={14} /> {course.duration} · {formatMoney(course.price)}</p><p><Icon name="graduation" size={14} /> {course.students} étudiants actifs</p><div className="capacity"><div><span>Remplissage estimé</span><strong>{Math.round(course.students / 20 * 100)}%</strong></div><div className="capacity-track"><i style={{ width: `${Math.round(course.students / 20 * 100)}%`, background: course.color }} /></div></div></div></div>)}</div>
+    <Panel title="Synthèse du catalogue" action={<Button variant="outline" icon="download" onClick={() => setNotice("Catalogue exporté en version démo.")}>Exporter</Button>}><div className="hours-grid">{courses.map((course) => <div className="hours-row" key={course.id}><span className="hours-name"><span className="tiny-avatar" style={{ background: `${course.color}22`, color: course.color }}>F{course.id}</span>{course.name}</span><div className="hours-track"><i style={{ width: `${Math.round(course.students / 20 * 100)}%`, background: course.color }} /></div><strong>{course.students} inscrits</strong></div>)}</div></Panel>
+  </>;
+}
+
+function Planning({ setSelectedClass, setNotice }: { setSelectedClass: (item: SchoolClass) => void; setNotice: (message: string) => void }) {
+  const days = ["Dim", "Lun", "Mar", "Mer", "Jeu", "Ven", "Sam"];
+  return <>
+    <PageHeader eyebrow="Organisation pédagogique" title="Planning" description="Visualisez les séances de la semaine et repérez les créneaux encore disponibles." action actionLabel="Ajouter une séance" onAction={() => setNotice("Nouvelle séance : formulaire prêt à être connecté.")} />
+    <Panel title="Planning hebdomadaire" action={<div className="week-switch"><button onClick={() => setNotice("Semaine précédente")}>‹</button><strong>14 — 20 septembre 2026</strong><button onClick={() => setNotice("Semaine suivante")}>›</button></div>}><div className="calendar-grid"><div className="time-col"><span /><span>08:00</span><span>10:00</span><span>12:00</span><span>14:00</span><span>16:00</span><span>18:00</span><span>20:00</span></div>{days.map((day) => <div className="day-col" key={day}><div className="day-head">{day}<small>{day === "Lun" ? "14" : day === "Mar" ? "15" : day === "Mer" ? "16" : day === "Jeu" ? "17" : day === "Ven" ? "18" : day === "Sam" ? "19" : "13"}</small></div><div className="day-slots">{[0, 1, 2, 3, 4, 5].map((slot) => <div className="calendar-slot" key={slot} />)}{classes.filter((item) => item.days.includes(day)).map((item) => <div className="calendar-event" key={item.id} style={{ top: `${item.time === "09:00" ? 11 : item.time === "14:00" ? 47 : 83}%`, background: `${item.color}18`, borderLeftColor: item.color }} onClick={() => setSelectedClass(item)}><strong>{item.name.split(" — ")[0]}</strong><span>{item.time} · {item.room}</span></div>)}</div></div>)}</div></Panel>
+    <div className="class-cards">{classes.slice(0, 3).map((item) => <div className="class-card" key={item.id} onClick={() => setSelectedClass(item)}><div className="class-color" style={{ background: item.color }} /><div className="class-card-main"><div className="class-card-top"><Badge tone={statusTone(item.status)} dot>{item.status}</Badge></div><h3>{item.name}</h3><p><Icon name="teacher" size={14} /> {item.teacher}</p><p><Icon name="calendar" size={14} /> {item.schedule}</p></div></div>)}</div>
   </>;
 }
 
@@ -426,7 +443,7 @@ function Attendance({ attendance, setAttendance, setNotice }: { attendance: Reco
   return <>
     <PageHeader eyebrow="Suivi des séances" title="Présences" description="Enregistrez la présence en quelques secondes et détectez les risques tôt." action actionLabel="Exporter la feuille" actionIcon="download" onAction={() => setNotice("Export de la feuille de présence simulé.")} />
     <div className="attendance-controls"><div><label>Classe</label><select className="select" value={selectedClass} onChange={(e) => setSelectedClass(e.target.value)}>{classes.map((item) => <option key={item.id}>{item.name}</option>)}</select></div><div><label>Période</label><div className="date-range"><Icon name="calendar" size={15} /> 02 sept. — 28 sept. 2026</div></div><div className="attendance-legend"><span><i className="presence present">✓</i> Présent</span><span><i className="presence late">~</i> En retard</span><span><i className="presence absent">×</i> Absent</span></div></div>
-    <Panel className="table-panel attendance-panel"><div className="attendance-head"><div><h3>{selected.name}</h3><p>{selected.teacher} · {roster.length} étudiants · {attendanceDates.length} séances</p></div><Badge tone="success" dot>Feuille ouverte</Badge></div><div className="table-scroll"><table className="attendance-table"><thead><tr><th>Étudiant</th>{attendanceDates.map((date) => <th key={date}>{date}</th>)}<th>Taux</th></tr></thead><tbody>{roster.map((person) => { const values = attendance[person.id] || attendanceSeed[person.id] || attendanceDates.map(() => "P"); return <tr key={person.id}><td><div className="person-cell">{initialsBadge(person.name)}<div><strong>{person.name}</strong><span>{person.course}</span></div></div></td>{values.map((value, index) => <td key={index}><button className={`presence ${value === "P" ? "present" : value === "L" ? "late" : "absent"}`} onClick={() => toggle(person.id, index)}>{value === "P" ? "✓" : value === "L" ? "~" : "×"}</button></td>)}<td><strong className={attendanceRate(values) < 75 ? "text-danger" : "text-teal"}>{attendanceRate(values)}%</strong></td></tr>})}</tbody><tfoot><tr><td><strong>Moyenne de la classe</strong></td>{attendanceDates.map((_, index) => <td key={index}><strong className="text-teal">{Math.round(roster.reduce((sum, person) => sum + ((attendance[person.id] || attendanceSeed[person.id])[index] === "P" ? 1 : 0), 0) / roster.length * 100)}%</strong></td>)}<td><strong className="text-teal">86%</strong></td></tr></tfoot></table></div></Panel>
+    <Panel className="table-panel attendance-panel"><div className="attendance-head"><div><h3>{selected.name}</h3><p>{selected.teacher} · {roster.length} étudiants · {attendanceDates.length} séances</p></div><Badge tone="success" dot>Feuille ouverte</Badge></div><div className="table-scroll"><table className="attendance-table"><thead><tr><th>Étudiant</th>{attendanceDates.map((date) => <th key={date}>{date}</th>)}<th>Taux</th></tr></thead><tbody>{roster.map((person) => { const values = attendance[person.id] || attendanceSeed[person.id] || attendanceDates.map(() => "P"); return <tr key={person.id}><td><div className="person-cell">{initialsBadge(person.name)}<div><strong>{person.name}</strong><span>{person.course}</span></div></div></td>{values.map((value, index) => <td key={index}><button className={`presence ${value === "P" ? "present" : value === "L" ? "late" : "absent"}`} onClick={() => toggle(person.id, index)}>{value === "P" ? "✓" : value === "L" ? "~" : "×"}</button></td>)}<td><strong className={attendanceRate(values) < 75 ? "text-danger" : "text-teal"}>{attendanceRate(values)}%</strong></td></tr>})}</tbody><tfoot><tr><td><strong>Moyenne de la classe</strong></td>{attendanceDates.map((_, index) => <td key={index}><strong className="text-teal">{Math.round(roster.reduce((sum, person) => { const values = attendance[person.id] || attendanceSeed[person.id] || attendanceDates.map(() => "P"); return sum + (values[index] === "P" ? 1 : 0); }, 0) / roster.length * 100)}%</strong></td>)}<td><strong className="text-teal">86%</strong></td></tr></tfoot></table></div></Panel>
   </>;
 }
 
@@ -524,31 +541,30 @@ export default function App() {
   const [globalSearch, setGlobalSearch] = useState("");
 
   const goTo = (page: PageKey) => { setActivePage(page); setSidebarOpen(false); window.scrollTo({ top: 0, behavior: "smooth" }); };
-  const pageTitles: Record<PageKey, string> = { dashboard: "Tableau de bord", pipeline: "Pipeline CRM", contacts: "Contacts", students: "Étudiants actifs", classes: "Classes & emploi du temps", attendance: "Présences", payments: "Paiements & finances", tasks: "Tâches & suivi", teachers: "Enseignants", certificates: "Certificats & documents", settings: "Paramètres" };
+  const pageTitles: Record<PageKey, string> = { dashboard: "Dashboard", prospects: "Prospects", students: "Étudiants", formations: "Formations", teachers: "Formateurs", groups: "Groupes", planning: "Planning", attendance: "Présences", payments: "Paiements", certificates: "Certificats", settings: "Paramètres" };
   const activeLabel = pageTitles[activePage];
   const unread = useMemo(() => tasks.filter((task) => task.status === "À faire" && task.due === "Aujourd'hui").length, [tasks]);
 
   const renderPage = () => {
     switch (activePage) {
       case "dashboard": return <Dashboard goTo={goTo} setNotice={setNotice} />;
-      case "pipeline": return <Pipeline pipeline={pipeline} setPipeline={setPipeline} setSelected={setSelectedPipeline} setNotice={setNotice} />;
-      case "contacts": return <Contacts contacts={contacts} setContacts={setContacts} setSelected={setSelectedPerson} setNotice={setNotice} />;
+      case "prospects": return <Pipeline pipeline={pipeline} setPipeline={setPipeline} setSelected={setSelectedPipeline} setNotice={setNotice} />;
       case "students": return <Students contacts={contacts} setSelected={setSelectedPerson} setNotice={setNotice} goTo={goTo} />;
-      case "classes": return <Classes setSelectedClass={setSelectedClass} setNotice={setNotice} />;
+      case "formations": return <Formations setNotice={setNotice} />;
+      case "teachers": return <Teachers setSelectedTeacher={setSelectedTeacher} setNotice={setNotice} />;
+      case "groups": return <Classes setSelectedClass={setSelectedClass} setNotice={setNotice} />;
+      case "planning": return <Planning setSelectedClass={setSelectedClass} setNotice={setNotice} />;
       case "attendance": return <Attendance attendance={attendance} setAttendance={setAttendance} setNotice={setNotice} />;
       case "payments": return <Payments setNotice={setNotice} />;
-      case "tasks": return <Tasks tasks={tasks} setTasks={setTasks} setNotice={setNotice} />;
-      case "teachers": return <Teachers setSelectedTeacher={setSelectedTeacher} setNotice={setNotice} />;
       case "certificates": return <Certificates contacts={contacts} setNotice={setNotice} />;
       case "settings": return <Settings setNotice={setNotice} />;
     }
   };
 
   const groups: { label: string; items: { key: PageKey; label: string; icon: IconName; badge?: string }[] }[] = [
-    { label: "VUE D'ENSEMBLE", items: [{ key: "dashboard", label: "Tableau de bord", icon: "grid" }, { key: "pipeline", label: "Pipeline CRM", icon: "funnel", badge: "32" }, { key: "contacts", label: "Contacts", icon: "users" }] },
-    { label: "PÉDAGOGIE", items: [{ key: "students", label: "Étudiants actifs", icon: "graduation" }, { key: "classes", label: "Classes & planning", icon: "calendar" }, { key: "attendance", label: "Présences", icon: "check" }, { key: "teachers", label: "Enseignants", icon: "teacher" }] },
-    { label: "FINANCES", items: [{ key: "payments", label: "Paiements & finances", icon: "wallet", badge: "7" }, { key: "certificates", label: "Certificats & documents", icon: "file" }] },
-    { label: "ORGANISATION", items: [{ key: "tasks", label: "Tâches & suivi", icon: "checklist", badge: unread.toString() }] },
+    { label: "VUE D'ENSEMBLE", items: [{ key: "dashboard", label: "Dashboard", icon: "grid" }, { key: "prospects", label: "Prospects", icon: "funnel", badge: "32" }] },
+    { label: "PÉDAGOGIE", items: [{ key: "students", label: "Étudiants", icon: "graduation" }, { key: "formations", label: "Formations", icon: "file" }, { key: "teachers", label: "Formateurs", icon: "teacher" }, { key: "groups", label: "Groupes", icon: "users" }, { key: "planning", label: "Planning", icon: "calendar" }, { key: "attendance", label: "Présences", icon: "check" }] },
+    { label: "FINANCES", items: [{ key: "payments", label: "Paiements", icon: "wallet", badge: "7" }, { key: "certificates", label: "Certificats", icon: "file" }] },
   ];
 
   return <div className="app-shell">
