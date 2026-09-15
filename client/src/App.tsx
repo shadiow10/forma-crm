@@ -5,7 +5,7 @@ import type { CSSProperties, FormEvent, ReactNode } from "react";
 // The interaction layer is intentionally local-first so every workflow is demonstrable
 // before wiring the same objects to Supabase tables and realtime subscriptions.
 
-type Stage = "prospect" | "contacte" | "interesse" | "inscrit" | "encours" | "diplome" | "abandonne";
+type Stage = "prospect" | "contacte" | "interesse" | "pret" | "inscrit" | "encours" | "diplome" | "abandonne";
 type IconName = keyof typeof ICONS;
 
 type Person = {
@@ -114,6 +114,7 @@ const stageLabels: Record<Stage, string> = {
   prospect: "Prospect",
   contacte: "Contacté",
   interesse: "Intéressé",
+  pret: "Prêt à s'inscrire",
   inscrit: "Inscrit",
   encours: "En cours",
   diplome: "Diplômé",
@@ -123,6 +124,7 @@ const stageColors: Record<Stage, string> = {
   prospect: "#7B8794",
   contacte: "#5A78A8",
   interesse: "#C68D43",
+  pret: "#7A78B8",
   inscrit: COLORS.teal,
   encours: "#597BC4",
   diplome: "#6A63B8",
@@ -163,44 +165,15 @@ const people: Person[] = [
   { id: 18, name: "Nassim Azzouz", phone: "0796 11 20 18", email: "nassim.azzouz@gmail.com", course: "Comptabilité pratique", stage: "diplome", staff: "Nadia Benali", lastContact: "22 août 2026", source: "Référencement", address: "Béjaïa", dob: "05/03/1994", attendance: 98, payment: "Payé", balance: 0, enrolled: "10/01/2026", teacher: "Samira Ait Ali", progress: 100 },
 ];
 
-const pipelineSeed: Record<Stage, PipelineCard[]> = {
-  prospect: [
-    { id: 101, name: "Sofiane Bensaïd", course: "Comptabilité pratique", stage: "prospect", days: 2, staff: "Mehdi Saidi", value: 62000 },
-    { id: 102, name: "Nadia Ferhat", course: "Design graphique", stage: "prospect", days: 4, staff: "Sarah Kaci", value: 85000 },
-    { id: 103, name: "Adel Kaci", course: "Marketing digital", stage: "prospect", days: 7, staff: "Amine Touati", value: 70000 },
-  ],
-  contacte: [
-    { id: 104, name: "Meriem Chibani", course: "Design graphique", stage: "contacte", days: 1, staff: "Sarah Kaci", value: 85000 },
-    { id: 105, name: "Lamia Fares", course: "Bureautique & Excel", stage: "contacte", days: 3, staff: "Amine Touati", value: 45000 },
-    { id: 106, name: "Bilal Daoud", course: "Développement web", stage: "contacte", days: 5, staff: "Mehdi Saidi", value: 95000 },
-  ],
-  interesse: [
-    { id: 107, name: "Amine Khelifi", course: "Développement web", stage: "interesse", days: 3, staff: "Amine Touati", value: 95000 },
-    { id: 108, name: "Ilyes Saouli", course: "Développement web", stage: "interesse", days: 8, staff: "Mehdi Saidi", value: 95000 },
-  ],
-  inscrit: [
-    { id: 109, name: "Sara Belkacem", course: "Comptabilité pratique", stage: "inscrit", days: 9, staff: "Sarah Kaci", value: 62000 },
-    { id: 110, name: "Nour El Houda Saad", course: "Bureautique & Excel", stage: "inscrit", days: 11, staff: "Sarah Kaci", value: 45000 },
-    { id: 111, name: "Rania Zerrouki", course: "Comptabilité pratique", stage: "inscrit", days: 2, staff: "Nadia Benali", value: 62000 },
-    { id: 112, name: "Amina Djouadi", course: "Marketing digital", stage: "inscrit", days: 1, staff: "Sarah Kaci", value: 70000 },
-  ],
-  encours: [
-    { id: 113, name: "Lina Haddad", course: "Design graphique", stage: "encours", days: 83, staff: "Nadia Benali", value: 85000 },
-    { id: 114, name: "Yacine Merabet", course: "Développement web", stage: "encours", days: 225, staff: "Mehdi Saidi", value: 95000 },
-    { id: 115, name: "Karim Ouali", course: "Bureautique & Excel", stage: "encours", days: 152, staff: "Nadia Benali", value: 45000 },
-    { id: 116, name: "Aya Mokhtari", course: "Marketing digital", stage: "encours", days: 81, staff: "Nadia Benali", value: 70000 },
-    { id: 117, name: "Mohamed Tarek", course: "Design graphique", stage: "encours", days: 117, staff: "Amine Touati", value: 85000 },
-  ],
-  diplome: [
-    { id: 118, name: "Imen Rahmani", course: "Marketing digital", stage: "diplome", days: 18, staff: "Mehdi Saidi", value: 70000 },
-    { id: 119, name: "Walid Hamza", course: "Développement web", stage: "diplome", days: 26, staff: "Mehdi Saidi", value: 95000 },
-    { id: 120, name: "Nassim Azzouz", course: "Comptabilité pratique", stage: "diplome", days: 34, staff: "Nadia Benali", value: 62000 },
-  ],
-  abandonne: [
-    { id: 121, name: "Hiba Saïdi", course: "Bureautique & Excel", stage: "abandonne", days: 45, staff: "Sarah Kaci", value: 45000 },
-    { id: 122, name: "Rachid Khellaf", course: "Marketing digital", stage: "abandonne", days: 63, staff: "Amine Touati", value: 70000 },
-  ],
+const prospectStages: Stage[] = ["prospect", "contacte", "interesse", "pret", "inscrit", "abandonne"];
+const toProspectStage = (stage: Stage): Stage => stage === "encours" || stage === "diplome" ? "inscrit" : stage;
+const prospectPipelineSeed: Record<Stage, PipelineCard[]> = {
+  prospect: [], contacte: [], interesse: [], pret: [], inscrit: [], encours: [], diplome: [], abandonne: [],
 };
+people.forEach((person, index) => {
+  const stage = toProspectStage(person.stage);
+  prospectPipelineSeed[stage].push({ id: 1000 + person.id, name: person.name, course: person.course, stage, days: index + 1, staff: person.staff, value: courses.find((course) => course.name === person.course)?.price || 0 });
+});
 
 const teachers: Teacher[] = [
   { id: 1, name: "Nadia Benali", initials: "NB", subject: "Bureautique & Excel", phone: "0555 44 10 21", email: "nadia.benali@formacrm.dz", classes: ["Excel avancé — Matin", "Bureautique — Soir"], rate: 1800, contract: "Temps plein", color: "#5B8DEF" },
@@ -365,31 +338,35 @@ function Dashboard({ goTo, setNotice }: { goTo: (key: PageKey) => void; setNotic
 }
 
 function Prospects({ pipeline, setPipeline, contacts, setSelected, setSelectedPerson, setNotice }: { pipeline: Record<Stage, PipelineCard[]>; setPipeline: (next: Record<Stage, PipelineCard[]>) => void; contacts: Person[]; setSelected: (card: PipelineCard) => void; setSelectedPerson: (person: Person) => void; setNotice: (message: string) => void }) {
-  const stages = Object.keys(stageLabels) as Stage[];
   const [dragged, setDragged] = useState<{ id: number; stage: Stage } | null>(null);
   const [query, setQuery] = useState("");
-  const [stageFilter, setStageFilter] = useState("Tous");
+  const [stageFilter, setStageFilter] = useState<Stage | "Tous">("Tous");
   const [courseFilter, setCourseFilter] = useState("Toutes");
   const [sourceFilter, setSourceFilter] = useState("Toutes");
-  const [view, setView] = useState<"pipeline" | "list">("pipeline");
-  const matches = (name: string, course: string, stage: Stage, source?: string) => {
-    const haystack = `${name} ${course} ${source || ""}`.toLowerCase();
-    return haystack.includes(query.toLowerCase()) && (stageFilter === "Tous" || stageLabels[stage] === stageFilter) && (courseFilter === "Toutes" || course === courseFilter) && (sourceFilter === "Toutes" || source === sourceFilter);
-  };
-  const filteredPipeline = Object.fromEntries(stages.map((stage) => [stage, pipeline[stage].filter((card) => matches(card.name, card.course, card.stage, contacts.find((person) => person.name === card.name)?.source))])) as Record<Stage, PipelineCard[]>;
-  const filteredPeople = contacts.filter((person) => matches(person.name, person.course, person.stage, person.source));
+  const [view, setView] = useState<"list" | "pipeline">("list");
+  const contactByName = useMemo(() => Object.fromEntries(contacts.map((person) => [person.name, person])), [contacts]);
+  const cards = prospectStages.flatMap((stage) => pipeline[stage] || []);
+  const filteredCards = cards.filter((card) => {
+    const person = contactByName[card.name];
+    const haystack = `${card.name} ${card.course} ${person?.email || ""} ${person?.phone || ""}`.toLowerCase();
+    return haystack.includes(query.toLowerCase()) && (stageFilter === "Tous" || card.stage === stageFilter) && (courseFilter === "Toutes" || card.course === courseFilter) && (sourceFilter === "Toutes" || person?.source === sourceFilter);
+  });
+  const stages = prospectStages;
+  const counts = Object.fromEntries(stages.map((stage) => [stage, cards.filter((card) => card.stage === stage).length])) as Record<Stage, number>;
   const moveCard = (targetStage: Stage) => {
     if (!dragged || dragged.stage === targetStage) return;
     const card = pipeline[dragged.stage].find((item) => item.id === dragged.id);
     if (!card) return;
-    const next = { ...pipeline, [dragged.stage]: pipeline[dragged.stage].filter((item) => item.id !== dragged.id), [targetStage]: [...pipeline[targetStage], { ...card, stage: targetStage, days: 0 }] };
-    setPipeline(next); setNotice(`${card.name} déplacé vers « ${stageLabels[targetStage]} ».`); setDragged(null);
+    setPipeline({ ...pipeline, [dragged.stage]: pipeline[dragged.stage].filter((item) => item.id !== dragged.id), [targetStage]: [...pipeline[targetStage], { ...card, stage: targetStage, days: 0 }] });
+    setNotice(`${card.name} déplacé vers « ${stageLabels[targetStage]} ».`);
+    setDragged(null);
   };
   return <>
-    <PageHeader eyebrow="Acquisition & conversion" title="Prospects" description="Gérez vos futurs étudiants depuis le premier contact jusqu'à l'inscription et au suivi de leur parcours." action actionLabel="Nouveau prospect" onAction={() => setNotice("Nouveau prospect : formulaire prêt à être connecté à Supabase.")} />
-    <Panel className="prospects-toolbar"><div className="prospects-toolbar-main"><div className="search-box"><Icon name="search" size={16} /><input placeholder="Rechercher un prospect, une formation…" value={query} onChange={(event) => setQuery(event.target.value)} /></div><select className="select" value={stageFilter} onChange={(event) => setStageFilter(event.target.value)}><option value="Tous">Tous les stades</option>{stages.map((stage) => <option key={stage}>{stageLabels[stage]}</option>)}</select><select className="select" value={courseFilter} onChange={(event) => setCourseFilter(event.target.value)}><option value="Toutes">Toutes les formations</option>{courses.map((course) => <option key={course.id}>{course.name}</option>)}</select><select className="select" value={sourceFilter} onChange={(event) => setSourceFilter(event.target.value)}><option value="Toutes">Toutes les sources</option>{Array.from(new Set(contacts.map((person) => person.source))).map((source) => <option key={source}>{source}</option>)}</select></div><div className="view-toggle"><button className={view === "pipeline" ? "active" : ""} onClick={() => setView("pipeline")}><Icon name="funnel" size={14} /> Pipeline</button><button className={view === "list" ? "active" : ""} onClick={() => setView("list")}><Icon name="checklist" size={14} /> Liste</button></div></Panel>
-    <div className="pipeline-summary"><div><span>Prospects suivis</span><strong>{filteredPeople.length}</strong></div><div><span>Valeur du pipeline</span><strong>{formatMoney(Object.values(filteredPipeline).flat().filter((card) => card.stage !== "abandonne").reduce((sum, card) => sum + card.value, 0))}</strong></div><div><span>À convertir en étudiants</span><strong>{filteredPeople.filter((person) => person.stage === "inscrit").length}</strong></div><div className="pipeline-tip"><Icon name="spark" size={18} /><span>{view === "pipeline" ? "Glissez-déposez les cartes pour mettre à jour le statut." : "La liste affiche les informations utiles pour chaque prospect."}</span></div></div>
-    {view === "pipeline" ? <div className="pipeline-board">{stages.map((stage) => { const cards = filteredPipeline[stage]; const total = cards.reduce((sum, card) => sum + card.value, 0); return <div className="pipeline-column" key={stage} onDragOver={(event) => event.preventDefault()} onDrop={() => moveCard(stage)}><div className="pipeline-column-head"><div><span className="stage-dot" style={{ background: stageColors[stage] }} /><strong>{stageLabels[stage]}</strong><span className="count-chip">{cards.length}</span></div><span className="column-total">{formatMoney(total).replace(" DA", "")}</span></div><div className="pipeline-cards">{cards.map((card) => <div key={card.id} draggable onDragStart={() => setDragged({ id: card.id, stage })} onClick={() => setSelected(card)} className="pipeline-card"><div className="pipeline-card-top">{initialsBadge(card.name)}<button className="icon-button" onClick={(event) => { event.stopPropagation(); setNotice(`Options de ${card.name}`); }}><Icon name="dots" size={16} /></button></div><strong>{card.name}</strong><span className="pipeline-course">{card.course}</span><span className="pipeline-course">{contacts.find((person) => person.name === card.name)?.phone || "Téléphone non renseigné"}</span><div className="pipeline-card-foot"><span><Icon name="clock" size={12} /> {card.days === 0 ? "Nouveau" : `${card.days} j`}</span><span>{initialsBadge(card.staff)}</span></div></div>)}</div><button className="column-add" onClick={() => setNotice(`Ajouter un prospect dans « ${stageLabels[stage]} »`)}><Icon name="plus" size={14} /> Ajouter</button></div> })}</div> : <Panel className="table-panel"><div className="table-scroll"><table><thead><tr><th>Prospect</th><th>Téléphone</th><th>Email</th><th>Formation d'intérêt</th><th>Stade</th><th>Responsable</th><th>Source</th><th>Dernier contact</th><th>Création</th><th /></tr></thead><tbody>{filteredPeople.map((person) => <tr key={person.id} onClick={() => setSelectedPerson(person)}><td><div className="person-cell">{initialsBadge(person.name)}<div><strong>{person.name}</strong><span>{person.stage === "inscrit" ? "Prêt pour conversion étudiant" : "Prospect"}</span></div></div></td><td>{person.phone}</td><td>{person.email || "—"}</td><td>{person.course}</td><td><Badge tone={statusTone(stageLabels[person.stage])} dot>{stageLabels[person.stage]}</Badge></td><td><div className="mini-person">{initialsBadge(person.staff)}{person.staff}</div></td><td>{person.source}</td><td>{person.lastContact}</td><td>{person.enrolled || "Avant inscription"}</td><td><Icon name="chevron" size={16} stroke={COLORS.muted} /></td></tr>)}</tbody></table></div><div className="table-footer"><span>{filteredPeople.length} prospects affichés</span><span>Les prospects inscrits peuvent être convertis depuis leur fiche.</span></div></Panel>}
+    <PageHeader eyebrow="Acquisition & conversion" title="Prospects" description="Gérez vos futurs étudiants du premier contact jusqu'à l'inscription." action actionLabel="Nouveau prospect" onAction={() => setNotice("Nouveau prospect : formulaire prêt à être connecté à Supabase.")} />
+    <Panel className="prospects-toolbar"><div className="prospects-toolbar-main"><div className="search-box"><Icon name="search" size={16} /><input placeholder="Rechercher un prospect…" value={query} onChange={(event) => setQuery(event.target.value)} /></div><select className="select" aria-label="Statut" value={stageFilter} onChange={(event) => setStageFilter(event.target.value as Stage | "Tous")}><option value="Tous">Statut</option>{stages.map((stage) => <option key={stage} value={stage}>{stageLabels[stage]}</option>)}</select><select className="select" aria-label="Formation" value={courseFilter} onChange={(event) => setCourseFilter(event.target.value)}><option value="Toutes">Formation</option>{courses.map((course) => <option key={course.id}>{course.name}</option>)}</select><select className="select" aria-label="Source" value={sourceFilter} onChange={(event) => setSourceFilter(event.target.value)}><option value="Toutes">Source</option>{Array.from(new Set(contacts.map((person) => person.source))).map((source) => <option key={source}>{source}</option>)}</select></div><div className="view-toggle"><button className={view === "list" ? "active" : ""} onClick={() => setView("list")}><Icon name="checklist" size={14} /> Liste</button><button className={view === "pipeline" ? "active" : ""} onClick={() => setView("pipeline")}><Icon name="funnel" size={14} /> Pipeline</button></div></Panel>
+    <div className="prospects-summary"><strong>{filteredCards.length} prospects</strong><span>•</span><strong>{counts.inscrit} prêts à convertir</strong><span>•</span><strong>{formatMoney(cards.filter((card) => card.stage !== "abandonne").reduce((sum, card) => sum + card.value, 0))} pipeline</strong></div>
+    <div className="prospect-tabs"><button className={stageFilter === "Tous" ? "active" : ""} onClick={() => setStageFilter("Tous")}>Tous <span>{cards.length}</span></button>{stages.map((stage) => <button className={stageFilter === stage ? "active" : ""} key={stage} onClick={() => setStageFilter(stage)}>{stageLabels[stage]} <span>{counts[stage]}</span></button>)}</div>
+    {view === "list" ? <Panel className="table-panel prospects-table-panel"><div className="table-scroll"><table><thead><tr><th>Prospect</th><th>Formation</th><th>Statut</th><th>Téléphone</th><th>Responsable</th><th>Dernier contact</th><th>Actions</th></tr></thead><tbody>{filteredCards.map((card) => { const person = contactByName[card.name]; return <tr key={card.id} onClick={() => person ? setSelectedPerson(person) : setSelected(card)}><td><div className="person-cell">{initialsBadge(card.name)}<div><strong>{card.name}</strong><span>{person?.email || ""}</span></div></div></td><td>{card.course}</td><td><Badge tone={statusTone(stageLabels[card.stage])} dot>{stageLabels[card.stage]}</Badge></td><td>{person?.phone || "—"}</td><td><div className="mini-person">{initialsBadge(card.staff)}{card.staff}</div></td><td>{person?.lastContact || "—"}</td><td><button className="row-menu" onClick={(event) => { event.stopPropagation(); setNotice(`Options de ${card.name}`); }}><Icon name="dots" size={16} /></button></td></tr>; })}</tbody></table></div><div className="table-footer"><span>{filteredCards.length} prospects affichés</span><span>Les prospects inscrits peuvent être convertis depuis leur fiche.</span></div></Panel> : <div className="prospects-pipeline-scroll"><div className="pipeline-board prospects-pipeline">{stages.map((stage) => { const stageCards = filteredCards.filter((card) => card.stage === stage); return <div className="pipeline-column" key={stage} onDragOver={(event) => event.preventDefault()} onDrop={() => moveCard(stage)}><div className="pipeline-column-head"><div><span className="stage-dot" style={{ background: stageColors[stage] }} /><strong>{stageLabels[stage]}</strong><span className="count-chip">{stageCards.length}</span></div></div><div className="pipeline-cards">{stageCards.map((card) => <div key={card.id} draggable onDragStart={() => setDragged({ id: card.id, stage })} onClick={() => setSelected(card)} className="pipeline-card prospect-mini-card"><strong>{card.name}</strong><span className="pipeline-course">{card.course}</span><span className="pipeline-course">{contactByName[card.name]?.lastContact || "—"}</span><div className="pipeline-card-foot"><span>{initialsBadge(card.staff)}</span></div></div>)}</div></div>; })}</div></div>}
   </>;
 }
 
@@ -541,7 +518,7 @@ function TeacherDrawer({ teacher, onClose, setNotice }: { teacher: Teacher; onCl
 export default function App() {
   const [activePage, setActivePage] = useState<PageKey>("dashboard");
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [pipeline, setPipeline] = useState(pipelineSeed);
+  const [pipeline, setPipeline] = useState(prospectPipelineSeed);
   const [contacts, setContacts] = useState(people);
   const [tasks, setTasks] = useState(initialTasks);
   const [attendance, setAttendance] = useState(attendanceSeed);
@@ -574,7 +551,7 @@ export default function App() {
   };
 
   const groups: { label: string; items: { key: PageKey; label: string; icon: IconName; badge?: string }[] }[] = [
-    { label: "VUE D'ENSEMBLE", items: [{ key: "dashboard", label: "Dashboard", icon: "grid" }, { key: "prospects", label: "Prospects", icon: "funnel", badge: "32" }] },
+    { label: "VUE D'ENSEMBLE", items: [{ key: "dashboard", label: "Dashboard", icon: "grid" }, { key: "prospects", label: "Prospects", icon: "funnel", badge: String(Object.values(pipeline).flat().length) }] },
     { label: "PÉDAGOGIE", items: [{ key: "students", label: "Étudiants", icon: "graduation" }, { key: "formations", label: "Formations", icon: "file" }, { key: "teachers", label: "Formateurs", icon: "teacher" }, { key: "groups", label: "Groupes", icon: "users" }, { key: "planning", label: "Planning", icon: "calendar" }, { key: "attendance", label: "Présences", icon: "check" }] },
     { label: "FINANCES", items: [{ key: "payments", label: "Paiements", icon: "wallet", badge: "7" }, { key: "certificates", label: "Certificats", icon: "file" }] },
   ];
