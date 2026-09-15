@@ -569,3 +569,65 @@ tbody tr:hover { background: #f1faf8; }
   .prospects-toolbar .search-box { grid-column: 1 / -1; }
   .prospects-table-panel { margin-left: -2px; margin-right: -2px; }
 }
+
+/* Student experience: directory, profile, documents, and registration flows */
+.metrics-grid-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.student-filter-bar { gap: 16px; align-items: flex-end; }
+.student-filter-main { display: flex; align-items: center; gap: 9px; flex-wrap: wrap; flex: 1; }
+.student-filter-main .search-box { min-width: 230px; flex: 1; }
+.search-box.compact { width: 220px; }
+.search-box { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border: 1px solid var(--border); border-radius: 7px; background: #fff; color: #8b949c; }
+.search-box input { width: 100%; border: 0; outline: 0; color: var(--ink); font-size: 11px; background: transparent; }
+.profile-hero { display: flex; align-items: center; gap: 13px; padding-bottom: 18px; margin-bottom: 16px; border-bottom: 1px solid var(--border); }
+.profile-hero > div { flex: 1; min-width: 0; }
+.profile-hero h2 { margin: 0; color: var(--ink); font: 800 20px Manrope, sans-serif; letter-spacing: -.04em; }
+.profile-hero .eyebrow { margin-bottom: 4px; }
+.profile-subline { display: flex; align-items: center; gap: 8px; margin-top: 7px; color: var(--muted); font-size: 10px; }
+.profile-avatar.large { width: 52px; height: 52px; border-radius: 16px; font-size: 15px; }
+.profile-summary-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin-bottom: 4px; }
+.profile-summary-grid > div { padding: 12px; border: 1px solid var(--border); border-radius: 9px; background: #fcfbf8; }
+.profile-summary-grid span, .profile-summary-grid strong, .profile-summary-grid small { display: block; }
+.profile-summary-grid span { color: var(--muted); font-size: 9px; }
+.profile-summary-grid strong { margin-top: 5px; color: var(--ink); font: 800 15px Manrope, sans-serif; }
+.profile-summary-grid small { margin-top: 3px; color: #9aa3ac; font-size: 8px; }
+.profile-section { margin-top: 11px; }
+.section-caption, .muted-label { color: #9aa3ac; font-size: 9px; font-weight: 400; }
+.drawer-intro { display: flex; align-items: center; gap: 10px; padding: 11px; margin-bottom: 14px; border: 1px solid #d8eee9; border-radius: 9px; background: #f1faf8; }
+.drawer-intro > div { min-width: 0; }
+.drawer-intro strong, .drawer-intro span { display: block; }
+.drawer-intro strong { color: var(--ink); font-size: 11px; }
+.drawer-intro span { margin-top: 3px; color: var(--muted); font-size: 9px; }
+.document-list, .registration-list { display: flex; flex-direction: column; gap: 7px; }
+.document-row { display: flex; align-items: center; gap: 9px; padding: 9px; border: 1px solid #eef0f0; border-radius: 8px; background: #fff; }
+.document-row > div { flex: 1; min-width: 0; }
+.document-row strong, .document-row span { display: block; }
+.document-row strong { color: #405061; font-size: 10px; }
+.document-row div span { margin-top: 3px; overflow: hidden; color: #9aa3ac; font-size: 8px; text-overflow: ellipsis; white-space: nowrap; }
+.document-icon { display: grid; place-items: center; width: 28px; height: 28px; border-radius: 8px; color: var(--teal); background: var(--tealLight); flex-shrink: 0; }
+.empty-state { display: flex; align-items: center; gap: 9px; padding: 14px; border: 1px dashed #d8dde1; border-radius: 8px; background: #fcfbf8; }
+.empty-state > div { flex: 1; min-width: 0; }
+.empty-state strong, .empty-state span { display: block; }
+.empty-state strong { color: #405061; font-size: 10px; }
+.empty-state div span { margin-top: 3px; color: #9aa3ac; font-size: 9px; }
+.registration-card { padding: 12px; border: 1px solid var(--border); border-radius: 9px; background: #fff; }
+.registration-card-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+.registration-card-head strong, .registration-card-head span { display: block; }
+.registration-card-head strong { color: var(--ink); font-size: 11px; }
+.registration-card-head span { margin-top: 4px; color: var(--muted); font-size: 9px; }
+.registration-meta { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; padding-top: 10px; margin-top: 10px; border-top: 1px solid #eff0f0; }
+.registration-meta span { color: #9aa3ac; font-size: 8px; }
+.registration-meta strong { display: block; margin-top: 3px; color: #405061; font-size: 9px; }
+.profile-preview-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.preview-stat strong, .preview-stat span { display: block; }
+.preview-stat strong { color: var(--ink); font: 800 14px Manrope, sans-serif; }
+.preview-stat span { margin-top: 4px; color: var(--muted); font-size: 9px; }
+.mini-progress { height: 5px; overflow: hidden; margin-top: 9px; border-radius: 4px; background: #edf0f1; }
+.mini-progress i { display: block; height: 100%; border-radius: inherit; background: var(--teal); }
+.stepper { display: flex; align-items: center; gap: 6px; margin: 2px 0 15px; }
+.stepper span { padding: 6px 8px; border-radius: 6px; color: #9aa3ac; background: #f2f4f4; font-size: 8px; font-weight: 700; }
+.stepper span.active { color: var(--teal); background: var(--tealLight); }
+.drawer .settings-form { gap: 11px; }
+.drawer .settings-form label, .drawer-section > label { display: block; color: #5d6977; font-size: 10px; font-weight: 700; }
+.drawer .settings-form .field, .drawer-section > label .field { margin-top: 5px; width: 100%; }
+@media (max-width: 1000px) { .metrics-grid-4 { grid-template-columns: repeat(2, 1fr); } .profile-summary-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 640px) { .metrics-grid-4 { grid-template-columns: 1fr 1fr; } .student-filter-main { display: grid; grid-template-columns: 1fr 1fr; width: 100%; } .student-filter-main .search-box { min-width: 0; grid-column: 1 / -1; } .student-filter-bar { align-items: stretch; } .profile-hero { align-items: flex-start; flex-wrap: wrap; } .profile-hero > .button { width: 100%; } .profile-summary-grid, .profile-preview-grid { grid-template-columns: 1fr 1fr; } .registration-meta { grid-template-columns: 1fr 1fr; } .document-row { align-items: flex-start; flex-wrap: wrap; } .document-row .badge { margin-left: 37px; } }
