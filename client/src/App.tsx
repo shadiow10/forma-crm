@@ -5,7 +5,7 @@ import type { CSSProperties, FormEvent, ReactNode } from "react";
 // The interaction layer is intentionally local-first so every workflow is demonstrable
 // before wiring the same objects to Supabase tables and realtime subscriptions.
 
-type Stage = "prospect" | "contacte" | "interesse" | "pret" | "inscrit" | "encours" | "diplome" | "abandonne";
+type Stage = "inscrit" | "encours" | "diplome" | "abandonne";
 type IconName = keyof typeof ICONS;
 
 type Person = {
@@ -28,33 +28,12 @@ type Person = {
   progress: number;
 };
 
-type PipelineCard = {
-  id: number;
-  name: string;
-  course: string;
-  stage: Stage;
-  days: number;
-  staff: string;
-  value: number;
-};
-
-type Task = {
-  id: number;
-  title: string;
-  type: string;
-  contact: string;
-  assignee: string;
-  due: string;
-  priority: "Haute" | "Moyenne" | "Basse";
-  status: "À faire" | "Terminé";
-};
-
 type Course = { id: number; name: string; short: string; duration: string; price: number; students: number; color: string };
 type Teacher = { id: number; name: string; initials: string; subject: string; phone: string; email: string; classes: string[]; rate: number; contract: string; color: string };
 type SchoolClass = { id: number; name: string; teacher: string; room: string; schedule: string; days: string[]; time: string; enrolled: number; capacity: number; status: "Ouvert" | "Complet" | "Annulé"; subject: string; color: string; roster: number[] };
 type Payment = { id: number; student: string; course: string; total: number; paid: number; balance: number; date: string; method: string; status: "Payé" | "Partiel" | "En retard" };
 
-type PageKey = "dashboard" | "prospects" | "students" | "formations" | "teachers" | "groups" | "planning" | "attendance" | "payments" | "certificates" | "settings";
+type PageKey = "dashboard" | "students" | "enrollments" | "formations" | "teachers" | "groups" | "planning" | "attendance" | "payments" | "certificates" | "settings";
 
 const COLORS = {
   ink: "#17202A",
@@ -110,26 +89,8 @@ const Icon = ({ name, size = 18, stroke = "currentColor" }: { name: IconName; si
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={stroke} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d={ICONS[name]} /></svg>
 );
 
-const stageLabels: Record<Stage, string> = {
-  prospect: "Prospect",
-  contacte: "Contacté",
-  interesse: "Intéressé",
-  pret: "Prêt à s'inscrire",
-  inscrit: "Inscrit",
-  encours: "En cours",
-  diplome: "Diplômé",
-  abandonne: "Abandonné",
-};
-const stageColors: Record<Stage, string> = {
-  prospect: "#7B8794",
-  contacte: "#5A78A8",
-  interesse: "#C68D43",
-  pret: "#7A78B8",
-  inscrit: COLORS.teal,
-  encours: "#597BC4",
-  diplome: "#6A63B8",
-  abandonne: COLORS.red,
-};
+const stageLabels: Record<Stage, string> = { inscrit: "Inscrit", encours: "En cours", diplome: "Terminé", abandonne: "Abandonné" };
+const stageColors: Record<Stage, string> = { inscrit: COLORS.teal, encours: "#597BC4", diplome: "#6A63B8", abandonne: COLORS.red };
 
 const courses: Course[] = [
   { id: 1, name: "Bureautique & Excel", short: "Bureautique", duration: "3 mois", price: 45000, students: 18, color: "#5B8DEF" },
@@ -151,29 +112,19 @@ const people: Person[] = [
   { id: 4, name: "Karim Ouali", phone: "0550 72 18 06", email: "karim.ouali@proton.me", course: "Bureautique & Excel", stage: "encours", staff: "Nadia Benali", lastContact: "09 sept. 2026", source: "Walk-in", address: "Kouba, Alger", dob: "18/02/2001", attendance: 68, payment: "Partiel", balance: 12000, enrolled: "15/04/2026", teacher: "Nadia Benali", progress: 58 },
   { id: 5, name: "Imen Rahmani", phone: "0560 44 98 12", email: "imen.rahmani@gmail.com", course: "Marketing digital", stage: "diplome", staff: "Mehdi Saidi", lastContact: "08 sept. 2026", source: "Site web", address: "Draria, Alger", dob: "09/12/1997", attendance: 96, payment: "Payé", balance: 0, enrolled: "11/02/2026", teacher: "Riad Mansouri", progress: 100 },
   { id: 6, name: "Nour El Houda Saad", phone: "0698 67 22 51", email: "nour.saad@gmail.com", course: "Bureautique & Excel", stage: "inscrit", staff: "Sarah Kaci", lastContact: "07 sept. 2026", source: "Facebook", address: "Birkhadem, Alger", dob: "30/04/2003", attendance: 88, payment: "Payé", balance: 0, enrolled: "03/09/2026", teacher: "Nadia Benali", progress: 8 },
-  { id: 7, name: "Amine Khelifi", phone: "0555 10 62 44", email: "amine.khelifi@gmail.com", course: "Développement web", stage: "interesse", staff: "Amine Touati", lastContact: "06 sept. 2026", source: "LinkedIn", address: "Chéraga, Alger", dob: "10/10/1996", attendance: 0, payment: "Partiel", balance: 45000, enrolled: "", teacher: "", progress: 0 },
-  { id: 8, name: "Meriem Chibani", phone: "0790 21 45 88", email: "meriem.chibani@yahoo.com", course: "Design graphique", stage: "contacte", staff: "Sarah Kaci", lastContact: "05 sept. 2026", source: "Instagram", address: "Aïn Benian, Alger", dob: "05/05/2004", attendance: 0, payment: "Partiel", balance: 85000, enrolled: "", teacher: "", progress: 0 },
-  { id: 9, name: "Sofiane Bensaïd", phone: "0666 31 09 62", email: "sofiane.bensaid@gmail.com", course: "Comptabilité pratique", stage: "prospect", staff: "Mehdi Saidi", lastContact: "04 sept. 2026", source: "Référencement", address: "Bordj El Kiffan, Alger", dob: "", attendance: 0, payment: "Partiel", balance: 62000, enrolled: "", teacher: "", progress: 0 },
+  { id: 7, name: "Amine Khelifi", phone: "0555 10 62 44", email: "amine.khelifi@gmail.com", course: "Développement web", stage: "inscrit", staff: "Amine Touati", lastContact: "06 sept. 2026", source: "LinkedIn", address: "Chéraga, Alger", dob: "10/10/1996", attendance: 0, payment: "Partiel", balance: 45000, enrolled: "", teacher: "", progress: 0 },
+  { id: 8, name: "Meriem Chibani", phone: "0790 21 45 88", email: "meriem.chibani@yahoo.com", course: "Design graphique", stage: "inscrit", staff: "Sarah Kaci", lastContact: "05 sept. 2026", source: "Instagram", address: "Aïn Benian, Alger", dob: "05/05/2004", attendance: 0, payment: "Partiel", balance: 85000, enrolled: "", teacher: "", progress: 0 },
+  { id: 9, name: "Sofiane Bensaïd", phone: "0666 31 09 62", email: "sofiane.bensaid@gmail.com", course: "Comptabilité pratique", stage: "inscrit", staff: "Mehdi Saidi", lastContact: "04 sept. 2026", source: "Référencement", address: "Bordj El Kiffan, Alger", dob: "", attendance: 0, payment: "Partiel", balance: 62000, enrolled: "", teacher: "", progress: 0 },
   { id: 10, name: "Aya Mokhtari", phone: "0551 07 34 91", email: "aya.mokhtari@gmail.com", course: "Marketing digital", stage: "encours", staff: "Nadia Benali", lastContact: "03 sept. 2026", source: "Parrainage", address: "Dely Brahim, Alger", dob: "19/01/1999", attendance: 73, payment: "Payé", balance: 0, enrolled: "12/03/2026", teacher: "Riad Mansouri", progress: 70 },
   { id: 11, name: "Walid Hamza", phone: "0778 36 55 01", email: "walid.hamza@gmail.com", course: "Développement web", stage: "diplome", staff: "Mehdi Saidi", lastContact: "02 sept. 2026", source: "Walk-in", address: "Alger Centre", dob: "11/09/1995", attendance: 91, payment: "Payé", balance: 0, enrolled: "10/01/2026", teacher: "Omar Cherif", progress: 100 },
   { id: 12, name: "Hiba Saïdi", phone: "0562 91 25 14", email: "hiba.saidi@gmail.com", course: "Bureautique & Excel", stage: "abandonne", staff: "Sarah Kaci", lastContact: "29 août 2026", source: "Facebook", address: "Hussein Dey, Alger", dob: "23/03/2000", attendance: 41, payment: "En retard", balance: 18000, enrolled: "15/02/2026", teacher: "Nadia Benali", progress: 29 },
   { id: 13, name: "Mohamed Tarek", phone: "0699 02 72 13", email: "tarek.mohamed@gmail.com", course: "Design graphique", stage: "encours", staff: "Amine Touati", lastContact: "28 août 2026", source: "Instagram", address: "Ouled Fayet, Alger", dob: "01/07/2001", attendance: 79, payment: "Partiel", balance: 22000, enrolled: "20/05/2026", teacher: "Yanis Boudiaf", progress: 44 },
   { id: 14, name: "Rania Zerrouki", phone: "0557 13 88 21", email: "rania.zerrouki@gmail.com", course: "Comptabilité pratique", stage: "inscrit", staff: "Nadia Benali", lastContact: "27 août 2026", source: "Site web", address: "Sidi Yahia, Alger", dob: "16/12/2002", attendance: 94, payment: "Payé", balance: 0, enrolled: "07/09/2026", teacher: "Samira Ait Ali", progress: 4 },
   { id: 15, name: "Amina Djouadi", phone: "0771 20 44 83", email: "amina.djouadi@gmail.com", course: "Marketing digital", stage: "inscrit", staff: "Sarah Kaci", lastContact: "26 août 2026", source: "Parrainage", address: "Ben Aknoun, Alger", dob: "12/10/1998", attendance: 86, payment: "Partiel", balance: 17500, enrolled: "09/09/2026", teacher: "Riad Mansouri", progress: 4 },
-  { id: 16, name: "Ilyes Saouli", phone: "0664 41 05 18", email: "ilyes.saouli@outlook.com", course: "Développement web", stage: "interesse", staff: "Mehdi Saidi", lastContact: "25 août 2026", source: "TikTok", address: "Blida", dob: "07/06/2003", attendance: 0, payment: "Partiel", balance: 95000, enrolled: "", teacher: "", progress: 0 },
-  { id: 17, name: "Lamia Fares", phone: "0553 80 12 07", email: "lamia.fares@gmail.com", course: "Bureautique & Excel", stage: "contacte", staff: "Amine Touati", lastContact: "24 août 2026", source: "Facebook", address: "El Harrach, Alger", dob: "28/02/1996", attendance: 0, payment: "Partiel", balance: 45000, enrolled: "", teacher: "", progress: 0 },
+  { id: 16, name: "Ilyes Saouli", phone: "0664 41 05 18", email: "ilyes.saouli@outlook.com", course: "Développement web", stage: "inscrit", staff: "Mehdi Saidi", lastContact: "25 août 2026", source: "TikTok", address: "Blida", dob: "07/06/2003", attendance: 0, payment: "Partiel", balance: 95000, enrolled: "", teacher: "", progress: 0 },
+  { id: 17, name: "Lamia Fares", phone: "0553 80 12 07", email: "lamia.fares@gmail.com", course: "Bureautique & Excel", stage: "inscrit", staff: "Amine Touati", lastContact: "24 août 2026", source: "Facebook", address: "El Harrach, Alger", dob: "28/02/1996", attendance: 0, payment: "Partiel", balance: 45000, enrolled: "", teacher: "", progress: 0 },
   { id: 18, name: "Nassim Azzouz", phone: "0796 11 20 18", email: "nassim.azzouz@gmail.com", course: "Comptabilité pratique", stage: "diplome", staff: "Nadia Benali", lastContact: "22 août 2026", source: "Référencement", address: "Béjaïa", dob: "05/03/1994", attendance: 98, payment: "Payé", balance: 0, enrolled: "10/01/2026", teacher: "Samira Ait Ali", progress: 100 },
 ];
-
-const prospectStages: Stage[] = ["prospect", "contacte", "interesse", "pret", "inscrit", "abandonne"];
-const toProspectStage = (stage: Stage): Stage => stage === "encours" || stage === "diplome" ? "inscrit" : stage;
-const prospectPipelineSeed: Record<Stage, PipelineCard[]> = {
-  prospect: [], contacte: [], interesse: [], pret: [], inscrit: [], encours: [], diplome: [], abandonne: [],
-};
-people.forEach((person, index) => {
-  const stage = toProspectStage(person.stage);
-  prospectPipelineSeed[stage].push({ id: 1000 + person.id, name: person.name, course: person.course, stage, days: index + 1, staff: person.staff, value: courses.find((course) => course.name === person.course)?.price || 0 });
-});
 
 const teachers: Teacher[] = [
   { id: 1, name: "Nadia Benali", initials: "NB", subject: "Bureautique & Excel", phone: "0555 44 10 21", email: "nadia.benali@formacrm.dz", classes: ["Excel avancé — Matin", "Bureautique — Soir"], rate: 1800, contract: "Temps plein", color: "#5B8DEF" },
@@ -217,33 +168,7 @@ const payments: Payment[] = [
   { id: 22, student: "Amine Khelifi", course: "Développement web", total: 95000, paid: 30000, balance: 65000, date: "11 août 2026", method: "Espèces", status: "Partiel" },
 ];
 
-const initialTasks: Task[] = [
-  { id: 1, title: "Relancer pour confirmer l'inscription", type: "Suivi", contact: "Amine Khelifi", assignee: "Amine Touati", due: "Aujourd'hui", priority: "Haute", status: "À faire" },
-  { id: 2, title: "Rappeler — dossier incomplet", type: "Appel", contact: "Meriem Chibani", assignee: "Sarah Kaci", due: "Aujourd'hui", priority: "Moyenne", status: "À faire" },
-  { id: 3, title: "Envoyer rappel de paiement", type: "Paiement", contact: "Sara Belkacem", assignee: "Nadia Benali", due: "Aujourd'hui", priority: "Haute", status: "À faire" },
-  { id: 4, title: "Collecter copie de la pièce d'identité", type: "Document", contact: "Rania Zerrouki", assignee: "Sarah Kaci", due: "Aujourd'hui", priority: "Basse", status: "À faire" },
-  { id: 5, title: "Confirmer date de rentrée", type: "Suivi", contact: "Ilyes Saouli", assignee: "Mehdi Saidi", due: "Demain", priority: "Moyenne", status: "À faire" },
-  { id: 6, title: "Appel de bienvenue", type: "Appel", contact: "Amina Djouadi", assignee: "Sarah Kaci", due: "16 sept. 2026", priority: "Basse", status: "À faire" },
-  { id: 7, title: "Relance solde restant", type: "Paiement", contact: "Yacine Merabet", assignee: "Mehdi Saidi", due: "17 sept. 2026", priority: "Haute", status: "À faire" },
-  { id: 8, title: "Préparer certificat de Lina Haddad", type: "Document", contact: "Lina Haddad", assignee: "Nadia Benali", due: "18 sept. 2026", priority: "Basse", status: "À faire" },
-  { id: 9, title: "Vérifier présence de Karim Ouali", type: "Suivi", contact: "Karim Ouali", assignee: "Nadia Benali", due: "Hier", priority: "Haute", status: "À faire" },
-  { id: 10, title: "Mettre à jour dossier Walid Hamza", type: "Document", contact: "Walid Hamza", assignee: "Mehdi Saidi", due: "12 sept. 2026", priority: "Moyenne", status: "Terminé" },
-  { id: 11, title: "Envoyer programme Design", type: "Suivi", contact: "Nadia Ferhat", assignee: "Sarah Kaci", due: "13 sept. 2026", priority: "Basse", status: "Terminé" },
-  { id: 12, title: "Appel satisfaction fin de parcours", type: "Appel", contact: "Imen Rahmani", assignee: "Nadia Benali", due: "10 sept. 2026", priority: "Basse", status: "Terminé" },
-];
-
-const activity = [
-  { icon: "graduation" as IconName, title: "Rania Zerrouki a été inscrite", meta: "Comptabilité pratique · il y a 32 min", tone: COLORS.teal },
-  { icon: "wallet" as IconName, title: "Paiement reçu de Lina Haddad", meta: "85 000 DA · il y a 1 h", tone: COLORS.green },
-  { icon: "phone" as IconName, title: "Appel enregistré avec Amine Khelifi", meta: "Suivi inscription · il y a 2 h", tone: COLORS.navy2 },
-  { icon: "checkCircle" as IconName, title: "Certificat généré pour Imen Rahmani", meta: "Marketing digital · il y a 3 h", tone: "#6A63B8" },
-  { icon: "users" as IconName, title: "Nouveau prospect : Sofiane Bensaïd", meta: "Source Référencement · il y a 4 h", tone: COLORS.coral },
-  { icon: "warning" as IconName, title: "Alerte présence — Karim Ouali", meta: "68% sur les 4 dernières semaines · hier", tone: COLORS.red },
-  { icon: "file" as IconName, title: "Document ajouté au dossier de Sara", meta: "Pièce d'identité · hier", tone: COLORS.yellow },
-  { icon: "calendar" as IconName, title: "Cours Web Frontend marqué complet", meta: "16/16 inscrits · hier", tone: "#5B8DEF" },
-];
-
-const attendanceDates = ["02 sept.", "04 sept.", "07 sept.", "09 sept.", "11 sept.", "14 sept.", "16 sept.", "18 sept.", "21 sept.", "23 sept.", "25 sept.", "28 sept."];
+const attendanceDates = ["08 sept.", "09 sept.", "10 sept.", "11 sept.", "12 sept."];
 const attendanceSeed: Record<number, string[]> = {};
 people.filter((p) => p.enrolled).forEach((person, index) => {
   attendanceSeed[person.id] = attendanceDates.map((_, dateIndex) => (dateIndex + index) % 9 === 0 ? "A" : (dateIndex + index) % 6 === 0 ? "L" : "P");
@@ -295,88 +220,51 @@ const Panel = ({ children, className = "", title, action }: { children: ReactNod
 );
 
 function Dashboard({ goTo, setNotice }: { goTo: (key: PageKey) => void; setNotice: (message: string) => void }) {
-  const funnel = [
-    { label: "Prospects", value: 32, width: 100, color: "#9BA8B7" },
-    { label: "Contactés", value: 24, width: 76, color: "#6C86AE" },
-    { label: "Intéressés", value: 16, width: 54, color: "#C99B57" },
-    { label: "Inscrits", value: 12, width: 40, color: COLORS.teal },
-    { label: "Diplômés", value: 3, width: 18, color: "#746DB6" },
-  ];
-  const monthBars = [42, 56, 48, 69, 74, 63, 88, 71, 59];
-  const tasksToday = initialTasks.filter((task) => task.due === "Aujourd'hui");
-  const atRisk = people.filter((person) => person.attendance > 0 && person.attendance < 75);
+  const activeStudents = people.filter((person) => person.stage === "inscrit" || person.stage === "encours").length;
+  const activeGroups = classes.filter((item) => item.status !== "Annulé").length;
+  const todayClasses = classes.slice(0, 3);
+  const todayAttendance = people.filter((person) => person.attendance > 0).length;
+  const recentEnrollments = people.filter((person) => Boolean(person.enrolled)).slice(0, 5);
   return <>
-    <PageHeader eyebrow="Lundi 14 septembre 2026" title="Bonjour Nadia," description="Voici ce qui se passe dans votre école aujourd'hui." action actionLabel="Nouvelle inscription" onAction={() => { goTo("prospects"); setNotice("Formulaire de nouvelle inscription ouvert depuis Prospects."); }} />
+    <PageHeader eyebrow="Lundi 14 septembre 2026" title="Bonjour Nadia," description="Voici ce qui se passe dans votre centre aujourd'hui." action actionLabel="Nouvelle inscription" onAction={() => goTo("enrollments")} />
     <div className="metrics-grid">
-      <MetricCard label="Leads ce mois" value="48" note="vs 39 le mois dernier" trend="+23%" icon="users" accent={COLORS.coral} />
-      <MetricCard label="Étudiants actifs" value="69" note="sur 5 formations" icon="graduation" accent={COLORS.teal} />
-      <MetricCard label="Encaissé ce mois" value="1,84 M DA" note="+12% vs août" trend="+12%" icon="wallet" accent="#5B8DEF" />
-      <MetricCard label="Paiements en attente" value="428 k DA" note="7 comptes concernés" icon="clock" accent={COLORS.yellow} />
-      <MetricCard label="Présence moyenne" value="86,4%" note="sur les 4 dernières semaines" trend="+2,1%" icon="checkCircle" accent="#6A63B8" />
-      <MetricCard label="Taux d'abandon" value="4,8%" note="objectif : moins de 6%" icon="warning" accent={COLORS.red} />
+      <MetricCard label="Étudiants actifs" value={String(activeStudents)} note="inscrits dans le centre" icon="graduation" accent={COLORS.teal} />
+      <MetricCard label="Inscriptions en cours" value={String(people.filter((person) => person.stage === "encours").length)} note="parmi les dossiers actifs" icon="file" accent="#5B8DEF" />
+      <MetricCard label="Groupes actifs" value={String(activeGroups)} note="sur le planning actuel" icon="users" accent={COLORS.coral} />
+      <MetricCard label="Cours aujourd'hui" value={String(todayClasses.length)} note="sessions programmées" icon="calendar" accent="#6A63B8" />
+      <MetricCard label="Présences aujourd'hui" value={String(todayAttendance)} note="étudiants suivis" icon="checkCircle" accent={COLORS.green} />
+      <MetricCard label="Paiements en attente" value={String(payments.filter((payment) => payment.status !== "Payé").length)} note="dossiers à vérifier" icon="wallet" accent={COLORS.yellow} />
     </div>
     <div className="dashboard-grid top-grid">
-      <Panel title="Conversion du pipeline" action={<Button variant="ghost" icon="arrow" onClick={() => goTo("prospects")}>Voir les prospects</Button>}>
-        <div className="funnel-wrap"><div className="funnel-chart">{funnel.map((item) => <div className="funnel-row" key={item.label}><div className="funnel-label"><span>{item.label}</span><strong>{item.value}</strong></div><div className="funnel-bar-track"><div className="funnel-bar" style={{ width: `${item.width}%`, background: item.color }} /></div></div>)}</div><div className="conversion-kpi"><span className="conversion-ring">37<span>%</span></span><div><strong>Conversion globale</strong><p>de prospect à inscrit</p></div></div></div>
+      <Panel title="Cours aujourd'hui" action={<Button variant="ghost" icon="arrow" onClick={() => goTo("planning")}>Voir le planning</Button>}>
+        <div className="activity-list">{todayClasses.map((item) => <div className="activity-row" key={item.id}><span className="activity-icon" style={{ background: `${item.color}18`, color: item.color }}><Icon name="calendar" size={15} /></span><div><strong>{item.name}</strong><span>{item.schedule} · {item.room}</span></div><Badge tone={statusTone(item.status)}>{item.status}</Badge></div>)}</div>
       </Panel>
-      <Panel title="Inscriptions 2026" action={<select className="compact-select" defaultValue="2026"><option>2026</option><option>2025</option></select>}>
-        <div className="bar-chart">{monthBars.map((height, index) => <div className="bar-col" key={index}><div className="bar-value">{Math.round(height / 5)}</div><div className="bar" style={{ height: `${height}%` }} /><span>{["Jan", "Fév", "Mar", "Avr", "Mai", "Juin", "Juil", "Août", "Sep"][index]}</span></div>)}</div>
+      <Panel title="Présences du jour" action={<Button variant="ghost" icon="arrow" onClick={() => goTo("attendance")}>Ouvrir les présences</Button>}>
+        <div className="risk-list">{people.filter((person) => person.attendance > 0).slice(0, 4).map((person) => <div className="risk-row" key={person.id} onClick={() => goTo("attendance")}><div>{initialsBadge(person.name)}</div><div className="task-copy"><strong>{person.name}</strong><span>{person.course}</span></div><div className="risk-score">{person.attendance}%<span>présence</span></div><Icon name="chevron" size={16} stroke={COLORS.muted} /></div>)}</div>
       </Panel>
     </div>
     <div className="dashboard-grid lower-grid">
-      <Panel title="À faire aujourd'hui" action={<Button variant="ghost" icon="arrow" onClick={() => setNotice("Le module Tâches reste disponible pour une prochaine évolution.")}>Toutes les tâches</Button>}>
-        <div className="task-list">{tasksToday.map((task) => <div className="task-row" key={task.id}><span className={`task-check ${task.status === "Terminé" ? "done" : ""}`} onClick={() => setNotice(`Tâche « ${task.title} » marquée comme terminée.`)}>{task.status === "Terminé" && <Icon name="check" size={13} />}</span><div className="task-copy"><strong>{task.title}</strong><span>{task.contact} · {task.assignee}</span></div><Badge tone={task.priority === "Haute" ? "danger" : task.priority === "Moyenne" ? "warning" : "neutral"}>{task.priority}</Badge></div>)}</div>
+      <Panel title="Inscriptions récentes" action={<Button variant="ghost" icon="arrow" onClick={() => goTo("enrollments")}>Toutes les inscriptions</Button>}>
+        <div className="activity-list">{recentEnrollments.map((person) => <div className="activity-row" key={person.id}><span className="activity-icon" style={{ background: COLORS.tealLight, color: COLORS.teal }}><Icon name="check" size={15} /></span><div><strong>{person.name}</strong><span>{person.course} · {person.enrolled}</span></div><Badge tone={statusTone(stageLabels[person.stage])}>{stageLabels[person.stage]}</Badge></div>)}</div>
       </Panel>
-      <Panel title="Présence à surveiller" action={<Button variant="ghost" icon="arrow" onClick={() => goTo("students")}>Voir les étudiants</Button>}>
-        <div className="risk-list">{atRisk.map((person) => <div className="risk-row" key={person.id} onClick={() => goTo("students")}><div>{initialsBadge(person.name)}</div><div className="task-copy"><strong>{person.name}</strong><span>{person.course}</span></div><div className="risk-score">{person.attendance}%<span>présence</span></div><Icon name="chevron" size={16} stroke={COLORS.muted} /></div>)}</div>
+      <Panel title="Paiements récents" action={<Button variant="ghost" icon="arrow" onClick={() => goTo("payments")}>Voir les paiements</Button>}>
+        <div className="activity-list">{payments.slice(0, 4).map((payment) => <div className="activity-row" key={payment.id}><span className="activity-icon" style={{ background: `${COLORS.yellow}18`, color: COLORS.yellow }}><Icon name="wallet" size={15} /></span><div><strong>{payment.student}</strong><span>{formatMoney(payment.paid)} · {payment.date}</span></div><Badge tone={statusTone(payment.status)}>{payment.status}</Badge></div>)}</div>
       </Panel>
-      <Panel title="Activité récente" action={<button className="text-button" onClick={() => setNotice("Le journal complet sera disponible avec la synchronisation Supabase.")}>Journal complet</button>}>
-        <div className="activity-list">{activity.slice(0, 5).map((item, index) => <div className="activity-row" key={index}><span className="activity-icon" style={{ background: `${item.tone}18`, color: item.tone }}><Icon name={item.icon} size={15} /></span><div><strong>{item.title}</strong><span>{item.meta}</span></div></div>)}</div>
+      <Panel title="Groupes actifs" action={<Button variant="ghost" icon="arrow" onClick={() => goTo("groups")}>Voir les groupes</Button>}>
+        <div className="activity-list">{classes.filter((item) => item.status !== "Annulé").slice(0, 4).map((item) => <div className="activity-row" key={item.id}><span className="activity-icon" style={{ background: `${item.color}18`, color: item.color }}><Icon name="users" size={15} /></span><div><strong>{item.name}</strong><span>{item.enrolled}/{item.capacity} étudiants · {item.teacher}</span></div><Badge tone={statusTone(item.status)}>{item.status}</Badge></div>)}</div>
       </Panel>
     </div>
   </>;
 }
 
-function Prospects({ pipeline, setPipeline, contacts, setSelected, setSelectedPerson, setNotice }: { pipeline: Record<Stage, PipelineCard[]>; setPipeline: (next: Record<Stage, PipelineCard[]>) => void; contacts: Person[]; setSelected: (card: PipelineCard) => void; setSelectedPerson: (person: Person) => void; setNotice: (message: string) => void }) {
-  const [dragged, setDragged] = useState<{ id: number; stage: Stage } | null>(null);
+function Inscriptions({ contacts, setSelected, setNotice }: { contacts: Person[]; setSelected: (person: Person) => void; setNotice: (message: string) => void }) {
   const [query, setQuery] = useState("");
-  const [stageFilter, setStageFilter] = useState<Stage | "Tous">("Tous");
-  const [courseFilter, setCourseFilter] = useState("Toutes");
-  const [sourceFilter, setSourceFilter] = useState("Toutes");
-  const [view, setView] = useState<"list" | "pipeline">("list");
-  const contactByName = useMemo(() => Object.fromEntries(contacts.map((person) => [person.name, person])), [contacts]);
-  const cards = prospectStages.flatMap((stage) => pipeline[stage] || []);
-  const filteredCards = cards.filter((card) => {
-    const person = contactByName[card.name];
-    const haystack = `${card.name} ${card.course} ${person?.email || ""} ${person?.phone || ""}`.toLowerCase();
-    return haystack.includes(query.toLowerCase()) && (stageFilter === "Tous" || card.stage === stageFilter) && (courseFilter === "Toutes" || card.course === courseFilter) && (sourceFilter === "Toutes" || person?.source === sourceFilter);
-  });
-  const stages = prospectStages;
-  const counts = Object.fromEntries(stages.map((stage) => [stage, cards.filter((card) => card.stage === stage).length])) as Record<Stage, number>;
-  const moveCard = (targetStage: Stage) => {
-    if (!dragged || dragged.stage === targetStage) return;
-    const card = pipeline[dragged.stage].find((item) => item.id === dragged.id);
-    if (!card) return;
-    setPipeline({ ...pipeline, [dragged.stage]: pipeline[dragged.stage].filter((item) => item.id !== dragged.id), [targetStage]: [...pipeline[targetStage], { ...card, stage: targetStage, days: 0 }] });
-    setNotice(`${card.name} déplacé vers « ${stageLabels[targetStage]} ».`);
-    setDragged(null);
-  };
+  const enrolled = contacts.filter((person) => person.enrolled || person.stage === "inscrit" || person.stage === "encours" || person.stage === "diplome");
+  const filtered = enrolled.filter((person) => `${person.name} ${person.course}`.toLowerCase().includes(query.toLowerCase()));
   return <>
-    <PageHeader eyebrow="Acquisition & conversion" title="Prospects" description="Gérez vos futurs étudiants du premier contact jusqu'à l'inscription." action actionLabel="Nouveau prospect" onAction={() => setNotice("Nouveau prospect : formulaire prêt à être connecté à Supabase.")} />
-    <Panel className="prospects-toolbar"><div className="prospects-toolbar-main"><div className="search-box"><Icon name="search" size={16} /><input placeholder="Rechercher un prospect…" value={query} onChange={(event) => setQuery(event.target.value)} /></div><select className="select" aria-label="Statut" value={stageFilter} onChange={(event) => setStageFilter(event.target.value as Stage | "Tous")}><option value="Tous">Statut</option>{stages.map((stage) => <option key={stage} value={stage}>{stageLabels[stage]}</option>)}</select><select className="select" aria-label="Formation" value={courseFilter} onChange={(event) => setCourseFilter(event.target.value)}><option value="Toutes">Formation</option>{courses.map((course) => <option key={course.id}>{course.name}</option>)}</select><select className="select" aria-label="Source" value={sourceFilter} onChange={(event) => setSourceFilter(event.target.value)}><option value="Toutes">Source</option>{Array.from(new Set(contacts.map((person) => person.source))).map((source) => <option key={source}>{source}</option>)}</select></div><div className="view-toggle"><button className={view === "list" ? "active" : ""} onClick={() => setView("list")}><Icon name="checklist" size={14} /> Liste</button><button className={view === "pipeline" ? "active" : ""} onClick={() => setView("pipeline")}><Icon name="funnel" size={14} /> Pipeline</button></div></Panel>
-    <div className="prospects-summary"><strong>{filteredCards.length} prospects</strong><span>•</span><strong>{counts.inscrit} prêts à convertir</strong><span>•</span><strong>{formatMoney(cards.filter((card) => card.stage !== "abandonne").reduce((sum, card) => sum + card.value, 0))} pipeline</strong></div>
-    <div className="prospect-tabs"><button className={stageFilter === "Tous" ? "active" : ""} onClick={() => setStageFilter("Tous")}>Tous <span>{cards.length}</span></button>{stages.map((stage) => <button className={stageFilter === stage ? "active" : ""} key={stage} onClick={() => setStageFilter(stage)}>{stageLabels[stage]} <span>{counts[stage]}</span></button>)}</div>
-    {view === "list" ? <Panel className="table-panel prospects-table-panel"><div className="table-scroll"><table><thead><tr><th>Prospect</th><th>Formation</th><th>Statut</th><th>Téléphone</th><th>Responsable</th><th>Dernier contact</th><th>Actions</th></tr></thead><tbody>{filteredCards.map((card) => { const person = contactByName[card.name]; return <tr key={card.id} onClick={() => person ? setSelectedPerson(person) : setSelected(card)}><td><div className="person-cell">{initialsBadge(card.name)}<div><strong>{card.name}</strong><span>{person?.email || ""}</span></div></div></td><td>{card.course}</td><td><Badge tone={statusTone(stageLabels[card.stage])} dot>{stageLabels[card.stage]}</Badge></td><td>{person?.phone || "—"}</td><td><div className="mini-person">{initialsBadge(card.staff)}{card.staff}</div></td><td>{person?.lastContact || "—"}</td><td><button className="row-menu" onClick={(event) => { event.stopPropagation(); setNotice(`Options de ${card.name}`); }}><Icon name="dots" size={16} /></button></td></tr>; })}</tbody></table></div><div className="table-footer"><span>{filteredCards.length} prospects affichés</span><span>Les prospects inscrits peuvent être convertis depuis leur fiche.</span></div></Panel> : <div className="prospects-pipeline-scroll"><div className="pipeline-board prospects-pipeline">{stages.map((stage) => { const stageCards = filteredCards.filter((card) => card.stage === stage); return <div className="pipeline-column" key={stage} onDragOver={(event) => event.preventDefault()} onDrop={() => moveCard(stage)}><div className="pipeline-column-head"><div><span className="stage-dot" style={{ background: stageColors[stage] }} /><strong>{stageLabels[stage]}</strong><span className="count-chip">{stageCards.length}</span></div></div><div className="pipeline-cards">{stageCards.map((card) => <div key={card.id} draggable onDragStart={() => setDragged({ id: card.id, stage })} onClick={() => setSelected(card)} className="pipeline-card prospect-mini-card"><strong>{card.name}</strong><span className="pipeline-course">{card.course}</span><span className="pipeline-course">{contactByName[card.name]?.lastContact || "—"}</span><div className="pipeline-card-foot"><span>{initialsBadge(card.staff)}</span></div></div>)}</div></div>; })}</div></div>}
-  </>;
-}
-
-function Contacts({ contacts, setContacts, setSelected, setNotice }: { contacts: Person[]; setContacts: (next: Person[]) => void; setSelected: (person: Person) => void; setNotice: (message: string) => void }) {
-  const [query, setQuery] = useState("");
-  const [stageFilter, setStageFilter] = useState("Tous");
-  const filtered = contacts.filter((person) => `${person.name} ${person.email} ${person.course}`.toLowerCase().includes(query.toLowerCase()) && (stageFilter === "Tous" || stageLabels[person.stage] === stageFilter));
-  return <>
-    <PageHeader eyebrow="Base de données" title="Contacts" description="Le répertoire complet de vos prospects, étudiants et anciens élèves." action actionLabel="Nouveau contact" onAction={() => setNotice("Nouveau contact : le formulaire est prêt à être connecté.")} />
-    <Panel className="table-panel"><div className="toolbar"><div className="search-box"><Icon name="search" size={16} /><input placeholder="Rechercher un nom, un email…" value={query} onChange={(e) => setQuery(e.target.value)} /></div><div className="toolbar-right"><select value={stageFilter} onChange={(e) => setStageFilter(e.target.value)} className="select"><option>Tous</option>{(Object.keys(stageLabels) as Stage[]).map((stage) => <option key={stage}>{stageLabels[stage]}</option>)}</select><Button variant="outline" icon="download" onClick={() => setNotice("Export CSV simulé — aucune donnée n'a été envoyée.")}>Exporter</Button></div></div><div className="table-scroll"><table><thead><tr><th>Contact</th><th>Téléphone</th><th>Formation</th><th>Étape</th><th>Responsable</th><th>Dernier contact</th><th>Source</th><th /></tr></thead><tbody>{filtered.map((person) => <tr key={person.id} onClick={() => setSelected(person)}><td><div className="person-cell">{initialsBadge(person.name)}<div><strong>{person.name}</strong><span>{person.email}</span></div></div></td><td>{person.phone}</td><td>{person.course}</td><td><Badge tone={statusTone(stageLabels[person.stage])} dot>{stageLabels[person.stage]}</Badge></td><td><div className="mini-person">{initialsBadge(person.staff)}{person.staff}</div></td><td>{person.lastContact}</td><td><span className="source-cell">{person.source}</span></td><td><Icon name="chevron" size={16} stroke={COLORS.muted} /></td></tr>)}</tbody></table></div><div className="table-footer"><span>{filtered.length} contacts affichés</span><span>Dernière synchronisation : il y a 4 min</span></div></Panel>
+    <PageHeader eyebrow="Gestion des dossiers" title="Inscriptions" description="Suivez les inscriptions des étudiants dans chaque formation." action actionLabel="Nouvelle inscription" onAction={() => setNotice("Le formulaire d'inscription sera connecté à la base de données.")} />
+    <div className="metrics-grid metrics-grid-4"><MetricCard label="Inscriptions actives" value={String(enrolled.length)} note="dossiers en cours" icon="file" accent={COLORS.teal} /><MetricCard label="En cours" value={String(enrolled.filter((person) => person.stage === "encours").length)} note="formations commencées" icon="graduation" accent="#5B8DEF" /><MetricCard label="Terminées" value={String(enrolled.filter((person) => person.stage === "diplome").length)} note="certificats à suivre" icon="checkCircle" accent={COLORS.green} /><MetricCard label="Solde restant" value={formatMoney(enrolled.reduce((sum, person) => sum + person.balance, 0))} note="sur les inscriptions" icon="wallet" accent={COLORS.yellow} /></div>
+    <Panel className="table-panel" title="Dossiers d'inscription" action={<div className="search-box compact"><Icon name="search" size={16} /><input placeholder="Rechercher un étudiant…" value={query} onChange={(event) => setQuery(event.target.value)} /></div>}><div className="table-scroll"><table><thead><tr><th>Étudiant</th><th>Formation</th><th>Statut</th><th>Date d'inscription</th><th>Paiement</th><th>Solde</th></tr></thead><tbody>{filtered.map((person) => <tr key={person.id} onClick={() => setSelected(person)}><td><div className="person-cell">{initialsBadge(person.name)}<div><strong>{person.name}</strong><span>{person.email}</span></div></div></td><td>{person.course}</td><td><Badge tone={person.stage === "diplome" ? "success" : person.stage === "encours" ? "info" : "neutral"} dot>{person.stage === "diplome" ? "Terminé" : stageLabels[person.stage] === "Inscrit" ? "Inscrit" : "En cours"}</Badge></td><td>{person.enrolled || "À compléter"}</td><td><Badge tone={statusTone(person.payment)}>{person.payment}</Badge></td><td>{formatMoney(person.balance)}</td></tr>)}</tbody></table></div><div className="table-footer"><span>{filtered.length} inscriptions affichées</span><span>Une inscription associe un étudiant à une formation.</span></div></Panel>
   </>;
 }
 
@@ -451,22 +339,6 @@ function Payments({ setNotice }: { setNotice: (message: string) => void }) {
   </>;
 }
 
-function Tasks({ tasks, setTasks, setNotice }: { tasks: Task[]; setTasks: (next: Task[]) => void; setNotice: (message: string) => void }) {
-  const [status, setStatus] = useState("Tous");
-  const [type, setType] = useState("Tous");
-  const [today, setToday] = useState(false);
-  const [showForm, setShowForm] = useState(false);
-  const [newTitle, setNewTitle] = useState("");
-  const filtered = tasks.filter((task) => (status === "Tous" || task.status === status) && (type === "Tous" || task.type === type) && (!today || task.due === "Aujourd'hui"));
-  const toggle = (id: number) => { setTasks(tasks.map((task) => task.id === id ? { ...task, status: task.status === "Terminé" ? "À faire" : "Terminé" } : task)); setNotice("Statut de la tâche mis à jour."); };
-  const addTask = (event: FormEvent) => { event.preventDefault(); if (!newTitle.trim()) return; setTasks([{ id: Date.now(), title: newTitle, type: "Suivi", contact: "À associer", assignee: "Nadia Benali", due: "Aujourd'hui", priority: "Moyenne", status: "À faire" }, ...tasks]); setNewTitle(""); setShowForm(false); setNotice("Tâche ajoutée à votre liste."); };
-  return <>
-    <PageHeader eyebrow="Organisation d'équipe" title="Tâches & suivi" description="Ne laissez aucune relance, document ou paiement passer entre les mailles." action actionLabel={showForm ? "Fermer" : "Nouvelle tâche"} actionIcon={showForm ? "close" : "plus"} onAction={() => setShowForm(!showForm)} />
-    {showForm && <Panel className="quick-add"><form onSubmit={addTask}><input className="field" value={newTitle} onChange={(e) => setNewTitle(e.target.value)} placeholder="Ex. Relancer un prospect pour confirmer son choix de formation" /><Button type="submit" icon="check">Ajouter la tâche</Button></form></Panel>}
-    <Panel className="table-panel"><div className="toolbar"><div className="filter-pills"><select className="select" value={status} onChange={(e) => setStatus(e.target.value)}><option>Tous</option><option>À faire</option><option>Terminé</option></select><select className="select" value={type} onChange={(e) => setType(e.target.value)}><option>Tous</option><option>Appel</option><option>Suivi</option><option>Paiement</option><option>Document</option></select><button className={`today-toggle ${today ? "active" : ""}`} onClick={() => setToday(!today)}><Icon name="calendar" size={15} /> Aujourd'hui</button></div><div className="active-count"><strong>{tasks.filter((task) => task.status === "À faire").length}</strong><span>tâches à faire</span></div></div><div className="table-scroll"><table><thead><tr><th>Tâche</th><th>Type</th><th>Contact lié</th><th>Responsable</th><th>Échéance</th><th>Priorité</th><th>Statut</th><th /></tr></thead><tbody>{filtered.map((task) => <tr key={task.id} className={task.due === "Hier" ? "row-danger" : ""}><td><div className="task-table-title"><button className={`task-check ${task.status === "Terminé" ? "done" : ""}`} onClick={() => toggle(task.id)}>{task.status === "Terminé" && <Icon name="check" size={13} />}</button><strong className={task.status === "Terminé" ? "completed-text" : ""}>{task.title}</strong></div></td><td><span className="type-label"><Icon name={task.type === "Appel" ? "phone" : task.type === "Paiement" ? "wallet" : task.type === "Document" ? "file" : "arrow"} size={14} />{task.type}</span></td><td>{task.contact}</td><td>{task.assignee}</td><td><span className={task.due === "Hier" ? "text-danger" : ""}>{task.due}</span></td><td><Badge tone={task.priority === "Haute" ? "danger" : task.priority === "Moyenne" ? "warning" : "neutral"}>{task.priority}</Badge></td><td><Badge tone={task.status === "Terminé" ? "success" : "info"} dot>{task.status}</Badge></td><td><button className="row-menu" onClick={() => setNotice(`Options pour « ${task.title} »`)}><Icon name="dots" size={16} /></button></td></tr>)}</tbody></table></div></Panel>
-  </>;
-}
-
 function Teachers({ setSelectedTeacher, setNotice }: { setSelectedTeacher: (teacher: Teacher) => void; setNotice: (message: string) => void }) {
   return <>
     <PageHeader eyebrow="Équipe pédagogique" title="Enseignants" description="Un annuaire clair pour piloter l'équipe et les heures enseignées." action actionLabel="Ajouter un enseignant" onAction={() => setNotice("Formulaire d'ajout d'enseignant ouvert.")} />
@@ -480,7 +352,7 @@ function Certificates({ contacts, setNotice }: { contacts: Person[]; setNotice: 
   const eligible = contacts.filter((person) => person.stage === "diplome" && person.attendance >= 75 && person.balance === 0);
   return <>
     <PageHeader eyebrow="Documents officiels" title="Certificats & documents" description="Générez des documents prêts à imprimer pour chaque étape du parcours étudiant." action actionLabel="Nouveau document" onAction={() => setNotice("Choisissez un type de document à générer.")} />
-    <div className="document-layout"><Panel><div className="doc-tabs"><button className="active">Certificats</button><button>Attestations d'inscription</button><button>Reçus de paiement</button></div><div className="eligibility-banner"><span className="metric-icon" style={{ color: COLORS.teal, background: COLORS.tealLight }}><Icon name="checkCircle" size={17} /></span><div><strong>{eligible.length} étudiants éligibles</strong><span>Présence ≥ 75% et formation entièrement réglée</span></div></div><div className="certificate-list">{eligible.map((person) => <div className={`certificate-row ${selected?.id === person.id ? "selected" : ""}`} key={person.id} onClick={() => setSelected(person)}>{initialsBadge(person.name)}<div><strong>{person.name}</strong><span>{person.course} · Diplômé le 30 août 2026</span></div><Badge tone="success">Éligible</Badge><Icon name="chevron" size={16} stroke={COLORS.muted} /></div>)}</div></Panel><div className="certificate-preview"><div className="preview-toolbar"><div><span>APERÇU DU DOCUMENT</span><strong>Certificat de formation</strong></div><Button variant="outline" icon="print" onClick={() => setNotice("Fenêtre d'impression simulée.")}>Imprimer</Button></div><div className="formal-document"><div className="document-corner" /><div className="document-logo"><span>F</span><div><strong>FORMA<span>CRM</span></strong><small>Centre de formation professionnelle</small></div></div><div className="document-rule" /><p className="formal-kicker">CERTIFICAT DE RÉUSSITE</p><p className="formal-intro">Le présent certificat est délivré à</p><h2>{selected?.name || "Nom de l'étudiant"}</h2><p className="formal-copy">pour avoir suivi avec assiduité et satisfait aux exigences de la formation</p><h3>{selected?.course || "Intitulé de la formation"}</h3><div className="document-stats"><div><span>Durée</span><strong>{selected?.course.includes("Design") ? "6 mois" : "4 mois"}</strong></div><div><span>Assiduité</span><strong>{selected?.attendance || 0}%</strong></div><div><span>N° certificat</span><strong>FC-2026-00{selected?.id || "0"}</strong></div></div><div className="document-bottom"><div><span>Alger, le 30 août 2026</span><strong>La Direction</strong></div><div className="signature">Nadia Benali</div></div><div className="document-seal">F<br /><small>2026</small></div></div></div></div>
+    <div className="document-layout"><Panel><div className="doc-tabs"><button className="active">Certificats</button><button>Attestations d'inscription</button><button>Reçus de paiement</button></div><div className="eligibility-banner"><span className="metric-icon" style={{ color: COLORS.teal, background: COLORS.tealLight }}><Icon name="checkCircle" size={17} /></span><div><strong>{eligible.length} étudiants éligibles</strong><span>Présence ≥ 75% et formation entièrement réglée</span></div></div><div className="certificate-list">{eligible.map((person) => <div className={`certificate-row ${selected?.id === person.id ? "selected" : ""}`} key={person.id} onClick={() => setSelected(person)}>{initialsBadge(person.name)}<div><strong>{person.name}</strong><span>{person.course} · Diplômé le 30 août 2026</span></div><Badge tone="success">Éligible</Badge><Icon name="chevron" size={16} stroke={COLORS.muted} /></div>)}</div></Panel><div className="certificate-preview"><div className="preview-toolbar"><div><span>APERÇU DU DOCUMENT</span><strong>Certificat de formation</strong></div><Button variant="outline" icon="print" onClick={() => setNotice("Fenêtre d'impression simulée.")}>Imprimer</Button></div><div className="formal-document"><div className="document-corner" /><div className="document-logo"><span>F</span><div><strong>FORMA<span>PLUS</span></strong><small>Centre de formation professionnelle</small></div></div><div className="document-rule" /><p className="formal-kicker">CERTIFICAT DE RÉUSSITE</p><p className="formal-intro">Le présent certificat est délivré à</p><h2>{selected?.name || "Nom de l'étudiant"}</h2><p className="formal-copy">pour avoir suivi avec assiduité et satisfait aux exigences de la formation</p><h3>{selected?.course || "Intitulé de la formation"}</h3><div className="document-stats"><div><span>Durée</span><strong>{selected?.course.includes("Design") ? "6 mois" : "4 mois"}</strong></div><div><span>Assiduité</span><strong>{selected?.attendance || 0}%</strong></div><div><span>N° certificat</span><strong>FC-2026-00{selected?.id || "0"}</strong></div></div><div className="document-bottom"><div><span>Alger, le 30 août 2026</span><strong>La Direction</strong></div><div className="signature">Nadia Benali</div></div><div className="document-seal">F<br /><small>2026</small></div></div></div></div>
   </>;
 }
 
@@ -489,7 +361,7 @@ function Settings({ setNotice }: { setNotice: (message: string) => void }) {
   const [notifications, setNotifications] = useState({ payments: true, attendance: true, followup: true });
   return <>
     <PageHeader eyebrow="Administration" title="Paramètres" description="Configurez l'identité de votre établissement et les règles de votre équipe." action actionLabel="Enregistrer les changements" actionIcon="check" onAction={() => setNotice("Paramètres enregistrés dans la version de démonstration.")} />
-    <div className="settings-layout"><aside className="settings-nav">{["Établissement", "Utilisateurs", "Catalogue des formations", "Notifications"].map((item) => <button className={tab === item ? "active" : ""} key={item} onClick={() => setTab(item)}><Icon name={item === "Établissement" ? "building" : item === "Utilisateurs" ? "users" : item === "Catalogue des formations" ? "graduation" : "bell"} size={16} />{item}<Icon name="chevron" size={15} stroke={COLORS.muted} /></button>)}</aside><div className="settings-content">{tab === "Établissement" && <><Panel title="Profil de l'établissement"><div className="settings-form"><label>Nom de l'établissement<input className="field" defaultValue="FormaPlus Alger" /></label><label>Téléphone<input className="field" defaultValue="021 55 42 18" /></label><label>Email professionnel<input className="field" defaultValue="contact@formaplus.dz" /></label><label>Adresse<input className="field" defaultValue="12, rue des Frères Benali, Hydra, Alger" /></label></div><div className="logo-upload"><span className="school-logo">F</span><div><strong>Logo de l'établissement</strong><span>PNG ou JPG · 1 Mo maximum</span></div><Button variant="outline" onClick={() => setNotice("Sélecteur de fichier simulé.")}>Changer le logo</Button></div></Panel><Panel title="Préférences régionales"><div className="settings-form"><label>Devise<select className="field" defaultValue="Dinar algérien (DA)"><option>Dinar algérien (DA)</option><option>Euro (€)</option></select></label><label>Fuseau horaire<select className="field" defaultValue="Africa/Algiers"><option>Africa/Algiers (UTC+1)</option></select></label><label>Premier jour de la semaine<select className="field" defaultValue="Dimanche"><option>Dimanche</option><option>Lundi</option></select></label></div></Panel></>}{tab === "Utilisateurs" && <Panel title="Utilisateurs & rôles"><div className="user-list">{[{ name: "Nadia Benali", email: "nadia@formaplus.dz", role: "Directrice", status: "Actif" }, { name: "Mehdi Saidi", email: "mehdi@formaplus.dz", role: "Administrateur", status: "Actif" }, { name: "Sarah Kaci", email: "sarah@formaplus.dz", role: "Administratrice", status: "Actif" }, { name: "Omar Cherif", email: "omar@formaplus.dz", role: "Enseignant", status: "Actif" }].map((user) => <div className="user-row" key={user.email}>{initialsBadge(user.name)}<div><strong>{user.name}</strong><span>{user.email}</span></div><Badge tone="info">{user.role}</Badge><span className="user-status"><i />{user.status}</span><button className="row-menu" onClick={() => setNotice(`Modifier ${user.name}`)}><Icon name="dots" size={16} /></button></div>)}</div><Button icon="plus" onClick={() => setNotice("Ajout d'un utilisateur : formulaire prêt.")}>Ajouter un utilisateur</Button></Panel>}{tab === "Catalogue des formations" && <Panel title="Catalogue des formations"><div className="course-settings">{courses.map((course) => <div className="course-setting-row" key={course.id}><span className="course-color" style={{ background: course.color }} /><input className="inline-edit" defaultValue={course.name} /><input className="inline-edit small" defaultValue={course.duration} /><div className="price-edit"><input className="inline-edit small" defaultValue={course.price.toString()} /><span>DA</span></div><button className="row-menu" onClick={() => setNotice(`Formation « ${course.name} » enregistrée.`)}><Icon name="check" size={15} /></button></div>)}</div><Button variant="outline" icon="plus" onClick={() => setNotice("Nouvelle formation : ligne ajoutée.")}>Ajouter une formation</Button></Panel>}{tab === "Notifications" && <Panel title="Préférences de notification"><div className="toggle-list">{[{ key: "payments" as const, title: "Rappels de paiements en retard", desc: "Recevoir une alerte lorsque le solde d'un étudiant dépasse son échéance." }, { key: "attendance" as const, title: "Alertes de présence faible", desc: "Être averti lorsque la présence d'un étudiant passe sous 75%." }, { key: "followup" as const, title: "Tâches de suivi à venir", desc: "Rappeler les relances et tâches prévues dans les prochaines 24 heures." }].map((item) => <div className="toggle-row" key={item.key}><div><strong>{item.title}</strong><span>{item.desc}</span></div><button className={`switch ${notifications[item.key] ? "on" : ""}`} onClick={() => setNotifications({ ...notifications, [item.key]: !notifications[item.key] })}><i /></button></div>)}</div></Panel>}</div></div>
+    <div className="settings-layout"><aside className="settings-nav">{["Établissement", "Utilisateurs", "Catalogue des formations", "Notifications"].map((item) => <button className={tab === item ? "active" : ""} key={item} onClick={() => setTab(item)}><Icon name={item === "Établissement" ? "building" : item === "Utilisateurs" ? "users" : item === "Catalogue des formations" ? "graduation" : "bell"} size={16} />{item}<Icon name="chevron" size={15} stroke={COLORS.muted} /></button>)}</aside><div className="settings-content">{tab === "Établissement" && <><Panel title="Profil de l'établissement"><div className="settings-form"><label>Nom de l'établissement<input className="field" defaultValue="FormaPlus Alger" /></label><label>Téléphone<input className="field" defaultValue="021 55 42 18" /></label><label>Email professionnel<input className="field" defaultValue="contact@formaplus.dz" /></label><label>Adresse<input className="field" defaultValue="12, rue des Frères Benali, Hydra, Alger" /></label></div><div className="logo-upload"><span className="school-logo">F</span><div><strong>Logo de l'établissement</strong><span>PNG ou JPG · 1 Mo maximum</span></div><Button variant="outline" onClick={() => setNotice("Sélecteur de fichier simulé.")}>Changer le logo</Button></div></Panel><Panel title="Préférences régionales"><div className="settings-form"><label>Devise<select className="field" defaultValue="Dinar algérien (DA)"><option>Dinar algérien (DA)</option><option>Euro (€)</option></select></label><label>Fuseau horaire<select className="field" defaultValue="Africa/Algiers"><option>Africa/Algiers (UTC+1)</option></select></label><label>Premier jour de la semaine<select className="field" defaultValue="Dimanche"><option>Dimanche</option><option>Lundi</option></select></label></div></Panel></>}{tab === "Utilisateurs" && <Panel title="Utilisateurs & rôles"><div className="user-list">{[{ name: "Nadia Benali", email: "nadia@formaplus.dz", role: "Directrice", status: "Actif" }, { name: "Mehdi Saidi", email: "mehdi@formaplus.dz", role: "Administrateur", status: "Actif" }, { name: "Sarah Kaci", email: "sarah@formaplus.dz", role: "Administratrice", status: "Actif" }, { name: "Omar Cherif", email: "omar@formaplus.dz", role: "Enseignant", status: "Actif" }].map((user) => <div className="user-row" key={user.email}>{initialsBadge(user.name)}<div><strong>{user.name}</strong><span>{user.email}</span></div><Badge tone="info">{user.role}</Badge><span className="user-status"><i />{user.status}</span><button className="row-menu" onClick={() => setNotice(`Modifier ${user.name}`)}><Icon name="dots" size={16} /></button></div>)}</div><Button icon="plus" onClick={() => setNotice("Ajout d'un utilisateur : formulaire prêt.")}>Ajouter un utilisateur</Button></Panel>}{tab === "Catalogue des formations" && <Panel title="Catalogue des formations"><div className="course-settings">{courses.map((course) => <div className="course-setting-row" key={course.id}><span className="course-color" style={{ background: course.color }} /><input className="inline-edit" defaultValue={course.name} /><input className="inline-edit small" defaultValue={course.duration} /><div className="price-edit"><input className="inline-edit small" defaultValue={course.price.toString()} /><span>DA</span></div><button className="row-menu" onClick={() => setNotice(`Formation « ${course.name} » enregistrée.`)}><Icon name="check" size={15} /></button></div>)}</div><Button variant="outline" icon="plus" onClick={() => setNotice("Nouvelle formation : ligne ajoutée.")}>Ajouter une formation</Button></Panel>}{tab === "Notifications" && <Panel title="Préférences de notification"><div className="toggle-list">{[{ key: "payments" as const, title: "Rappels de paiements en retard", desc: "Recevoir une alerte lorsque le solde d'un étudiant dépasse son échéance." }, { key: "attendance" as const, title: "Alertes de présence faible", desc: "Être averti lorsque la présence d'un étudiant passe sous 75%." }, { key: "followup" as const, title: "Rappels de séances à venir", desc: "Rappeler les séances et échéances prévues dans les prochaines 24 heures." }].map((item) => <div className="toggle-row" key={item.key}><div><strong>{item.title}</strong><span>{item.desc}</span></div><button className={`switch ${notifications[item.key] ? "on" : ""}`} onClick={() => setNotifications({ ...notifications, [item.key]: !notifications[item.key] })}><i /></button></div>)}</div></Panel>}</div></div>
   </>;
 }
 
@@ -499,11 +371,8 @@ function Drawer({ title, children, onClose }: { title: string; children: ReactNo
 
 function PersonDrawer({ person, onClose, setNotice, onAddNote }: { person: Person; onClose: () => void; setNotice: (message: string) => void; onAddNote: (note: string) => void }) {
   const [note, setNote] = useState("");
-  return <Drawer title={person.name} onClose={onClose}><div className="drawer-profile"><span className="profile-avatar">{initials(person.name)}</span><div><strong>{person.course}</strong><span><Badge tone={statusTone(stageLabels[person.stage])} dot>{stageLabels[person.stage]}</Badge></span></div></div><div className="drawer-actions"><Button variant="soft" icon="phone" onClick={() => setNotice(`Appel lancé vers ${person.phone}`)}>Appeler</Button><Button variant="outline" icon="mail" onClick={() => setNotice(`Email préparé pour ${person.email}`)}>Email</Button><Button variant="outline" icon="calendar" onClick={() => setNotice("Suivi ajouté au calendrier.")}>Suivi</Button></div><div className="drawer-section"><h4>Informations personnelles</h4><div className="info-grid"><div><span>Téléphone</span><strong>{person.phone}</strong></div><div><span>Email</span><strong>{person.email}</strong></div><div><span>Adresse</span><strong>{person.address}</strong></div><div><span>Date de naissance</span><strong>{person.dob || "Non renseignée"}</strong></div><div><span>Source</span><strong>{person.source}</strong></div><div><span>Responsable</span><strong>{person.staff}</strong></div></div></div><div className="drawer-section"><div className="drawer-section-head"><h4>Timeline</h4><span>10 interactions</span></div><div className="timeline"><div><i style={{ background: COLORS.teal }} /><p><strong>Statut mis à jour</strong><span>Passé à « {stageLabels[person.stage]} » · il y a 2 jours</span></p></div><div><i style={{ background: COLORS.green }} /><p><strong>Paiement enregistré</strong><span>{person.payment === "Payé" ? "Solde entièrement réglé" : `Solde restant : ${formatMoney(person.balance)}`} · il y a 5 jours</span></p></div><div><i style={{ background: COLORS.coral }} /><p><strong>Appel avec {person.staff}</strong><span>Échange sur le parcours de formation · il y a 9 jours</span></p></div></div></div><div className="drawer-section"><h4>Ajouter une note</h4><textarea className="field textarea" value={note} onChange={(e) => setNote(e.target.value)} placeholder="Écrivez une note sur ce contact…" /><div className="drawer-note-footer"><span>Visible par l'équipe</span><Button icon="check" onClick={() => { if (note.trim()) { onAddNote(note); setNote(""); } }}>Ajouter la note</Button></div></div><div className="drawer-footer-actions">{person.stage === "inscrit" && <Button variant="soft" icon="graduation" onClick={() => setNotice(`Conversion de ${person.name} en étudiant préparée — aucune donnée n'a été enregistrée.`)}>Convertir en étudiant</Button>}<Button variant="outline" onClick={() => setNotice(`${person.name} avancé à l'étape suivante.`)}>Passer à l'étape suivante <Icon name="arrow" size={14} /></Button><Button variant="danger" onClick={() => setNotice(`${person.name} marqué comme perdu.`)}>Marquer comme perdu</Button></div></Drawer>;
-}
-
-function PipelineDrawer({ card, onClose, setNotice }: { card: PipelineCard; onClose: () => void; setNotice: (message: string) => void }) {
-  return <Drawer title={card.name} onClose={onClose}><div className="drawer-profile"><span className="profile-avatar">{initials(card.name)}</span><div><strong>{card.course}</strong><span><Badge tone={statusTone(stageLabels[card.stage])} dot>{stageLabels[card.stage]}</Badge></span></div></div><div className="drawer-section"><h4>Valeur estimée</h4><div className="big-money">{formatMoney(card.value)}</div><div className="stat-strip"><div><span>Dans cette étape</span><strong>{card.days} jours</strong></div><div><span>Responsable</span><strong>{card.staff}</strong></div></div></div><div className="drawer-section"><h4>Prochaines actions</h4><div className="action-stack"><button onClick={() => setNotice("Relance planifiée dans les tâches.")}><span className="activity-icon" style={{ background: COLORS.tealLight, color: COLORS.teal }}><Icon name="phone" size={15} /></span><div><strong>Planifier une relance</strong><span>Créer une tâche pour ce prospect</span></div><Icon name="chevron" size={16} /></button><button onClick={() => setNotice("Email de présentation préparé.")}><span className="activity-icon" style={{ background: COLORS.coralLight, color: COLORS.coral }}><Icon name="mail" size={15} /></span><div><strong>Envoyer la présentation</strong><span>Programme et tarifs de la formation</span></div><Icon name="chevron" size={16} /></button><button onClick={() => setNotice("Inscription démarrée.")}><span className="activity-icon" style={{ background: "#F0ECFB", color: "#6B5AA7" }}><Icon name="graduation" size={15} /></span><div><strong>Préparer l'inscription</strong><span>Passer au dossier étudiant</span></div><Icon name="chevron" size={16} /></button>{card.stage === "inscrit" && <button onClick={() => setNotice(`Conversion de ${card.name} en étudiant préparée — aucune donnée n'a été enregistrée.`)}><span className="activity-icon" style={{ background: COLORS.tealLight, color: COLORS.teal }}><Icon name="check" size={15} /></span><div><strong>Convertir en étudiant</strong><span>Préparer le dossier étudiant</span></div><Icon name="chevron" size={16} /></button>}</div></div><div className="drawer-section"><h4>Historique</h4><div className="timeline"><div><i style={{ background: COLORS.teal }} /><p><strong>Opportunité créée</strong><span>Source : recommandation · il y a {card.days} jours</span></p></div><div><i style={{ background: COLORS.navy2 }} /><p><strong>Responsable assigné</strong><span>{card.staff} · il y a {Math.max(card.days - 1, 1)} jours</span></p></div></div></div></Drawer>;
+  const operationalStatus = person.stage === "diplome" ? "Terminé" : person.stage === "encours" ? "En cours" : person.stage === "abandonne" ? "Abandonné" : "Inscrit";
+  return <Drawer title={person.name} onClose={onClose}><div className="drawer-profile"><span className="profile-avatar">{initials(person.name)}</span><div><strong>{person.course}</strong><span><Badge tone={statusTone(operationalStatus)} dot>{operationalStatus}</Badge></span></div></div><div className="drawer-actions"><Button variant="soft" icon="phone" onClick={() => setNotice(`Appel lancé vers ${person.phone}`)}>Appeler</Button><Button variant="outline" icon="mail" onClick={() => setNotice(`Email préparé pour ${person.email}`)}>Email</Button><Button variant="outline" icon="calendar" onClick={() => setNotice("Événement ajouté au planning.")}>Planning</Button></div><div className="drawer-section"><h4>Informations de l'étudiant</h4><div className="info-grid"><div><span>Téléphone</span><strong>{person.phone}</strong></div><div><span>Email</span><strong>{person.email}</strong></div><div><span>Adresse</span><strong>{person.address}</strong></div><div><span>Date de naissance</span><strong>{person.dob || "Non renseignée"}</strong></div><div><span>Formation</span><strong>{person.course}</strong></div><div><span>Groupe / formateur</span><strong>{person.teacher || "À affecter"}</strong></div></div></div><div className="drawer-section"><div className="drawer-section-head"><h4>Suivi de formation</h4><span>{person.progress}% complété</span></div><div className="timeline"><div><i style={{ background: COLORS.teal }} /><p><strong>Statut actuel : {operationalStatus}</strong><span>Inscription {person.enrolled ? `du ${person.enrolled}` : "à compléter"}</span></p></div><div><i style={{ background: COLORS.green }} /><p><strong>Présence suivie</strong><span>{person.attendance > 0 ? `${person.attendance}% de présence` : "Aucune séance enregistrée"}</span></p></div><div><i style={{ background: COLORS.yellow }} /><p><strong>Situation de paiement</strong><span>{person.payment} · {person.balance ? `solde de ${formatMoney(person.balance)}` : "solde réglé"}</span></p></div></div></div><div className="drawer-section"><h4>Ajouter une note</h4><textarea className="field textarea" value={note} onChange={(e) => setNote(e.target.value)} placeholder="Écrivez une note sur cet étudiant…" /><div className="drawer-note-footer"><span>Visible par l'équipe</span><Button icon="check" onClick={() => { if (note.trim()) { onAddNote(note); setNote(""); } }}>Ajouter la note</Button></div></div><div className="drawer-footer-actions"><Button variant="outline" onClick={() => setNotice("Le changement de statut sera disponible avec la base de données.")}>Modifier le statut</Button></div></Drawer>;
 }
 
 function ClassDrawer({ item, onClose, setNotice }: { item: SchoolClass; onClose: () => void; setNotice: (message: string) => void }) {
@@ -518,26 +387,22 @@ function TeacherDrawer({ teacher, onClose, setNotice }: { teacher: Teacher; onCl
 export default function App() {
   const [activePage, setActivePage] = useState<PageKey>("dashboard");
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [pipeline, setPipeline] = useState(prospectPipelineSeed);
-  const [contacts, setContacts] = useState(people);
-  const [tasks, setTasks] = useState(initialTasks);
-  const [attendance, setAttendance] = useState(attendanceSeed);
+    const [contacts, setContacts] = useState(people);
+    const [attendance, setAttendance] = useState(attendanceSeed);
   const [selectedPerson, setSelectedPerson] = useState<Person | null>(null);
-  const [selectedPipeline, setSelectedPipeline] = useState<PipelineCard | null>(null);
   const [selectedClass, setSelectedClass] = useState<SchoolClass | null>(null);
   const [selectedTeacher, setSelectedTeacher] = useState<Teacher | null>(null);
   const [notice, setNotice] = useState("");
   const [globalSearch, setGlobalSearch] = useState("");
 
   const goTo = (page: PageKey) => { setActivePage(page); setSidebarOpen(false); window.scrollTo({ top: 0, behavior: "smooth" }); };
-  const pageTitles: Record<PageKey, string> = { dashboard: "Dashboard", prospects: "Prospects", students: "Étudiants", formations: "Formations", teachers: "Formateurs", groups: "Groupes", planning: "Planning", attendance: "Présences", payments: "Paiements", certificates: "Certificats", settings: "Paramètres" };
+  const pageTitles: Record<PageKey, string> = { dashboard: "Tableau de bord", students: "Étudiants", enrollments: "Inscriptions", formations: "Formations", teachers: "Formateurs", groups: "Groupes", planning: "Planning", attendance: "Présences", payments: "Paiements", certificates: "Certificats", settings: "Paramètres" };
   const activeLabel = pageTitles[activePage];
-  const unread = useMemo(() => tasks.filter((task) => task.status === "À faire" && task.due === "Aujourd'hui").length, [tasks]);
 
   const renderPage = () => {
     switch (activePage) {
       case "dashboard": return <Dashboard goTo={goTo} setNotice={setNotice} />;
-      case "prospects": return <Prospects pipeline={pipeline} setPipeline={setPipeline} contacts={contacts} setSelected={setSelectedPipeline} setSelectedPerson={setSelectedPerson} setNotice={setNotice} />;
+      case "enrollments": return <Inscriptions contacts={contacts} setSelected={setSelectedPerson} setNotice={setNotice} />;
       case "students": return <Students contacts={contacts} setSelected={setSelectedPerson} setNotice={setNotice} goTo={goTo} />;
       case "formations": return <Formations setNotice={setNotice} />;
       case "teachers": return <Teachers setSelectedTeacher={setSelectedTeacher} setNotice={setNotice} />;
@@ -551,16 +416,14 @@ export default function App() {
   };
 
   const groups: { label: string; items: { key: PageKey; label: string; icon: IconName; badge?: string }[] }[] = [
-    { label: "VUE D'ENSEMBLE", items: [{ key: "dashboard", label: "Dashboard", icon: "grid" }, { key: "prospects", label: "Prospects", icon: "funnel", badge: String(Object.values(pipeline).flat().length) }] },
-    { label: "PÉDAGOGIE", items: [{ key: "students", label: "Étudiants", icon: "graduation" }, { key: "formations", label: "Formations", icon: "file" }, { key: "teachers", label: "Formateurs", icon: "teacher" }, { key: "groups", label: "Groupes", icon: "users" }, { key: "planning", label: "Planning", icon: "calendar" }, { key: "attendance", label: "Présences", icon: "check" }] },
-    { label: "FINANCES", items: [{ key: "payments", label: "Paiements", icon: "wallet", badge: "7" }, { key: "certificates", label: "Certificats", icon: "file" }] },
+    { label: "GESTION DU CENTRE", items: [{ key: "dashboard", label: "Tableau de bord", icon: "grid" }, { key: "students", label: "Étudiants", icon: "graduation" }, { key: "enrollments", label: "Inscriptions", icon: "file" }, { key: "formations", label: "Formations", icon: "file" }, { key: "teachers", label: "Formateurs", icon: "teacher" }, { key: "groups", label: "Groupes", icon: "users" }, { key: "planning", label: "Planning", icon: "calendar" }, { key: "attendance", label: "Présences", icon: "check" }, { key: "payments", label: "Paiements", icon: "wallet" }, { key: "certificates", label: "Certificats", icon: "file" }, { key: "settings", label: "Paramètres", icon: "settings" }] },
   ];
 
   return <div className="app-shell">
     <aside className={`sidebar ${sidebarOpen ? "open" : ""}`}>
-      <div className="brand"><span className="brand-mark">F</span><div><strong>FORMA<span>CRM</span></strong><small>Gestion d'école</small></div><button className="mobile-close" onClick={() => setSidebarOpen(false)}><Icon name="close" size={18} /></button></div>
+      <div className="brand"><span className="brand-mark">F</span><div><strong>FORMA<span>PLUS</span></strong><small>Gestion d'école</small></div><button className="mobile-close" onClick={() => setSidebarOpen(false)}><Icon name="close" size={18} /></button></div>
       <div className="school-switcher"><span className="school-avatar">FP</span><div><strong>FormaPlus Alger</strong><span>Plan Pro · actif</span></div><Icon name="chevron" size={15} stroke="#95A7C4" /></div>
-      <nav className="nav-groups">{groups.map((group) => <div className="nav-group" key={group.label}><span className="nav-label">{group.label}</span>{group.items.map((item) => <button key={item.key} className={`nav-item ${activePage === item.key ? "active" : ""}`} onClick={() => goTo(item.key)}><Icon name={item.icon} size={17} /><span>{item.label}</span>{item.badge && <em>{item.badge}</em>}</button>)}</div>)}<div className="nav-group nav-bottom"><span className="nav-label">CONFIGURATION</span><button className={`nav-item ${activePage === "settings" ? "active" : ""}`} onClick={() => goTo("settings")}><Icon name="settings" size={17} /><span>Paramètres</span></button></div></nav>
+      <nav className="nav-groups">{groups.map((group) => <div className="nav-group" key={group.label}><span className="nav-label">{group.label}</span>{group.items.map((item) => <button key={item.key} className={`nav-item ${activePage === item.key ? "active" : ""}`} onClick={() => goTo(item.key)}><Icon name={item.icon} size={17} /><span>{item.label}</span>{item.badge && <em>{item.badge}</em>}</button>)}</div>)}</nav>
       <div className="sidebar-help"><span className="help-icon"><Icon name="spark" size={16} /></span><div><strong>Besoin d'aide ?</strong><span>Parlez à notre équipe</span></div><Icon name="arrow" size={14} /></div>
       <div className="sidebar-user"><span className="user-avatar">NB</span><div><strong>Nadia Benali</strong><span>Directrice</span></div><button className="icon-button" onClick={() => setNotice("Menu du compte")}> <Icon name="dots" size={17} /></button></div>
     </aside>
@@ -568,10 +431,9 @@ export default function App() {
     <main className="main-area">
       <header className="topbar"><div className="topbar-left"><button className="mobile-menu" onClick={() => setSidebarOpen(true)}><Icon name="menu" size={20} /></button><span className="breadcrumb">FormaPlus Alger <Icon name="chevron" size={13} /> {activeLabel}</span></div><div className="topbar-right"><div className="global-search"><Icon name="search" size={16} /><input placeholder="Rechercher…" value={globalSearch} onChange={(e) => setGlobalSearch(e.target.value)} /></div><button className="top-icon" onClick={() => setNotice("Vous avez 3 notifications non lues.")}><Icon name="bell" size={18} /><span className="notification-dot" /></button><span className="top-divider" /><button className="top-profile" onClick={() => goTo("settings")}><span className="user-avatar small">NB</span><span>Nadia Benali</span><Icon name="chevron" size={13} /></button></div></header>
       <div className="content-wrap">{renderPage()}</div>
-      <footer className="app-footer"><span>FormaCRM · Centre de formation FormaPlus Alger</span><span><span className="status-live" /> Système opérationnel · Version 1.4.0</span></footer>
+      <footer className="app-footer"><span>FormaPlus · Centre de formation FormaPlus Alger</span><span><span className="status-live" /> Système opérationnel · Version 1.4.0</span></footer>
     </main>
     {selectedPerson && <PersonDrawer person={selectedPerson} onClose={() => setSelectedPerson(null)} setNotice={setNotice} onAddNote={(note) => { setNotice(`Note ajoutée : « ${note.slice(0, 38)}${note.length > 38 ? "…" : ""} »`); }} />}
-    {selectedPipeline && <PipelineDrawer card={selectedPipeline} onClose={() => setSelectedPipeline(null)} setNotice={setNotice} />}
     {selectedClass && <ClassDrawer item={selectedClass} onClose={() => setSelectedClass(null)} setNotice={setNotice} />}
     {selectedTeacher && <TeacherDrawer teacher={selectedTeacher} onClose={() => setSelectedTeacher(null)} setNotice={setNotice} />}
     {notice && <div className="toast"><span className="toast-check"><Icon name="check" size={14} /></span><span>{notice}</span><button onClick={() => setNotice("")}><Icon name="close" size={14} /></button></div>}
