@@ -1,5 +1,7 @@
-import { createContext, useContext, useMemo, useState } from "react";
+import { createContext, useContext, useState } from "react";
 import type { CSSProperties, FormEvent, ReactNode } from "react";
+import { roleLabels, rolePages } from "./auth";
+import type { Member } from "./auth";
 
 // FormaPlus — single-file product experience with rich local mock data.
 // The interaction layer is intentionally local-first so every workflow is demonstrable
@@ -35,7 +37,7 @@ type Payment = { id: number; student: string; course: string; total: number; pai
 type Registration = { id: number; formation: string; groupe: string; date: string; status: "Inscrit" | "En cours" | "Terminé" | "Abandonné"; total: number; paid: number; notes: string };
 type StudentDocument = { id: number; type: string; file: string; status: "Validé" | "À vérifier"; date: string };
 
-type PageKey = "dashboard" | "students" | "enrollments" | "formations" | "teachers" | "groups" | "planning" | "attendance" | "payments" | "certificates" | "settings";
+export type PageKey = "dashboard" | "students" | "enrollments" | "formations" | "teachers" | "groups" | "planning" | "attendance" | "payments" | "certificates" | "settings";
 
 const COLORS = {
   ink: "#17202A",
@@ -85,6 +87,7 @@ const ICONS = {
   checkCircle: "M22 11.08V12a10 10 0 1 1-5.93-9.14M22 4 12 14.01l-3-3",
   building: "M3 21h18M6 21V4h8v17M14 8h4v13M8 8h2M8 12h2M8 16h2M16 12h2M16 16h2",
   lock: "M6 10V8a6 6 0 0 1 12 0v2M5 10h14v11H5z",
+  logout: "M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9",
 } as const;
 
 const Icon = ({ name, size = 18, stroke = "currentColor" }: { name: IconName; size?: number; stroke?: string }) => (
@@ -275,7 +278,7 @@ const downloadCSV = (filename: string, rows: (string | number)[][]) => {
   URL.revokeObjectURL(url);
 };
 
-function Dashboard({ goTo, setNotice }: { goTo: (key: PageKey) => void; setNotice: (message: string) => void }) {
+function Dashboard({ goTo, firstName }: { goTo: (key: PageKey) => void; firstName: string }) {
   const { classes } = useData();
   const activeStudents = people.filter((person) => person.stage === "inscrit" || person.stage === "encours").length;
   const activeGroups = classes.filter((item) => item.status !== "Annulé").length;
@@ -283,7 +286,7 @@ function Dashboard({ goTo, setNotice }: { goTo: (key: PageKey) => void; setNotic
   const todayAttendance = people.filter((person) => person.attendance > 0).length;
   const recentEnrollments = people.filter((person) => Boolean(person.enrolled)).slice(0, 5);
   return <>
-    <PageHeader eyebrow="Lundi 14 septembre 2026" title="Bonjour Nadia," description="Voici ce qui se passe dans votre centre aujourd'hui." action actionLabel="Nouvelle inscription" onAction={() => goTo("enrollments")} />
+    <PageHeader eyebrow="Lundi 14 septembre 2026" title={`Bonjour ${firstName},`} description="Voici ce qui se passe dans votre centre aujourd'hui." action actionLabel="Nouvelle inscription" onAction={() => goTo("enrollments")} />
     <div className="metrics-grid">
       <MetricCard label="Étudiants actifs" value={String(activeStudents)} note="inscrits dans le centre" icon="graduation" accent={COLORS.teal} />
       <MetricCard label="Inscriptions en cours" value={String(people.filter((person) => person.stage === "encours").length)} note="parmi les dossiers actifs" icon="file" accent="#5B8DEF" />
@@ -328,7 +331,7 @@ function Inscriptions({ contacts, setContacts, setSelected, setNotice }: { conta
   </>;
 }
 
-function Students({ contacts, setContacts, setSelected, setNotice, goTo }: { contacts: Person[]; setContacts: (next: Person[]) => void; setSelected: (person: Person) => void; setNotice: (message: string) => void; goTo: (key: PageKey) => void }) {
+function Students({ contacts, setContacts, setSelected, setNotice, goTo, canOpen }: { contacts: Person[]; setContacts: (next: Person[]) => void; setSelected: (person: Person) => void; setNotice: (message: string) => void; goTo: (key: PageKey) => void; canOpen: (key: PageKey) => boolean }) {
   const { courses } = useData();
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("Tous");
@@ -339,7 +342,7 @@ function Students({ contacts, setContacts, setSelected, setNotice, goTo }: { con
   return <>
     <PageHeader eyebrow="Annuaire du centre" title="Étudiants" description="Gérez les étudiants, leurs inscriptions et leur suivi au sein du centre." action actionLabel="Nouvel étudiant" onAction={() => setShowNew(true)} />
     <div className="metrics-grid metrics-grid-4"><MetricCard label="Étudiants" value={String(contacts.length)} note="dans l'annuaire" icon="users" accent={COLORS.teal} /><MetricCard label="En cours" value={String(contacts.filter((person) => person.stage === "encours").length)} note="formations commencées" icon="graduation" accent="#5B8DEF" /><MetricCard label="Terminés" value={String(contacts.filter((person) => person.stage === "diplome").length)} note="certificats à suivre" icon="checkCircle" accent={COLORS.green} /><MetricCard label="À surveiller" value={String(contacts.filter((person) => person.attendance > 0 && person.attendance < 75).length)} note="présence sous 75%" icon="warning" accent={COLORS.coral} /></div>
-    <Panel className="table-panel"><div className="filter-bar student-filter-bar"><div className="student-filter-main"><div className="search-box"><Icon name="search" size={16} /><input placeholder="Rechercher un étudiant…" value={query} onChange={(event) => setQuery(event.target.value)} /></div><select className="select" value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)}><option>Tous</option><option>Inscrit</option><option>En cours</option><option>Terminé</option><option>Abandonné</option></select><select className="select" value={courseFilter} onChange={(event) => setCourseFilter(event.target.value)}><option>Toutes</option>{courses.map((course) => <option key={course.id}>{course.name}</option>)}</select></div><div className="active-count"><strong>{filtered.length}</strong><span>étudiants affichés</span></div></div><div className="table-scroll"><table><thead><tr><th>Étudiant</th><th>Statut</th><th>Formation principale</th><th>Inscription</th><th>Présence</th><th>Paiement</th><th>Formateur</th><th /></tr></thead><tbody>{filtered.map((person) => <tr key={person.id} onClick={() => setSelected(person)}><td><div className="person-cell">{initialsBadge(person.name)}<div><strong>{person.name}</strong><span>{person.email}</span></div></div></td><td><Badge tone={statusTone(statusFor(person))} dot>{statusFor(person)}</Badge></td><td>{person.course}</td><td>{registrations[person.id]?.length || (person.enrolled ? 1 : 0)} inscription{(registrations[person.id]?.length || (person.enrolled ? 1 : 0)) > 1 ? "s" : ""}</td><td><div className="inline-progress"><span className={person.attendance > 0 && person.attendance < 75 ? "low" : ""}>{person.attendance || "—"}{person.attendance ? "%" : ""}</span><div><i style={{ width: `${person.attendance}%`, background: person.attendance > 0 && person.attendance < 75 ? COLORS.red : COLORS.teal }} /></div></div></td><td><Badge tone={statusTone(person.payment)}>{person.payment}</Badge></td><td>{person.teacher || "À affecter"}</td><td><button className="row-menu" onClick={(event) => { event.stopPropagation(); setNotice(`Actions pour ${person.name}`); }}><Icon name="dots" size={16} /></button></td></tr>)}</tbody></table></div><div className="table-footer"><span>{filtered.length} étudiants affichés</span><button className="text-button" onClick={() => goTo("certificates")}>Voir les certificats <Icon name="arrow" size={13} /></button></div></Panel>
+    <Panel className="table-panel"><div className="filter-bar student-filter-bar"><div className="student-filter-main"><div className="search-box"><Icon name="search" size={16} /><input placeholder="Rechercher un étudiant…" value={query} onChange={(event) => setQuery(event.target.value)} /></div><select className="select" value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)}><option>Tous</option><option>Inscrit</option><option>En cours</option><option>Terminé</option><option>Abandonné</option></select><select className="select" value={courseFilter} onChange={(event) => setCourseFilter(event.target.value)}><option>Toutes</option>{courses.map((course) => <option key={course.id}>{course.name}</option>)}</select></div><div className="active-count"><strong>{filtered.length}</strong><span>étudiants affichés</span></div></div><div className="table-scroll"><table><thead><tr><th>Étudiant</th><th>Statut</th><th>Formation principale</th><th>Inscription</th><th>Présence</th><th>Paiement</th><th>Formateur</th><th /></tr></thead><tbody>{filtered.map((person) => <tr key={person.id} onClick={() => setSelected(person)}><td><div className="person-cell">{initialsBadge(person.name)}<div><strong>{person.name}</strong><span>{person.email}</span></div></div></td><td><Badge tone={statusTone(statusFor(person))} dot>{statusFor(person)}</Badge></td><td>{person.course}</td><td>{registrations[person.id]?.length || (person.enrolled ? 1 : 0)} inscription{(registrations[person.id]?.length || (person.enrolled ? 1 : 0)) > 1 ? "s" : ""}</td><td><div className="inline-progress"><span className={person.attendance > 0 && person.attendance < 75 ? "low" : ""}>{person.attendance || "—"}{person.attendance ? "%" : ""}</span><div><i style={{ width: `${person.attendance}%`, background: person.attendance > 0 && person.attendance < 75 ? COLORS.red : COLORS.teal }} /></div></div></td><td><Badge tone={statusTone(person.payment)}>{person.payment}</Badge></td><td>{person.teacher || "À affecter"}</td><td><button className="row-menu" onClick={(event) => { event.stopPropagation(); setNotice(`Actions pour ${person.name}`); }}><Icon name="dots" size={16} /></button></td></tr>)}</tbody></table></div><div className="table-footer"><span>{filtered.length} étudiants affichés</span>{canOpen("certificates") && <button className="text-button" onClick={() => goTo("certificates")}>Voir les certificats <Icon name="arrow" size={13} /></button>}</div></Panel>
     {showNew && <NewStudentDrawer onClose={() => setShowNew(false)} onCreated={(name, phone, email) => { setContacts([{ id: Date.now(), name, phone, email, course: courses[0].name, stage: "inscrit", staff: "Nadia Benali", lastContact: new Date().toLocaleDateString("fr-FR", { day: "numeric", month: "short", year: "numeric" }), source: "Walk-in", address: "", dob: "", attendance: 0, payment: "En retard", balance: 0, enrolled: new Date().toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit", year: "numeric" }), teacher: "", progress: 0 }, ...contacts]); setShowNew(false); setNotice(`${name} a été ajouté à l'annuaire.`); }} />}
   </>;
 }
@@ -551,8 +554,12 @@ function TeacherDrawer({ teacher, onClose, setNotice }: { teacher: Teacher; onCl
   return <Drawer title={teacher.name} onClose={onClose}><div className="drawer-profile"><span className="profile-avatar" style={{ background: `${teacher.color}22`, color: teacher.color }}>{teacher.initials}</span><div><strong>{teacher.subject}</strong><span><Badge tone="success" dot>{teacher.contract}</Badge></span></div></div><div className="drawer-section"><h4>Coordonnées</h4><div className="info-grid"><div><span>Téléphone</span><strong>{teacher.phone}</strong></div><div><span>Email</span><strong>{teacher.email}</strong></div><div><span>Tarif horaire</span><strong>{formatMoney(teacher.rate)}/h</strong></div></div></div><div className="drawer-section"><h4>Planning de la semaine</h4><div className="teacher-schedule">{teacher.classes.map((name, index) => <div key={name}><span className="schedule-day">{index === 0 ? "LUN" : "MER"}</span><div><strong>{name}</strong><span>{index === 0 ? "14:00 — 17:00" : "09:00 — 11:00"} · {index === 0 ? "Salle A1" : "Studio C1"}</span></div></div>)}</div></div><Button variant="outline" icon="calendar" onClick={() => setNotice("Planning formateur exporté.")}>Exporter le planning</Button></Drawer>;
 }
 
-export default function App() {
-  const [activePage, setActivePage] = useState<PageKey>("dashboard");
+export default function App({ member, email, onSignOut }: { member: Member; email: string; onSignOut: () => void }) {
+  const allowedPages = rolePages[member.role];
+  const canOpen = (page: PageKey) => allowedPages.includes(page);
+  const displayName = member.full_name || email;
+  const schoolName = member.school.name;
+  const [activePage, setActivePage] = useState<PageKey>(allowedPages[0]);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [contacts, setContacts] = useState(people);
   const [attendance, setAttendance] = useState(attendanceSeed);
@@ -565,15 +572,15 @@ export default function App() {
   const [notice, setNotice] = useState("");
   const [globalSearch, setGlobalSearch] = useState("");
 
-  const goTo = (page: PageKey) => { setActivePage(page); setSidebarOpen(false); window.scrollTo({ top: 0, behavior: "smooth" }); };
+  const goTo = (page: PageKey) => { if (!canOpen(page)) return; setActivePage(page); setSidebarOpen(false); window.scrollTo({ top: 0, behavior: "smooth" }); };
   const pageTitles: Record<PageKey, string> = { dashboard: "Tableau de bord", students: "Étudiants", enrollments: "Inscriptions", formations: "Formations", teachers: "Formateurs", groups: "Groupes", planning: "Planning", attendance: "Présences", payments: "Paiements", certificates: "Certificats", settings: "Paramètres" };
   const activeLabel = pageTitles[activePage];
 
   const renderPage = () => {
     switch (activePage) {
-      case "dashboard": return <Dashboard goTo={goTo} setNotice={setNotice} />;
+      case "dashboard": return <Dashboard goTo={goTo} firstName={displayName.split(/[ @]/)[0]} />;
       case "enrollments": return <Inscriptions contacts={contacts} setContacts={setContacts} setSelected={setSelectedPerson} setNotice={setNotice} />;
-      case "students": return <Students contacts={contacts} setContacts={setContacts} setSelected={setSelectedPerson} setNotice={setNotice} goTo={goTo} />;
+      case "students": return <Students contacts={contacts} setContacts={setContacts} setSelected={setSelectedPerson} setNotice={setNotice} goTo={goTo} canOpen={canOpen} />;
       case "formations": return <Formations setNotice={setNotice} />;
       case "teachers": return <Teachers setSelectedTeacher={setSelectedTeacher} setNotice={setNotice} />;
       case "groups": return <Classes setSelectedClass={setSelectedClass} setNotice={setNotice} />;
@@ -592,16 +599,16 @@ export default function App() {
   return <DataContext.Provider value={{ courses, setCourses, classes, setClasses, teachers, setTeachers }}><div className="app-shell">
     <aside className={`sidebar ${sidebarOpen ? "open" : ""}`}>
       <div className="brand"><span className="brand-mark">F</span><div><strong>FORMA<span>PLUS</span></strong><small>Gestion d'école</small></div><button className="mobile-close" onClick={() => setSidebarOpen(false)}><Icon name="close" size={18} /></button></div>
-      <div className="school-switcher"><span className="school-avatar">FP</span><div><strong>FormaPlus Alger</strong><span>Plan Pro · actif</span></div><Icon name="chevron" size={15} stroke="#95A7C4" /></div>
-      <nav className="nav-groups">{groups.map((group) => <div className="nav-group" key={group.label}><span className="nav-label">{group.label}</span>{group.items.map((item) => <button key={item.key} className={`nav-item ${activePage === item.key ? "active" : ""}`} onClick={() => goTo(item.key)}><Icon name={item.icon} size={17} /><span>{item.label}</span>{item.badge && <em>{item.badge}</em>}</button>)}</div>)}</nav>
+      <div className="school-switcher"><span className="school-avatar">{initials(schoolName)}</span><div><strong>{schoolName}</strong><span>{roleLabels[member.role]}</span></div></div>
+      <nav className="nav-groups">{groups.map((group) => <div className="nav-group" key={group.label}><span className="nav-label">{group.label}</span>{group.items.filter((item) => canOpen(item.key)).map((item) => <button key={item.key} className={`nav-item ${activePage === item.key ? "active" : ""}`} onClick={() => goTo(item.key)}><Icon name={item.icon} size={17} /><span>{item.label}</span>{item.badge && <em>{item.badge}</em>}</button>)}</div>)}</nav>
       <div className="sidebar-help"><span className="help-icon"><Icon name="spark" size={16} /></span><div><strong>Besoin d'aide ?</strong><span>Parlez à notre équipe</span></div><Icon name="arrow" size={14} /></div>
-      <div className="sidebar-user"><span className="user-avatar">NB</span><div><strong>Nadia Benali</strong><span>Directrice</span></div><button className="icon-button" onClick={() => setNotice("Menu du compte")}> <Icon name="dots" size={17} /></button></div>
+      <div className="sidebar-user"><span className="user-avatar">{initials(displayName)}</span><div><strong>{displayName}</strong><span>{roleLabels[member.role]}</span></div><button className="icon-button" onClick={onSignOut} title="Se déconnecter" aria-label="Se déconnecter"><Icon name="logout" size={17} /></button></div>
     </aside>
     {sidebarOpen && <div className="sidebar-overlay" onClick={() => setSidebarOpen(false)} />}
     <main className="main-area">
-      <header className="topbar"><div className="topbar-left"><button className="mobile-menu" onClick={() => setSidebarOpen(true)}><Icon name="menu" size={20} /></button><span className="breadcrumb">FormaPlus Alger <Icon name="chevron" size={13} /> {activeLabel}</span></div><div className="topbar-right"><div className="global-search"><Icon name="search" size={16} /><input placeholder="Rechercher…" value={globalSearch} onChange={(e) => setGlobalSearch(e.target.value)} /></div><button className="top-icon" onClick={() => setNotice("Vous avez 3 notifications non lues.")}><Icon name="bell" size={18} /><span className="notification-dot" /></button><span className="top-divider" /><button className="top-profile" onClick={() => goTo("settings")}><span className="user-avatar small">NB</span><span>Nadia Benali</span><Icon name="chevron" size={13} /></button></div></header>
+      <header className="topbar"><div className="topbar-left"><button className="mobile-menu" onClick={() => setSidebarOpen(true)}><Icon name="menu" size={20} /></button><span className="breadcrumb">{schoolName} <Icon name="chevron" size={13} /> {activeLabel}</span></div><div className="topbar-right"><div className="global-search"><Icon name="search" size={16} /><input placeholder="Rechercher…" value={globalSearch} onChange={(e) => setGlobalSearch(e.target.value)} /></div><button className="top-icon" onClick={() => setNotice("Vous avez 3 notifications non lues.")}><Icon name="bell" size={18} /><span className="notification-dot" /></button><span className="top-divider" /><button className="top-profile" onClick={onSignOut} title="Se déconnecter"><span className="user-avatar small">{initials(displayName)}</span><span>{displayName}</span><Icon name="logout" size={13} /></button></div></header>
       <div className="content-wrap">{renderPage()}</div>
-      <footer className="app-footer"><span>FormaPlus · Centre de formation FormaPlus Alger</span><span><span className="status-live" /> Système opérationnel · Version 1.4.0</span></footer>
+      <footer className="app-footer"><span>FormaPlus · {schoolName}</span><span><span className="status-live" /> Système opérationnel · Version 1.4.0</span></footer>
     </main>
     {selectedPerson && <PersonDrawer person={selectedPerson} onClose={() => setSelectedPerson(null)} setNotice={setNotice} onAddNote={(note) => { setNotice(`Note ajoutée : « ${note.slice(0, 38)}${note.length > 38 ? "…" : ""} »`); }} />}
     {selectedClass && <ClassDrawer item={selectedClass} onClose={() => setSelectedClass(null)} setNotice={setNotice} />}
