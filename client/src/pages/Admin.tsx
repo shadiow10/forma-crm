@@ -146,7 +146,7 @@ function UserSettings({ userId }: { userId: string }) {
         if (blocked()) return false;
         const { error } = await supabase.functions.invoke("invite-user", { body: {
           school_id: school.id, email: values.email.trim(), full_name: values.full_name.trim(), role: values.role,
-          teacher_id: values.role === "teacher" ? Number(values.teacher) : null, redirect_to: window.location.origin,
+          teacher_id: values.role === "teacher" ? Number(values.teacher) : null,
         } });
         if (error) { notify(await invokeError(error)); return false; }
         await reload();

@@ -11,11 +11,12 @@ create table storage.objects (id bigint generated always as identity primary key
 alter table storage.objects enable row level security; grant all on storage.objects to authenticated;
 create function auth.uid() returns uuid language sql stable as $$ select nullif(current_setting('test.uid', true), '')::uuid $$;
 grant usage on schema auth to authenticated; grant execute on function auth.uid() to authenticated;`);
+// Supabase grants table privileges to authenticated as each table is created; RLS does the filtering.
+// Default privileges (not a grant after the fact) so the column revokes in the migrations still count.
+await db.exec(`alter default privileges in schema public grant all on tables to authenticated; alter default privileges in schema public grant usage, select on sequences to authenticated;`);
 const migrations = new URL("../migrations/", import.meta.url);
 for (const file of fs.readdirSync(migrations).filter((name) => name.endsWith(".sql")).sort()) await db.exec(fs.readFileSync(new URL(file, migrations), "utf8"));
 await db.exec(fs.readFileSync(new URL("../seed.sql", import.meta.url), "utf8"));
-// Supabase grants table privileges to authenticated by default; RLS does the filtering.
-await db.exec(`grant all on all tables in schema public to authenticated; grant usage, select on all sequences in schema public to authenticated;`);
 const U = { D: "00000000-0000-0000-0000-00000000000d", S: "00000000-0000-0000-0000-00000000000s".replace("s","5"), T: "00000000-0000-0000-0000-00000000000e", D2: "00000000-0000-0000-0000-0000000000d2", X: "00000000-0000-0000-0000-0000000000de" };
 await db.exec(`insert into auth.users values ('${U.D}'),('${U.S}'),('${U.T}'),('${U.D2}');
 insert into schools (id, name, slug) values (2, 'Autre École', 'autre-ecole');
@@ -122,4 +123,16 @@ assert.equal(await count("S", "activity_log"), 0, "secretaire cannot read the lo
 assert.equal(await count("D2", "activity_log where school_id = 1"), 0, "other school cannot read school 1's log");
 assert.ok(await fails("D", "insert into activity_log (school_id, table_name, action) values (1, 'payments', 'DELETE')"), "nobody writes the log by hand");
 assert.equal((await as("D", "delete from activity_log returning id")).length, 0, "nobody erases the log");
+// Hardening: school address and demo flag, row ids and creation times, what a student owes.
+assert.equal((await as("D", "update schools set phone = '0555' where id = 1 returning id")).length, 1, "director edits contact details");
+assert.ok(await fails("D", "update schools set slug = 'hijack' where id = 1"), "director cannot change the subdomain");
+assert.ok(await fails("D", "update schools set custom_domain = 'x.dz' where id = 1"), "director cannot claim a domain");
+assert.ok(await fails("D", "update schools set is_demo = true where id = 1"), "director cannot flip the demo flag");
+assert.ok(await fails("D", "update payments set created_at = now() - interval '1 year'"), "creation time is fixed");
+assert.ok(await fails("D", "update students set id = 999 where id = 1"), "ids are fixed");
+assert.ok(await fails("S", "update enrollments set total = 0 where id = 3"), "secretaire cannot lower what a student owes");
+assert.equal((await as("S", "update enrollments set status = 'En cours' where id = 3 returning id")).length, 1, "secretaire still updates status");
+assert.equal((await as("D", "update enrollments set total = total + 1 where id = 3 returning id")).length, 1, "director can change the total");
+assert.ok(!(await fails("T", `insert into attendance values (1, 5, 7, '2026-09-14', 'L') on conflict (group_id, student_id, session_date)
+  do update set school_id = excluded.school_id, group_id = excluded.group_id, student_id = excluded.student_id, session_date = excluded.session_date, status = excluded.status`)), "attendance upsert (as the app sends it) still works");
 console.log("all access checks passed");

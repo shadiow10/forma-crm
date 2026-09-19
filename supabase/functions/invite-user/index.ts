@@ -14,7 +14,7 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
   if (req.method !== "POST") return reply({ error: "Méthode non autorisée." }, 405);
 
-  const { school_id, email, full_name, role, teacher_id, redirect_to } = await req.json().catch(() => ({}));
+  const { school_id, email, full_name, role, teacher_id } = await req.json().catch(() => ({}));
   const cleanEmail = String(email ?? "").trim().toLowerCase();
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) return reply({ error: "Email invalide." }, 400);
   if (!["director", "secretaire", "teacher"].includes(role)) return reply({ error: "Rôle invalide." }, 400);
@@ -33,7 +33,8 @@ Deno.serve(async (req) => {
 
   // Creating a login needs the service role, which never leaves this function.
   const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
-  const { data: invited, error: inviteError } = await admin.auth.admin.inviteUserByEmail(cleanEmail, { redirectTo: redirect_to });
+  // No redirectTo from the request: the email link always goes to the project's Site URL (Auth → URL Configuration).
+  const { data: invited, error: inviteError } = await admin.auth.admin.inviteUserByEmail(cleanEmail);
   if (inviteError) {
     // ponytail: one school per login for now; attaching an existing account to a second school comes with multi-school support.
     const exists = /already|registered|exists/i.test(inviteError.message);

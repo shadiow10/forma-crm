@@ -89,6 +89,20 @@ export default function Login() {
   );
 }
 
+// Refuses passwords found in public leaks (Have I Been Pwned). Only the first 5 characters of the
+// password's SHA-1 hash are sent; the password itself never leaves the browser.
+// ponytail: fails open (offline, blocked API) — Supabase Pro has the same check server-side, switch to it there.
+async function isLeaked(password: string) {
+  try {
+    const digest = await crypto.subtle.digest("SHA-1", new TextEncoder().encode(password));
+    const hash = [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, "0")).join("").toUpperCase();
+    const response = await fetch(`https://api.pwnedpasswords.com/range/${hash.slice(0, 5)}`);
+    return response.ok && (await response.text()).includes(hash.slice(5));
+  } catch {
+    return false;
+  }
+}
+
 // Shown after an invitation or password-reset link: the user is signed in and must choose a password.
 export function SetPassword({ email }: { email: string }) {
   const [password, setPassword] = useState("");
@@ -101,6 +115,10 @@ export function SetPassword({ email }: { email: string }) {
     if (password.length < 8) return setError("Le mot de passe doit contenir au moins 8 caractères.");
     if (password !== confirm) return setError("Les deux mots de passe ne correspondent pas.");
     setBusy(true);
+    if (await isLeaked(password)) {
+      setBusy(false);
+      return setError("Ce mot de passe figure dans une fuite de données connue. Choisissez-en un autre.");
+    }
     const { error } = await supabase.auth.updateUser({ password });
     setBusy(false);
     if (error) return setError(errorMessage(error));
