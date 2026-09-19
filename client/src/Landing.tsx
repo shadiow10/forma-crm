@@ -8,25 +8,19 @@ import type { IconName } from "./ui";
 // and invites the director with the existing invite-user flow.
 
 type Billing = "monthly" | "yearly";
-type Plan = { id: string; name: string; monthly: number; tagline: string; features: string[]; featured?: boolean };
+type Plan = { id: string; name: string; monthly: number; tagline: string; students: string; users: string; features: string[]; featured?: boolean };
 
-// Monthly prices in DA. Yearly = 10 months (2 months free).
+// Monthly prices in DA. Yearly = 10 months (2 months free). `features` = what the plan adds on top of INCLUDED.
 export const PLANS: Plan[] = [
-  { id: "essentiel", name: "Essentiel", monthly: 2900, tagline: "Petits centres et écoles de soutien", features: ["Jusqu'à 100 étudiants", "3 utilisateurs", "Inscriptions, paiements, présences", "Planning et groupes", "Certificats imprimables"] },
-  { id: "pro", name: "Pro", monthly: 5900, tagline: "Écoles et centres en croissance", featured: true, features: ["Jusqu'à 400 étudiants", "10 utilisateurs", "Tout Essentiel, plus :", "Documents des étudiants (CNI, diplômes…)", "Aide à l'import de vos listes Excel"] },
-  { id: "etablissement", name: "Établissement", monthly: 9900, tagline: "Grandes écoles privées", features: ["Étudiants illimités", "Utilisateurs illimités", "Tout Pro, plus :", "Formation de votre équipe", "Accompagnement prioritaire"] },
+  { id: "essentiel", name: "Essentiel", monthly: 7900, tagline: "Écoles de soutien et petits centres", students: "100 étudiants", users: "3 utilisateurs", features: ["Support par email"] },
+  { id: "pro", name: "Pro", monthly: 14900, tagline: "Écoles privées et centres de formation", students: "400 étudiants", users: "10 utilisateurs", featured: true, features: ["Import de vos listes Excel par notre équipe", "Formation de votre secrétariat (1 séance)", "Support prioritaire par téléphone"] },
+  { id: "etablissement", name: "Établissement", monthly: 24900, tagline: "Grands établissements et réseaux", students: "Étudiants illimités", users: "Utilisateurs illimités", features: ["Tout Pro, plus un interlocuteur dédié", "Formation de toute l'équipe sur site"] },
 ];
+const INCLUDED = ["Étudiants, inscriptions et documents", "Paiements, soldes et exports", "Présences et planning des groupes", "Certificats prêts à imprimer", "Accès par rôle : directeur, secrétaire, formateur", "Données séparées de chaque école"];
 const price = (value: number) => `${new Intl.NumberFormat("fr-FR").format(value)} DA`;
 const planTotal = (plan: Plan, billing: Billing) => (billing === "yearly" ? plan.monthly * 10 : plan.monthly);
 
-const FEATURES: { icon: IconName; title: string; text: string }[] = [
-  { icon: "graduation", title: "Étudiants & inscriptions", text: "Une fiche par étudiant : coordonnées, inscriptions, documents et notes de suivi." },
-  { icon: "wallet", title: "Paiements & soldes", text: "Chaque versement est enregistré. Le reste à payer se calcule tout seul, par inscription." },
-  { icon: "check", title: "Présences en un clic", text: "Le formateur marque présent, retard ou absent depuis son téléphone. Le taux se met à jour." },
-  { icon: "calendar", title: "Groupes & planning", text: "Salles, horaires et formateurs sur une grille hebdomadaire claire." },
-  { icon: "print", title: "Certificats", text: "Certificat prêt à imprimer dès qu'une formation est terminée, réglée et suivie." },
-  { icon: "lock", title: "Accès par rôle", text: "Directeur, secrétaire, formateur : chacun ne voit que ce qui le concerne." },
-];
+const AUDIENCES = ["Écoles privées", "Centres de formation", "Écoles de soutien", "Écoles de langues", "Préscolaire"];
 
 const FAQ = [
   { q: "Comment payer ?", a: "Par carte Edahabia ou CIB en ligne, ou par virement / versement CCP. L'accès est ouvert dès la confirmation du paiement." },
@@ -36,12 +30,40 @@ const FAQ = [
   { q: "Faut-il installer quelque chose ?", a: "Non. FormaPlus fonctionne dans le navigateur, sur ordinateur comme sur téléphone." },
 ];
 
-function Brand() {
-  return <a className="lp-brand" href="/"><span className="brand-mark">F</span><strong>FORMA<span>PLUS</span></strong></a>;
+function Brand({ light = false }: { light?: boolean }) {
+  return <a className={`lp-brand ${light ? "light" : ""}`} href="/"><span className="brand-mark">F</span><strong>FORMA<span>PLUS</span></strong></a>;
+}
+
+// A still of the real app, drawn in HTML so it stays sharp and matches the product.
+function AppPreview() {
+  return <div className="lp-app" aria-hidden="true">
+    <div className="lp-app-side">
+      <span className="brand-mark">F</span>
+      {(["grid", "graduation", "file", "users", "calendar", "check", "wallet"] as IconName[]).map((icon, index) => <i key={icon} className={index === 5 ? "on" : ""}><Icon name={icon} size={15} /></i>)}
+    </div>
+    <div className="lp-app-main">
+      <div className="lp-app-head"><div><small>Présences · Mardi 14 octobre</small><strong>Excel avancé — Matin</strong></div><em>14 / 18 présents</em></div>
+      <div className="lp-app-table">
+        {[["Lina Haddad", "P", "96%"], ["Yacine Merabet", "P", "88%"], ["Sara Belkacem", "L", "81%"], ["Karim Ouali", "A", "68%"], ["Nour Saad", "P", "92%"]].map(([name, mark, rate]) =>
+          <div className="lp-app-row" key={name}>
+            <span className="lp-app-avatar">{name.split(" ").map((part) => part[0]).join("")}</span>
+            <strong>{name}</strong>
+            <span className="lp-app-marks">{["P", "L", "A"].map((option) => <b key={option} className={`${option}${option === mark ? " on" : ""}`}>{option === "P" ? "✓" : option === "L" ? "~" : "×"}</b>)}</span>
+            <span className={`lp-app-rate ${parseInt(rate) < 75 ? "low" : ""}`}>{rate}</span>
+          </div>)}
+      </div>
+    </div>
+    <div className="lp-app-card">
+      <small>Encaissé ce mois</small>
+      <strong>742 000 DA</strong>
+      <span>Reste à recouvrer · 186 500 DA</span>
+    </div>
+  </div>;
 }
 
 export function Landing() {
   const [billing, setBilling] = useState<Billing>("monthly");
+  const featured = PLANS.find((plan) => plan.featured)!;
   return <div className="lp">
     <header className="lp-header">
       <Brand />
@@ -51,67 +73,108 @@ export function Landing() {
 
     <main>
       <section className="lp-hero">
-        <div>
-          <p className="lp-eyebrow">Logiciel de gestion scolaire · fait pour l'Algérie</p>
-          <h1>Gérez votre école, pas des tableaux Excel.</h1>
-          <p className="lp-lead">Inscriptions, groupes, présences, paiements et certificats au même endroit. Pour les écoles privées, centres de formation et écoles de soutien.</p>
-          <div className="lp-actions"><a className="lp-btn primary" href="#tarifs">Voir les tarifs</a><a className="lp-btn ghost" href="#fonctionnalites">Découvrir</a></div>
-          <ul className="lp-proof"><li><Icon name="check" size={15} /> Paiement Edahabia, CIB ou CCP</li><li><Icon name="check" size={15} /> Prix affichés, sans devis</li><li><Icon name="check" size={15} /> Sur ordinateur et téléphone</li></ul>
-        </div>
-        <div className="lp-preview" aria-hidden="true">
-          <div className="lp-preview-bar"><i /><i /><i /></div>
-          <div className="lp-preview-body">
-            <div className="lp-preview-metrics">
-              <div><span>Étudiants actifs</span><strong>184</strong></div>
-              <div><span>Présence moyenne</span><strong>91%</strong></div>
-              <div><span>Encaissé ce mois</span><strong>742 000 DA</strong></div>
-            </div>
-            {[["Excel avancé — Matin", "09:00–11:00", "14/18"], ["Anglais B1 — Soir", "18:00–20:00", "16/16"], ["Comptabilité — Samedi", "09:00–13:00", "9/15"]].map(([name, time, seats]) =>
-              <div className="lp-preview-row" key={name}><span className="lp-dot" /><div><strong>{name}</strong><small>{time}</small></div><em>{seats}</em></div>)}
-          </div>
-        </div>
+        <p className="lp-eyebrow">Logiciel de gestion scolaire · Algérie</p>
+        <h1>L'école tourne.<br /><span>Les papiers, non.</span></h1>
+        <p className="lp-lead">Inscriptions, présences, paiements et certificats au même endroit — pour le directeur, le secrétariat et les formateurs.</p>
+        <div className="lp-actions"><a className="lp-btn primary" href="#tarifs">Voir les formules</a><a className="lp-link" href="#fonctionnalites">Comment ça marche <Icon name="arrow" size={15} /></a></div>
+        <AppPreview />
+      </section>
+
+      <section className="lp-audience" aria-label="Pour qui">
+        <span>Conçu pour</span>
+        <ul>{AUDIENCES.map((audience) => <li key={audience}>{audience}</li>)}</ul>
       </section>
 
       <section id="fonctionnalites" className="lp-section">
-        <h2>Tout le quotidien de votre école</h2>
-        <p className="lp-sub">De l'inscription au certificat, sans double saisie.</p>
-        <div className="lp-features">{FEATURES.map((feature) => <article key={feature.title}><span className="lp-icon"><Icon name={feature.icon} size={20} /></span><h3>{feature.title}</h3><p>{feature.text}</p></article>)}</div>
-      </section>
-
-      <section className="lp-section lp-steps-section">
-        <h2>Prêt en trois étapes</h2>
-        <ol className="lp-steps">
-          <li><strong>Choisissez votre formule</strong><span>Selon le nombre d'étudiants de votre école.</span></li>
-          <li><strong>Payez en ligne</strong><span>Edahabia, CIB, ou virement / versement CCP.</span></li>
-          <li><strong>Recevez votre accès</strong><span>Un email au directeur, puis il invite son équipe.</span></li>
-        </ol>
-      </section>
-
-      <section id="tarifs" className="lp-section">
-        <h2>Des prix clairs, en dinars</h2>
-        <p className="lp-sub">Toutes les fonctionnalités dans chaque formule. Vous payez selon la taille de votre école.</p>
-        <div className="lp-billing" role="group" aria-label="Période de facturation">
-          <button className={billing === "monthly" ? "active" : ""} aria-pressed={billing === "monthly"} onClick={() => setBilling("monthly")}>Mensuel</button>
-          <button className={billing === "yearly" ? "active" : ""} aria-pressed={billing === "yearly"} onClick={() => setBilling("yearly")}>Annuel <em>2 mois offerts</em></button>
+        <div className="lp-section-head">
+          <p className="lp-eyebrow">Au quotidien</p>
+          <h2>Une journée d'école, sans double saisie.</h2>
         </div>
-        <div className="lp-plans">{PLANS.map((plan) => <article className={`lp-plan ${plan.featured ? "featured" : ""}`} key={plan.id}>
-          {plan.featured && <span className="lp-badge">Recommandé</span>}
-          <h3>{plan.name}</h3>
-          <p className="lp-tagline">{plan.tagline}</p>
-          <p className="lp-price"><strong>{price(planTotal(plan, billing))}</strong><span>/{billing === "yearly" ? "an" : "mois"}</span></p>
-          <p className="lp-price-note">{billing === "yearly" ? `soit ${price(Math.round(plan.monthly * 10 / 12))}/mois` : `ou ${price(plan.monthly * 10)}/an`}</p>
-          <ul>{plan.features.map((feature) => <li key={feature}><Icon name="check" size={15} />{feature}</li>)}</ul>
-          <a className={`lp-btn ${plan.featured ? "primary" : "outline"}`} href={`/commander?plan=${plan.id}&periode=${billing}`}>Choisir {plan.name}</a>
-        </article>)}</div>
+        <div className="lp-bento">
+          <article className="lp-tile dark big">
+            <span className="lp-icon"><Icon name="check" size={20} /></span>
+            <h3>La présence en un geste</h3>
+            <p>Le formateur marque présent, retard ou absent depuis son téléphone. Le taux de chaque étudiant se met à jour pour tout le monde.</p>
+            <div className="lp-tile-marks" aria-hidden="true"><b className="P on">✓</b><b className="L">~</b><b className="A">×</b></div>
+          </article>
+          <article className="lp-tile">
+            <span className="lp-icon"><Icon name="wallet" size={20} /></span>
+            <h3>Qui doit quoi, en temps réel</h3>
+            <p>Chaque versement est enregistré. Le reste à payer se calcule par inscription, sans tableur.</p>
+          </article>
+          <article className="lp-tile">
+            <span className="lp-icon"><Icon name="graduation" size={20} /></span>
+            <h3>Le dossier complet</h3>
+            <p>Coordonnées, inscriptions, CNI et diplômes scannés, notes de suivi.</p>
+          </article>
+          <article className="lp-tile wide">
+            <span className="lp-icon"><Icon name="calendar" size={20} /></span>
+            <div><h3>Groupes, salles et horaires</h3><p>Une grille hebdomadaire lisible, filtrée pour chaque formateur.</p></div>
+          </article>
+          <article className="lp-tile sand">
+            <span className="lp-icon"><Icon name="print" size={20} /></span>
+            <h3>Certificats</h3>
+            <p>Prêts à imprimer dès qu'une formation est terminée et réglée.</p>
+          </article>
+        </div>
+      </section>
+
+      <section className="lp-band">
+        <div className="lp-band-inner">
+          <h2>En ligne dès aujourd'hui.</h2>
+          <ol className="lp-steps">
+            <li><em>01</em><strong>Choisissez votre formule</strong><span>Selon le nombre d'étudiants.</span></li>
+            <li><em>02</em><strong>Payez en ligne</strong><span>Edahabia, CIB, ou virement / CCP.</span></li>
+            <li><em>03</em><strong>Recevez votre accès</strong><span>Le directeur invite son équipe.</span></li>
+          </ol>
+        </div>
+      </section>
+
+      <section id="tarifs" className="lp-section lp-pricing">
+        <div className="lp-pricing-intro">
+          <p className="lp-eyebrow">Tarifs</p>
+          <h2>Un prix par taille d'école. Rien de caché.</h2>
+          <p>Toutes les fonctionnalités sont dans chaque formule. Seules la taille et l'accompagnement changent.</p>
+          <div className="lp-billing" role="group" aria-label="Période de facturation">
+            <button className={billing === "monthly" ? "active" : ""} aria-pressed={billing === "monthly"} onClick={() => setBilling("monthly")}>Mensuel</button>
+            <button className={billing === "yearly" ? "active" : ""} aria-pressed={billing === "yearly"} onClick={() => setBilling("yearly")}>Annuel · 2 mois offerts</button>
+          </div>
+          <div className="lp-included">
+            <strong>Inclus partout</strong>
+            <ul>{INCLUDED.map((item) => <li key={item}><Icon name="check" size={14} />{item}</li>)}</ul>
+          </div>
+        </div>
+
+        <div className="lp-ledger">
+          {PLANS.map((plan) => <article className={`lp-plan ${plan.featured ? "featured" : ""}`} key={plan.id}>
+            <div className="lp-plan-name">
+              <h3>{plan.name}{plan.featured && <span className="lp-badge">Recommandé</span>}</h3>
+              <p>{plan.tagline}</p>
+            </div>
+            <div className="lp-plan-size"><span>{plan.students}</span><span>{plan.users}</span></div>
+            <div className="lp-plan-price">
+              <strong>{price(planTotal(plan, billing))}</strong>
+              <span>{billing === "yearly" ? `par an · soit ${price(Math.round(plan.monthly * 10 / 12))}/mois` : "par mois"}</span>
+            </div>
+            <a className={`lp-plan-cta ${plan.featured ? "primary" : ""}`} href={`/commander?plan=${plan.id}&periode=${billing}`} aria-label={`Choisir ${plan.name}`}>
+              Choisir <Icon name="arrow" size={16} />
+            </a>
+            {plan.featured && <ul className="lp-plan-extras">{plan.features.map((feature) => <li key={feature}><Icon name="spark" size={14} />{feature}</li>)}</ul>}
+          </article>)}
+          <p className="lp-ledger-note">{featured.name} : {featured.features.length} services d'accompagnement en plus. Paiement Edahabia, CIB ou virement CCP. Sans engagement en mensuel.</p>
+        </div>
       </section>
 
       <section id="faq" className="lp-section lp-faq">
-        <h2>Questions fréquentes</h2>
-        {FAQ.map((item) => <details key={item.q}><summary>{item.q}</summary><p>{item.a}</p></details>)}
+        <div>
+          <p className="lp-eyebrow">Questions</p>
+          <h2>Ce que les directeurs nous demandent.</h2>
+        </div>
+        <div>{FAQ.map((item) => <details key={item.q}><summary>{item.q}<Icon name="plus" size={18} /></summary><p>{item.a}</p></details>)}</div>
       </section>
 
       <section className="lp-cta">
-        <h2>Votre prochaine rentrée, sans papiers perdus.</h2>
+        <h2>Prêt pour la rentrée ?</h2>
         <a className="lp-btn primary" href="#tarifs">Choisir ma formule</a>
       </section>
     </main>
@@ -202,7 +265,7 @@ export function Checkout() {
           <button type="button" className={billing === "monthly" ? "active" : ""} aria-pressed={billing === "monthly"} onClick={() => setBilling("monthly")}>Mensuel</button>
           <button type="button" className={billing === "yearly" ? "active" : ""} aria-pressed={billing === "yearly"} onClick={() => setBilling("yearly")}>Annuel</button>
         </div>
-        <ul>{plan.features.map((feature) => <li key={feature}><Icon name="check" size={14} />{feature}</li>)}</ul>
+        <ul>{[plan.students, plan.users, ...plan.features].map((feature) => <li key={feature}><Icon name="check" size={14} />{feature}</li>)}</ul>
         <div className="lp-total"><span>Total {billing === "yearly" ? "annuel" : "mensuel"}</span><strong>{price(planTotal(plan, billing))}</strong></div>
         {billing === "yearly" && <p className="lp-price-note">Vous économisez {price(plan.monthly * 2)} par an.</p>}
       </aside>
