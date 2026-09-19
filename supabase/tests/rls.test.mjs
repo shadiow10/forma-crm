@@ -4,7 +4,7 @@ import { PGlite } from "@electric-sql/pglite";
 import fs from "fs";
 import assert from "assert/strict";
 const db = new PGlite();
-await db.exec(`create role authenticated nologin; create role anon nologin; create schema auth; create table auth.users (id uuid primary key, email text);
+await db.exec(`create role authenticated nologin; create role anon nologin; create schema auth; create table auth.users (id uuid primary key, email text, encrypted_password text);
 create schema storage; grant usage on schema storage to authenticated;
 create table storage.buckets (id text primary key, name text, public boolean, file_size_limit bigint, allowed_mime_types text[]);
 create table storage.objects (id bigint generated always as identity primary key, bucket_id text, name text);
@@ -16,7 +16,7 @@ for (const file of fs.readdirSync(migrations).filter((name) => name.endsWith(".s
 await db.exec(fs.readFileSync(new URL("../seed.sql", import.meta.url), "utf8"));
 // Supabase grants table privileges to authenticated by default; RLS does the filtering.
 await db.exec(`grant all on all tables in schema public to authenticated; grant usage, select on all sequences in schema public to authenticated;`);
-const U = { D: "00000000-0000-0000-0000-00000000000d", S: "00000000-0000-0000-0000-00000000000s".replace("s","5"), T: "00000000-0000-0000-0000-00000000000e", D2: "00000000-0000-0000-0000-0000000000d2" };
+const U = { D: "00000000-0000-0000-0000-00000000000d", S: "00000000-0000-0000-0000-00000000000s".replace("s","5"), T: "00000000-0000-0000-0000-00000000000e", D2: "00000000-0000-0000-0000-0000000000d2", X: "00000000-0000-0000-0000-0000000000de" };
 await db.exec(`insert into auth.users values ('${U.D}'),('${U.S}'),('${U.T}'),('${U.D2}');
 insert into schools (id, name, slug) values (2, 'Autre École', 'autre-ecole');
 insert into courses (school_id, name, short_name, duration, price) values (2, 'Anglais', 'Anglais', '3 mois', 30000);
@@ -93,4 +93,33 @@ assert.ok(await fails("S", "select create_enrollment(1, 7, 1, 1, null, 45000, nu
 assert.equal(await count("D", "enrollments"), before, "nothing saved when the payment fails");
 assert.ok(await fails("T", "select create_enrollment(1, 7, 1, 5, null, 1, null, 0, 'Espèces')"), "teacher cannot enroll");
 assert.ok(await fails("D2", "select create_enrollment(1, 7, 1, 1, null, 1, null, 0, 'Espèces')"), "other school cannot enroll");
+// Demo school: a copy of school 1 that its members can read but never change.
+await db.exec(`insert into auth.users (id, email) values ('${U.X}', 'demo@formaplus.test');
+select setval(pg_get_serial_sequence('schools', 'id'), 10);`);
+await db.exec(fs.readFileSync(new URL("../demo.sql", import.meta.url), "utf8"));
+await db.exec(fs.readFileSync(new URL("../demo.sql", import.meta.url), "utf8")); // running it twice is harmless
+assert.equal(await count("X", "students"), await count("D", "students"), "demo sees the copied students");
+assert.ok(await count("X", "payments") > 0 && await count("X", "attendance_stats") > 0);
+assert.equal(await count("X", "students where school_id = 1"), 0, "demo cannot see the real school");
+const demo = (await db.query("select id from schools where slug = 'demo'")).rows[0].id;
+assert.ok(await fails("X", `insert into students (school_id, full_name, phone) values (${demo}, 'X', '0')`), "demo cannot add");
+assert.equal((await as("X", "update students set full_name = 'X' returning id")).length, 0, "demo cannot edit");
+assert.equal((await as("X", "delete from payments returning id")).length, 0, "demo cannot delete");
+assert.equal((await as("X", "update schools set name = 'X' returning id")).length, 0, "demo cannot rename school");
+assert.ok(await fails("X", `select create_enrollment(${demo}, 1000001, 1000001, null, null, 1, null, 0, 'Espèces')`), "demo cannot enroll");
+assert.ok(await fails("X", `insert into school_members (school_id, user_id, role) values (${demo}, '${U.D}', 'director')`), "demo cannot invite");
+assert.ok(await fails("X", `insert into storage.objects (bucket_id, name) values ('student-documents', '${demo}/1/x.pdf')`), "demo cannot upload");
+assert.ok(await fails("D", "update auth.users set encrypted_password = 'x' where email = 'demo@formaplus.test'"), "demo password is locked");
+
+// Activity log: written by triggers only, read by the director only.
+await db.exec(`update school_members set full_name = 'Sara Secrétaire' where user_id = '${U.S}'`);
+await as("S", "insert into payments (school_id, enrollment_id, amount, method) values (1, 3, 2500, 'Espèces')");
+await as("D", "delete from payments where amount = 2500");
+const log = await as("D", "select actor_name, action, new_row->>'amount' amount from activity_log where actor is not null and table_name = 'payments' order by id");
+assert.deepEqual(log.slice(-2).map((r) => [r.action, r.actor_name]), [["INSERT", "Sara Secrétaire"], ["DELETE", null]]);
+assert.equal(log.at(-2).amount, "2500");
+assert.equal(await count("S", "activity_log"), 0, "secretaire cannot read the log");
+assert.equal(await count("D2", "activity_log where school_id = 1"), 0, "other school cannot read school 1's log");
+assert.ok(await fails("D", "insert into activity_log (school_id, table_name, action) values (1, 'payments', 'DELETE')"), "nobody writes the log by hand");
+assert.equal((await as("D", "delete from activity_log returning id")).length, 0, "nobody erases the log");
 console.log("all access checks passed");

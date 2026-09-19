@@ -28,6 +28,8 @@ Deno.serve(async (req) => {
   if (!user) return reply({ error: "Session expirée. Reconnectez-vous." }, 401);
   const { data: me } = await caller.from("school_members").select("role").eq("school_id", school_id).eq("user_id", user.id).maybeSingle();
   if (me?.role !== "director") return reply({ error: "Seul le directeur peut inviter des utilisateurs." }, 403);
+  const { data: school } = await caller.from("schools").select("is_demo").eq("id", school_id).single();
+  if (school?.is_demo) return reply({ error: "La démonstration est en lecture seule." }, 403);
 
   // Creating a login needs the service role, which never leaves this function.
   const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);

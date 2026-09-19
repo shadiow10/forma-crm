@@ -5,7 +5,7 @@ export type Role = "director" | "secretaire" | "teacher";
 export type EnrollmentStatus = "Inscrit" | "En cours" | "Terminé" | "Abandonné";
 export type AttendanceStatus = "P" | "A" | "L";
 
-export type School = { id: number; name: string; slug: string; currency: string; phone: string | null; email: string | null; address: string | null };
+export type School = { id: number; name: string; slug: string; currency: string; phone: string | null; email: string | null; address: string | null; is_demo: boolean };
 export type Course = { id: number; name: string; short_name: string; duration: string; price: number; color: string };
 export type Teacher = { id: number; full_name: string; subject: string | null; phone: string | null; email: string | null; hourly_rate: number; contract: string; color: string };
 export type Group = { id: number; name: string; course_id: number | null; teacher_id: number | null; room: string | null; days: string[]; start_time: string | null; end_time: string | null; capacity: number; status: "Ouvert" | "Complet" | "Annulé"; color: string };
@@ -52,7 +52,7 @@ export async function fetchAll<T>(build: () => any, order: string[]): Promise<T[
 export async function loadSchoolData(client: SupabaseClient, schoolId: number): Promise<SchoolData> {
   const from = (table: string, columns: string) => () => client.from(table).select(columns).eq("school_id", schoolId);
   const [school, courses, teachers, groups, students, groupStudents, enrollments, balances, payments, attendanceStats, members] = await Promise.all([
-    client.from("schools").select("id, name, slug, currency, phone, email, address").eq("id", schoolId).single().then(({ data, error }) => {
+    client.from("schools").select("id, name, slug, currency, phone, email, address, is_demo").eq("id", schoolId).single().then(({ data, error }) => {
       if (error) throw error;
       return data as School;
     }),

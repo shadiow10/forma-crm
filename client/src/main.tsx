@@ -4,6 +4,7 @@ import App from "./App";
 import { signOut, useAuth } from "./auth";
 import { DataProvider } from "./data";
 import { Checkout, Landing } from "./Landing";
+import { Legal, isLegalPage } from "./Legal";
 import Login, { AuthShell, SetPassword } from "./Login";
 import "./index.css";
 
@@ -18,6 +19,7 @@ const Message = ({ title, text, action }: { title: string; text: string; action?
 
 function Root() {
   const auth = useAuth();
+  if (isLegalPage(window.location.pathname)) return <Legal path={window.location.pathname} />;
   if (auth.status === "loading") return <AuthShell><p className="auth-muted">Chargement…</p></AuthShell>;
   if (auth.status === "signedOut") {
     // Public site for visitors; any app address (e.g. /etudiants) still leads to the login.

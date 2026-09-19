@@ -31,7 +31,7 @@ const pathOf = (key: PageKey) => PAGES.find((page) => page.key === key)!.path;
 const pageAt = (path: string) => PAGES.find((page) => page.path === (path.replace(/\/+$/, "") || "/"))?.key;
 
 export default function App({ member, email, userId, onSignOut }: { member: Member; email: string; userId: string; onSignOut: () => void }) {
-  const { school, students, groups, canEdit, notice, clearNotice } = useData();
+  const { school, students, groups, canEdit, readOnly, notice, clearNotice } = useData();
   const allowed = rolePages[member.role];
   const resolve = (key: PageKey | undefined) => (key && allowed.includes(key) ? key : allowed[0]);
   const [page, setPage] = useState<PageKey>(() => resolve(pageAt(window.location.pathname)));
@@ -111,6 +111,7 @@ export default function App({ member, email, userId, onSignOut }: { member: Memb
           <button className="top-profile" onClick={onSignOut} title="Se déconnecter"><span className="user-avatar small">{initials(displayName)}</span><span>{displayName}</span><Icon name="logout" size={13} /></button>
         </div>
       </header>
+      {readOnly && <div className="demo-banner" role="note"><Icon name="lock" size={15} /><span><strong>Démonstration en lecture seule.</strong> Les données sont fictives ; vous pouvez tout parcourir, rien n'est enregistré.</span><button className="text-button" onClick={onSignOut}>Quitter la démo</button></div>}
       <div className="content-wrap">{renderPage()}</div>
       <footer className="app-footer"><span>FormaPlus · {school.name}</span><span><span className="status-live" /> Données synchronisées avec le serveur</span></footer>
     </main>

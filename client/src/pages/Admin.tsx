@@ -1,12 +1,13 @@
 import { FunctionsHttpError } from "@supabase/supabase-js";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
 import { roleLabels } from "../auth";
 import type { Role } from "../auth";
-import { useData } from "../data";
+import { friendlyError, useData } from "../data";
 import type { MemberRow } from "../lib/queries";
 import { supabase } from "../lib/supabase";
 import { Badge, Button, COLORS, EmptyState, FormModal, Icon, PageHeader, Panel, formatDate, initialsBadge, todayISO } from "../ui";
+import type { IconName } from "../ui";
 
 // ---------------------------------------------------------------- Certificates
 
@@ -61,15 +62,16 @@ export function Certificates() {
 // ---------------------------------------------------------------- Settings
 
 export function Settings({ userId }: { userId: string }) {
-  const [tab, setTab] = useState<"school" | "users">("school");
+  const [tab, setTab] = useState<"school" | "users" | "activity">("school");
   return <>
     <PageHeader eyebrow="Administration" title="Paramètres" description="L'identité de votre établissement et les accès de votre équipe." />
     <div className="settings-layout">
       <aside className="settings-nav">
         <button className={tab === "school" ? "active" : ""} onClick={() => setTab("school")}><Icon name="building" size={16} />Établissement<Icon name="chevron" size={15} stroke={COLORS.muted} /></button>
         <button className={tab === "users" ? "active" : ""} onClick={() => setTab("users")}><Icon name="users" size={16} />Utilisateurs<Icon name="chevron" size={15} stroke={COLORS.muted} /></button>
+        <button className={tab === "activity" ? "active" : ""} onClick={() => setTab("activity")}><Icon name="clock" size={16} />Journal d'activité<Icon name="chevron" size={15} stroke={COLORS.muted} /></button>
       </aside>
-      <div className="settings-content">{tab === "school" ? <SchoolSettings /> : <UserSettings userId={userId} />}</div>
+      <div className="settings-content">{tab === "school" ? <SchoolSettings /> : tab === "users" ? <UserSettings userId={userId} /> : <ActivityLog />}</div>
     </div>
   </>;
 }
@@ -110,7 +112,7 @@ async function invokeError(error: unknown) {
 }
 
 function UserSettings({ userId }: { userId: string }) {
-  const { members, teachers, school, save, notify, reload } = useData();
+  const { members, teachers, school, save, notify, reload, blocked } = useData();
   const [inviting, setInviting] = useState(false);
   const [editing, setEditing] = useState<MemberRow | null>(null);
   const roleOptions = (Object.keys(roleLabels) as Role[]).map((role) => ({ value: role, label: roleLabels[role] }));
@@ -141,6 +143,7 @@ function UserSettings({ userId }: { userId: string }) {
         ...teacherField(values),
       ]}
       onSubmit={async (values) => {
+        if (blocked()) return false;
         const { error } = await supabase.functions.invoke("invite-user", { body: {
           school_id: school.id, email: values.email.trim(), full_name: values.full_name.trim(), role: values.role,
           teacher_id: values.role === "teacher" ? Number(values.teacher) : null, redirect_to: window.location.origin,
@@ -161,5 +164,61 @@ function UserSettings({ userId }: { userId: string }) {
       onSubmit={(values) => save(() => supabase.from("school_members").update({
         full_name: values.full_name.trim(), role: values.role, teacher_id: values.role === "teacher" ? Number(values.teacher) : null,
       }).eq("school_id", school.id).eq("user_id", editing.user_id), "Accès mis à jour.")} />}
+  </Panel>;
+}
+
+// ---------------------------------------------------------------- Activity log
+
+type LogRow = { id: number; at: string; actor: string | null; actor_name: string | null; table_name: string; action: "INSERT" | "UPDATE" | "DELETE"; old_row: Record<string, any> | null; new_row: Record<string, any> | null };
+const LOG_KINDS = [["", "Tout"], ["payments", "Paiements"], ["enrollments", "Inscriptions"], ["students", "Étudiants"], ["school_members", "Accès"]] as const;
+const LOG_ICONS: Record<string, IconName> = { payments: "wallet", enrollments: "file", students: "graduation", school_members: "lock" };
+
+function ActivityLog() {
+  const { studentById, enrollments, courses, money, notify } = useData();
+  const [kind, setKind] = useState("");
+  const [rows, setRows] = useState<LogRow[]>();
+
+  useEffect(() => {
+    let query = supabase.from("activity_log").select("id, at, actor, actor_name, table_name, action, old_row, new_row").order("at", { ascending: false }).limit(200);
+    if (kind) query = query.eq("table_name", kind);
+    query.then(({ data, error }) => {
+      if (error) notify(friendlyError(error));
+      setRows((data ?? []) as LogRow[]);
+    });
+  }, [kind, notify]);
+
+  // Names come from the saved row itself when the student or enrollment no longer exists.
+  const studentName = (id?: number) => (id && studentById.get(id)?.full_name) || "un étudiant supprimé";
+  const enrollmentLabel = (row: Record<string, any>) => `${studentName(row.student_id)} · ${courses.find((course) => course.id === row.course_id)?.name ?? "formation"}`;
+  const payer = (enrollmentId: number) => { const enrollment = enrollments.find((item) => item.id === enrollmentId); return enrollment ? studentName(enrollment.student_id) : "une inscription supprimée"; };
+  const describe = ({ table_name, action, old_row: old, new_row: row }: LogRow) => {
+    const data = (row ?? old)!;
+    if (table_name === "payments") {
+      if (action === "INSERT") return `a enregistré un paiement de ${money(data.amount)} (${data.method}) pour ${payer(data.enrollment_id)}`;
+      if (action === "DELETE") return `a supprimé un paiement de ${money(data.amount)} (${data.method}) de ${payer(data.enrollment_id)}`;
+      return `a modifié un paiement de ${payer(data.enrollment_id)} : ${money(old!.amount)} → ${money(data.amount)}`;
+    }
+    if (table_name === "enrollments") {
+      if (action === "INSERT") return `a inscrit ${enrollmentLabel(data)} (${money(data.total)})`;
+      if (action === "DELETE") return `a supprimé l'inscription ${enrollmentLabel(data)}`;
+      if (old!.status !== data.status) return `a passé l'inscription ${enrollmentLabel(data)} de « ${old!.status} » à « ${data.status} »`;
+      if (old!.total !== data.total) return `a changé le prix de l'inscription ${enrollmentLabel(data)} : ${money(old!.total)} → ${money(data.total)}`;
+      return `a modifié l'inscription ${enrollmentLabel(data)}`;
+    }
+    if (table_name === "students") return `${action === "INSERT" ? "a ajouté" : action === "DELETE" ? "a supprimé" : "a modifié la fiche de"} ${action === "UPDATE" ? "" : "l'étudiant "}${data.full_name}`;
+    const who = data.full_name || data.email || "un utilisateur";
+    if (action === "INSERT") return `a donné l'accès ${roleLabels[data.role as Role] ?? data.role} à ${who}`;
+    if (action === "DELETE") return `a retiré l'accès de ${who}`;
+    return old!.role !== data.role ? `a changé le rôle de ${who} : ${roleLabels[old!.role as Role]} → ${roleLabels[data.role as Role]}` : `a modifié l'accès de ${who}`;
+  };
+  const time = (at: string) => new Date(at).toLocaleString("fr-FR", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
+
+  return <Panel title="Journal d'activité" action={<select className="select" aria-label="Type d'activité" value={kind} onChange={(event) => setKind(event.target.value)}>{LOG_KINDS.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select>}>
+    {!rows ? <p className="muted-copy">Chargement…</p> : rows.length ? <div className="activity-log">{rows.map((row) => <div className="activity-log-row" key={row.id}>
+      <span className="activity-icon" style={{ background: row.action === "DELETE" ? "#FDE8E8" : COLORS.tealLight, color: row.action === "DELETE" ? COLORS.red : COLORS.teal }}><Icon name={LOG_ICONS[row.table_name] ?? "file"} size={14} /></span>
+      <p><strong>{row.actor_name || (row.actor ? "Un utilisateur" : "Système")}</strong> {describe(row)}</p>
+      <time dateTime={row.at}>{time(row.at)}</time>
+    </div>)}</div> : <EmptyState title="Aucune activité" text="Les paiements, inscriptions, fiches étudiants et accès modifiés apparaîtront ici." />}
+    <p className="form-hint"><Icon name="lock" size={13} /> Visible uniquement par le directeur. Les entrées ne peuvent être ni modifiées ni effacées. 200 dernières actions affichées.</p>
   </Panel>;
 }

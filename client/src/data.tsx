@@ -21,6 +21,8 @@ export type StudentSummary = {
 type Store = SchoolData & {
   me: AuthMember;
   canEdit: boolean; // director or secretaire
+  readOnly: boolean; // demo school: the database refuses every change
+  blocked: () => boolean; // true (and explains why) when a change is not possible in the demo
   isDirector: boolean;
   money: (value: number) => string;
   reload: () => Promise<void>;
@@ -36,6 +38,8 @@ type Store = SchoolData & {
   groupStudentIds: (groupId: number) => number[];
   attendanceRate: (studentId: number, groupId?: number) => number | null;
 };
+
+export const DEMO_NOTICE = "Démonstration : les modifications ne sont pas enregistrées.";
 
 const DataContext = createContext<Store | null>(null);
 
@@ -102,10 +106,13 @@ export function DataProvider({ member, children, fallback }: { member: AuthMembe
       return { enrollments, latest, status: latest?.status ?? "Sans inscription", total, paid, balance, paymentStatus, attendance: attendanceRate(studentId) };
     };
 
+    const blocked = () => { if (data.school.is_demo) setNotice(DEMO_NOTICE); return data.school.is_demo; };
     return {
       ...data,
       me: member,
       canEdit: member.role !== "teacher",
+      readOnly: data.school.is_demo,
+      blocked,
       isDirector: member.role === "director",
       money: (value: number) => `${new Intl.NumberFormat("fr-FR").format(value)} ${currency}`,
       reload,
@@ -113,6 +120,7 @@ export function DataProvider({ member, children, fallback }: { member: AuthMembe
       notice,
       clearNotice: () => setNotice(""),
       save: async (action, success) => {
+        if (blocked()) return false;
         const { error } = await action();
         if (error) { setNotice(friendlyError(error)); return false; }
         await reload();

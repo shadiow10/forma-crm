@@ -13,7 +13,7 @@ const BUCKET = "student-documents";
 
 export function StudentDrawer({ studentId, onClose }: { studentId: number; onClose: () => void }) {
   const store = useData();
-  const { studentById, summaryOf, courses, groupById, payments, money, save, notify, isDirector, school, balanceOf, attendanceRate } = store;
+  const { studentById, summaryOf, courses, groupById, payments, money, save, notify, isDirector, school, balanceOf, attendanceRate, blocked } = store;
   const student = studentById.get(studentId);
   const [form, setForm] = useState<"edit" | "enroll" | "pay" | null>(null);
   const [payFor, setPayFor] = useState<number>();
@@ -40,7 +40,7 @@ export function StudentDrawer({ studentId, onClose }: { studentId: number; onClo
   const courseName = (id: number) => courses.find((course) => course.id === id)?.name ?? "Formation supprimée";
 
   const upload = async (file: File | undefined) => {
-    if (!file) return;
+    if (!file || blocked()) return;
     if (file.size > 5 * 1024 * 1024) return notify("Fichier trop lourd : 5 Mo maximum.");
     if (!["application/pdf", "image/jpeg", "image/png"].includes(file.type)) return notify("Formats acceptés : PDF, JPG ou PNG.");
     setUploading(true);
@@ -59,19 +59,20 @@ export function StudentDrawer({ studentId, onClose }: { studentId: number; onClo
     window.open(data.signedUrl, "_blank", "noopener");
   };
   const deleteDocument = async (doc: DocumentRow) => {
-    if (!window.confirm(`Supprimer « ${doc.type} » ?`)) return;
+    if (blocked() || !window.confirm(`Supprimer « ${doc.type} » ?`)) return;
     const { error } = await supabase.from("student_documents").delete().eq("id", doc.id);
     if (!error) await supabase.storage.from(BUCKET).remove([doc.file_path]);
     notify(error ? friendlyError(error) : "Document supprimé.");
     void loadExtras();
   };
   const setDocStatus = async (doc: DocumentRow) => {
+    if (blocked()) return;
     const { error } = await supabase.from("student_documents").update({ status: doc.status === "Validé" ? "À vérifier" : "Validé" }).eq("id", doc.id);
     if (error) notify(friendlyError(error));
     void loadExtras();
   };
   const addNote = async () => {
-    if (!note.trim()) return;
+    if (!note.trim() || blocked()) return;
     const { error } = await supabase.from("student_notes").insert({ school_id: school.id, student_id: student.id, body: note.trim() });
     if (error) return notify(friendlyError(error));
     setNote("");

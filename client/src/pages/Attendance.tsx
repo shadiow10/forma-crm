@@ -11,7 +11,7 @@ const CLASSES: Record<AttendanceStatus, string> = { P: "present", L: "late", A: 
 const SYMBOLS: Record<AttendanceStatus, string> = { P: "✓", L: "~", A: "×" };
 
 export function Attendance({ initialGroupId }: { initialGroupId?: number }) {
-  const { groups, school, attendanceRate, notify, reload } = useData();
+  const { groups, school, attendanceRate, notify, reload, blocked } = useData();
   const usable = groups.filter((group) => group.status !== "Annulé");
   const [groupId, setGroupId] = useState<number | undefined>(initialGroupId ?? usable[0]?.id);
   const [date, setDate] = useState(todayISO());
@@ -29,7 +29,7 @@ export function Attendance({ initialGroupId }: { initialGroupId?: number }) {
   useEffect(() => { setMarks({}); void loadMarks(); }, [loadMarks]);
 
   const mark = async (studentIds: number[], status: AttendanceStatus) => {
-    if (!groupId) return;
+    if (!groupId || blocked()) return;
     setSaving(studentIds.length > 1 ? "all" : studentIds[0]);
     const { error } = await supabase.from("attendance").upsert(studentIds.map((student_id) => ({ school_id: school.id, group_id: groupId, student_id, session_date: date, status })));
     setSaving(null);

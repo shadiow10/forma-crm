@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { supabase } from "./lib/supabase";
 import type { FormEvent, ReactNode } from "react";
 import { Icon } from "./ui";
 import type { IconName } from "./ui";
@@ -45,7 +46,33 @@ const ROLES: { icon: IconName; role: string; text: string; can: string[] }[] = [
   { icon: "teacher", role: "Formateur", text: "Se concentre sur ses groupes.", can: ["Son planning uniquement", "L'appel de ses propres groupes", "Les noms de ses étudiants, rien de plus"] },
 ];
 
-function Brand({ light = false }: { light?: boolean }) {
+export function Footer() {
+  return <footer className="lp-footer">
+    <Brand />
+    <nav aria-label="Informations légales"><a href="/mentions-legales">Mentions légales</a><a href="/cgv">CGV</a><a href="/confidentialite">Confidentialité</a></nav>
+    <a href="/connexion">Espace client</a>
+  </footer>;
+}
+
+// Public read-only demo school. Unset in .env = no demo button.
+const DEMO = { email: import.meta.env.VITE_DEMO_EMAIL as string | undefined, password: import.meta.env.VITE_DEMO_PASSWORD as string | undefined };
+function DemoButton({ className = "lp-btn" }: { className?: string }) {
+  const [state, setState] = useState<"idle" | "busy" | "error">("idle");
+  if (!DEMO.email || !DEMO.password) return null;
+  const start = async () => {
+    setState("busy");
+    const { error } = await supabase.auth.signInWithPassword({ email: DEMO.email!, password: DEMO.password! });
+    if (error) return setState("error");
+    window.history.replaceState(null, "", "/"); // the app opens on its dashboard
+    window.scrollTo({ top: 0 });
+  };
+  return <span className="lp-demo">
+    <button className={className} type="button" onClick={start} disabled={state === "busy"}>{state === "busy" ? "Ouverture de la démo…" : "Essayer la démo"}</button>
+    {state === "error" && <small role="alert">La démo est indisponible pour le moment.</small>}
+  </span>;
+}
+
+export function Brand({ light = false }: { light?: boolean }) {
   return <a className={`lp-brand ${light ? "light" : ""}`} href="/"><span className="brand-mark">F</span><strong>FORMA<span>PLUS</span></strong></a>;
 }
 
@@ -170,7 +197,8 @@ export function Landing() {
         <p className="lp-eyebrow">Logiciel de gestion scolaire · Algérie</p>
         <h1>L'école tourne.<br /><span>Les papiers, non.</span></h1>
         <p className="lp-lead">Inscriptions, présences, paiements et certificats au même endroit — pour le directeur, le secrétariat et les formateurs.</p>
-        <div className="lp-actions"><a className="lp-btn primary" href="#tarifs">Voir les formules</a><a className="lp-link" href="#fonctionnalites">Comment ça marche <Icon name="arrow" size={15} /></a></div>
+        <div className="lp-actions"><a className="lp-btn primary" href="#tarifs">Voir les formules</a>{DEMO.email ? <DemoButton className="lp-btn outline" /> : <a className="lp-link" href="#fonctionnalites">Comment ça marche <Icon name="arrow" size={15} /></a>}</div>
+        {DEMO.email && <p className="lp-demo-hint">Démo en lecture seule, sans inscription, avec une école fictive.</p>}
         <AppPreview />
       </section>
 
@@ -300,11 +328,11 @@ export function Landing() {
 
       <section className="lp-cta">
         <h2>Prêt pour la rentrée ?</h2>
-        <a className="lp-btn primary" href="#tarifs">Choisir ma formule</a>
+        <div className="lp-actions"><a className="lp-btn primary" href="#tarifs">Choisir ma formule</a><DemoButton className="lp-btn outline" /></div>
       </section>
     </main>
 
-    <footer className="lp-footer"><Brand /><span>Logiciel de gestion scolaire · Algérie</span><a href="/connexion">Espace client</a></footer>
+    <Footer />
   </div>;
 }
 
@@ -380,6 +408,7 @@ export function Checkout() {
               <label key={id} className={`lp-method ${values.method === id ? "active" : ""}`}><input type="radio" name="method" value={id} checked={values.method === id} onChange={set("method")} /><div><strong>{title}</strong><span>{text}</span></div></label>)}
           </div>
         </fieldset>
+        <p className="lp-terms">En commandant, vous acceptez les <a href="/cgv" target="_blank">conditions générales de vente</a> et la <a href="/confidentialite" target="_blank">politique de confidentialité</a>.</p>
         <button className="lp-btn primary lp-pay" type="submit" disabled={step === "paying"}>{step === "paying" ? "Paiement en cours…" : `Payer ${price(planTotal(plan, billing))} (démo)`}</button>
       </form>
 
