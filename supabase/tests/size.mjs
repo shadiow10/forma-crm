@@ -4,7 +4,7 @@ import { PGlite } from "@electric-sql/pglite";
 import fs from "fs";
 
 const db = new PGlite();
-await db.exec(`create role authenticated nologin; create role anon nologin; create schema auth; create table auth.users (id uuid primary key, email text, encrypted_password text);
+await db.exec(`create role authenticated nologin; create role anon nologin; create role service_role nologin; create schema auth; create table auth.users (id uuid primary key, email text, encrypted_password text);
 create schema storage; grant usage on schema storage to authenticated;
 create table storage.buckets (id text primary key, name text, public boolean, file_size_limit bigint, allowed_mime_types text[]);
 create table storage.objects (id bigint generated always as identity primary key, bucket_id text, name text);
