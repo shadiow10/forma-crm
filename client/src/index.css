@@ -375,7 +375,8 @@ tbody tr:hover { background: #f1faf8; }
   .toast { right: 13px; left: 13px; bottom: 13px; }
   .app-footer { padding: 0 13px 15px; flex-direction: column; }
 }
-@media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; } }
+/* The landing page has its own gentler reduced-motion rules */
+@media (prefers-reduced-motion: reduce) { :not(.lp *), :not(.lp *)::before, :not(.lp *)::after { scroll-behavior: auto !important; transition-duration: .01ms !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; } }
 
 /* Unified Prospects workspace */
 
@@ -542,7 +543,7 @@ tbody tr[tabindex]:focus-visible, .class-card:focus-visible, .teacher-card:focus
 .lp-app-side .brand-mark { width: 30px; height: 30px; font-size: 16px; margin-bottom: 8px; }
 .lp-app-side i { display: grid; place-items: center; width: 36px; height: 36px; border-radius: 10px; }
 .lp-app-side i.on { background: rgba(92,194,180,.2); color: #8ed2c7; }
-.lp-app-main { padding: 26px 30px 30px; }
+.lp-app-main { padding: 26px 260px 30px 30px; } /* right side kept free for the floating card */
 .lp-app-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; padding-bottom: 18px; border-bottom: 1px solid #eceae4; }
 .lp-app-head small { display: block; color: var(--muted); font-size: 12px; }
 .lp-app-head strong { font: 700 20px Manrope, sans-serif; color: var(--navy); letter-spacing: -.02em; }
@@ -691,7 +692,8 @@ tbody tr[tabindex]:focus-visible, .class-card:focus-visible, .teacher-card:focus
 .lp-done .lp-btn { margin-top: 18px; }
 
 @media (max-width: 1100px) {
-  .lp-app-card { right: 16px; top: auto; bottom: 24px; }
+  .lp-app-card { display: none; }
+  .lp-app-main { padding-right: 30px; }
   .lp-plan { grid-template-columns: 1fr 1fr; }
   .lp-plan-price { grid-column: 1; }
   .lp-plan-cta { justify-self: end; }
@@ -724,13 +726,66 @@ tbody tr[tabindex]:focus-visible, .class-card:focus-visible, .teacher-card:focus
 }
 
 
+/* Screen strip: small stills of each screen, looping right-to-left */
+.lp-shots { padding: 104px 0 16px; }
+.lp-shots .lp-section-head { max-width: 1200px; margin: 0 auto 36px; padding: 0 24px; }
+.lp-shots h2 { max-width: 640px; font-size: clamp(32px, 4.4vw, 52px); line-height: 1.05; }
+.lp-marquee { overflow: hidden; padding: 12px 0 40px; mask-image: linear-gradient(90deg, transparent, #000 7%, #000 93%, transparent); }
+.lp-marquee-track { display: flex; width: max-content; }
+.lp-shot { flex: none; width: 320px; margin-right: 22px; border: 1px solid #d9dde2; border-radius: 16px; background: var(--paper); box-shadow: 0 18px 40px rgba(24,43,73,.1); overflow: hidden; }
+.lp-shot-bar { display: flex; align-items: center; gap: 8px; padding: 10px 14px; background: var(--navy); color: #fff; font-size: 13px; font-weight: 700; }
+.lp-shot-bar svg { color: #8ed2c7; }
+.lp-shot-body { display: flex; flex-direction: column; gap: 8px; height: 200px; padding: 14px; font-size: 12px; line-height: 1.3; }
+.lp-shot-body small { display: block; color: var(--muted); font-size: 11px; }
+.lp-shot-body b { font-weight: 600; color: var(--lp-ink); }
+.ms-avatar { flex: none; font-style: normal; display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; background: #e2e4f2; color: #4b5580; font-size: 10px; font-weight: 700; }
+.ms-row { display: flex; align-items: center; gap: 10px; padding-bottom: 8px; border-bottom: 1px solid #f0efea; }
+.ms-row span { flex: 1; min-width: 0; }
+.ms-row strong { color: var(--navy); }
+.ms-row em { padding: 2px 8px; border-radius: 999px; font-size: 10px; font-style: normal; font-weight: 700; }
+.ms-row .ok { background: #e5f5ed; color: #2f8b65; }
+.ms-row .wait { background: #fff4d9; color: #a77b17; }
+.ms-due { display: flex; justify-content: space-between; margin-top: auto; padding: 9px 10px; border-radius: 10px; background: #fde8e8; color: #b65353; font-weight: 700; }
+.ms-due b { color: inherit; font-weight: 800; }
+.ms-metrics { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.ms-metrics div { padding: 8px 10px; border-radius: 10px; background: #f3f1ea; }
+.ms-metrics small { font-size: 10px; }
+.lp-shot-body .ms-metrics b { font: 800 19px Manrope, sans-serif; color: var(--navy); }
+.ms-bars { flex: 1; display: flex; align-items: flex-end; gap: 9px; padding-top: 6px; }
+.ms-bars i { flex: 1; border-radius: 5px 5px 2px 2px; background: #8ed2c7; }
+.ms-bars i:last-child { background: var(--teal); }
+.ms-week { flex: 1; display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+.ms-week div { display: flex; flex-direction: column; gap: 6px; }
+.ms-week small { text-align: center; font-weight: 700; }
+.ms-week i { padding: 16px 2px; border-radius: 8px; font-size: 10px; font-style: normal; font-weight: 700; text-align: center; }
+.ms-week .t { background: #e3f3f0; color: #1f7a6f; }
+.ms-week .c { background: #fde9e1; color: #b0573b; }
+.ms-week .n { background: #e2e4f2; color: #4b5580; }
+.ms-group { display: flex; flex-direction: column; gap: 7px; padding: 9px 10px; border: 1px solid #eceae4; border-radius: 10px; }
+.ms-group span { display: flex; justify-content: space-between; gap: 8px; }
+.ms-group div { height: 6px; border-radius: 999px; background: #eceae4; }
+.ms-group div i { display: block; height: 100%; border-radius: inherit; background: var(--teal); }
+.ms-cert { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; border: 2px solid #d8c9a3; border-radius: 6px; outline: 1px solid #d8c9a3; outline-offset: -8px; background: #fffdf6; text-align: center; }
+.lp-shot-body .ms-cert small { color: #a77b17; font-size: 9px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; }
+.lp-shot-body .ms-cert b { font: 800 20px Manrope, sans-serif; color: var(--navy); }
+.ms-cert span { color: var(--lp-text); font-size: 11px; }
+.ms-cert div { display: flex; gap: 44px; margin-top: 12px; }
+.ms-cert div i { width: 60px; border-top: 1px solid #b9b3a3; }
+
 /* Landing motion. Rules: transform/opacity only, strong ease-out (--ease-out from :root),
    hover motion only on real pointers, reduced motion keeps fades and drops movement. */
-.lp { --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1); }
 @keyframes lp-rise { from { opacity: 0; transform: translateY(12px); } }
 @keyframes lp-rise-far { from { opacity: 0; transform: translateY(32px); } }
 @keyframes lp-pop { from { opacity: 0; transform: scale(0.9); } }
 @keyframes lp-fade { from { opacity: 0; } }
+@keyframes lp-marquee { to { transform: translateX(-50%); } }
+
+/* Nav links glide to their section; the underline follows the section on screen */
+html:has(.lp) { scroll-behavior: smooth; }
+.lp-header nav a { position: relative; transition: color 200ms ease; }
+.lp-header nav a::after { content: ""; position: absolute; left: 0; right: 0; bottom: -6px; height: 2px; border-radius: 2px; background: var(--teal); transform: scaleX(0); transform-origin: left; transition: transform 300ms var(--ease-out); }
+.lp-header nav a.active { color: var(--navy); }
+.lp-header nav a.active::after { transform: scaleX(1); }
 
 /* Hero: first view only, 60ms stagger, then the product rises in */
 .lp-hero > * { animation: lp-rise 600ms var(--ease-out) both; }
@@ -747,13 +802,17 @@ tbody tr[tabindex]:focus-visible, .class-card:focus-visible, .teacher-card:focus
 .lp-app-row:nth-child(4) b.on { animation-delay: 1360ms; }
 .lp-app-row:nth-child(5) b.on { animation-delay: 1480ms; }
 
+/* Screen strip: constant speed, so linear; pauses under the mouse to read a screen */
+.lp-marquee-track { animation: lp-marquee 60s linear infinite; }
+
 /* Scroll reveal: once per block, set by useReveal() */
 [data-reveal] { transition: opacity 700ms var(--ease-out), transform 700ms var(--ease-out); }
-[data-reveal]:not([data-visible]) { opacity: 0; transform: translateY(20px); }
-.lp-bento > [data-reveal]:nth-child(2), .lp-steps > [data-reveal]:nth-child(2) { transition-delay: 70ms; }
-.lp-bento > [data-reveal]:nth-child(3), .lp-steps > [data-reveal]:nth-child(3) { transition-delay: 140ms; }
+[data-reveal]:not([data-visible]) { opacity: 0; transform: translateY(24px); }
+.lp-bento > [data-reveal]:nth-child(2), .lp-steps > [data-reveal]:nth-child(2), .lp-ledger > [data-reveal]:nth-child(2) { transition-delay: 70ms; }
+.lp-bento > [data-reveal]:nth-child(3), .lp-steps > [data-reveal]:nth-child(3), .lp-ledger > [data-reveal]:nth-child(3) { transition-delay: 140ms; }
 .lp-bento > [data-reveal]:nth-child(4) { transition-delay: 210ms; }
 .lp-bento > [data-reveal]:nth-child(5) { transition-delay: 280ms; }
+.lp-marquee[data-reveal] { transition-delay: 100ms; }
 
 /* Price swap on Mensuel/Annuel: short fade, 2px blur masks the text change */
 .lp-swap { display: inline-block; transition: opacity 220ms var(--ease-out), filter 220ms var(--ease-out), transform 220ms var(--ease-out); }
@@ -776,29 +835,35 @@ tbody tr[tabindex]:focus-visible, .class-card:focus-visible, .teacher-card:focus
 .lp-billing button { transition: background-color 200ms ease, color 200ms ease; }
 .lp-plan { transition: border-color 200ms ease; }
 .lp-plan[data-reveal] { transition: opacity 700ms var(--ease-out), transform 700ms var(--ease-out), border-color 200ms ease; }
+.lp-shot { transition: transform 300ms var(--ease-out), box-shadow 300ms var(--ease-out); }
 .lp-checkout .lp-method { transition: border-color 150ms ease, background-color 150ms ease; }
 .lp-link svg, .lp-faq summary svg { transition: transform 200ms var(--ease-out); }
 
 /* Hover only where a real pointer exists (a tap would leave these stuck on) */
 @media (hover: hover) and (pointer: fine) {
   .lp-header nav a:hover { color: var(--navy); }
+  .lp-header nav a:hover::after { transform: scaleX(1); }
   .lp-login:hover { background: var(--navy); color: #fff !important; }
   .lp-btn.primary:hover { box-shadow: 0 10px 26px rgba(24,43,73,.25); }
   .lp-link:hover svg { transform: translateX(3px); }
   .lp-plan:not(.featured):hover { border-color: #c9c5b9; }
   .lp-plan-cta:hover { background: var(--navy); color: #fff !important; }
   .lp-plan-cta.primary:hover { background: #fff; border-color: #fff; color: var(--navy) !important; }
+  .lp-marquee:hover .lp-marquee-track { animation-play-state: paused; }
+  .lp-shot:hover { transform: translateY(-6px); box-shadow: 0 26px 50px rgba(24,43,73,.16); }
 }
 
 /* Reduced motion: fewer and gentler, not zero. Keep fades, drop movement. */
 @media (prefers-reduced-motion: reduce) {
   .lp-hero > *, .lp-hero > .lp-app, .lp-app-card, .lp-done-icon, .lp-done h1, .lp-done > p, .lp-next li { animation-name: lp-fade; }
   .lp-app-marks b.on { animation: none; }
+  .lp-marquee-track { animation: none; }
+  .lp-marquee { overflow-x: auto; }
   [data-reveal] { transition: opacity 400ms ease; transition-delay: 0ms !important; }
   [data-reveal]:not([data-visible]) { transform: none; }
   .lp-swap, .lp-faq details[open] p { transition: opacity 200ms ease; }
   .lp-btn:active, .lp-plan-cta:active, .lp-login:active { transform: none; }
-  .lp-link:hover svg { transform: none; }
+  .lp-link:hover svg, .lp-shot:hover { transform: none; }
 }
 
 @media print {

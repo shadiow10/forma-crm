@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import type { FormEvent } from "react";
+import type { FormEvent, ReactNode } from "react";
 import { Icon } from "./ui";
 import type { IconName } from "./ui";
 
@@ -61,8 +61,47 @@ function AppPreview() {
   </div>;
 }
 
+// Small stills of the other screens, looped right-to-left under the hero.
+const avatar = (name: string) => <i className="ms-avatar">{name.split(" ").map((part) => part[0]).join("")}</i>;
+const SCREENS: { title: string; icon: IconName; body: ReactNode }[] = [
+  { title: "Tableau de bord", icon: "grid", body: <>
+    <div className="ms-metrics"><div><small>Étudiants actifs</small><b>186</b></div><div><small>Présence</small><b>91%</b></div><div><small>Encaissé</small><b>742k</b></div></div>
+    <div className="ms-bars">{[42, 58, 50, 71, 64, 88, 76].map((height, index) => <i key={index} style={{ height: `${height}%` }} />)}</div>
+  </> },
+  { title: "Étudiants", icon: "graduation", body: <>
+    {[["Lina Haddad", "Excel avancé", "Actif"], ["Yacine Merabet", "Anglais B1", "Actif"], ["Sara Belkacem", "Comptabilité", "En attente"], ["Nour Saad", "Python", "Actif"]].map(([name, course, status]) =>
+      <div className="ms-row" key={name}>{avatar(name)}<span><b>{name}</b><small>{course}</small></span><em className={status === "Actif" ? "ok" : "wait"}>{status}</em></div>)}
+  </> },
+  { title: "Paiements", icon: "wallet", body: <>
+    {[["Karim Ouali", "15 000 DA", "CCP"], ["Lina Haddad", "22 000 DA", "Espèces"], ["Amel Rahmani", "18 500 DA", "Edahabia"]].map(([name, amount, method]) =>
+      <div className="ms-row" key={name}>{avatar(name)}<span><b>{name}</b><small>{method}</small></span><strong>{amount}</strong></div>)}
+    <div className="ms-due"><span>Reste à recouvrer</span><b>186 500 DA</b></div>
+  </> },
+  { title: "Planning", icon: "calendar", body:
+    <div className="ms-week">{["Dim", "Lun", "Mar", "Mer", "Jeu"].map((day, index) => <div key={day}><small>{day}</small>
+      {[["Excel", "t"], ["Anglais", "c"], ["Python", "n"]].filter((_, slot) => (index + slot) % 3 !== 2).map(([label, tone]) => <i key={label} className={tone}>{label}</i>)}
+    </div>)}</div> },
+  { title: "Groupes", icon: "users", body: <>
+    {[["Excel avancé — Matin", 16, 18], ["Anglais B1 — Soir", 11, 20], ["Python débutant", 19, 20]].map(([name, taken, seats]) =>
+      <div className="ms-group" key={name}><span><b>{name}</b><small>{taken} / {seats} places</small></span><div><i style={{ width: `${(Number(taken) / Number(seats)) * 100}%` }} /></div></div>)}
+  </> },
+  { title: "Certificats", icon: "print", body:
+    <div className="ms-cert"><small>Certificat de formation</small><b>Lina Haddad</b><span>a suivi avec succès « Excel avancé »</span><div><i /><i /></div></div> },
+];
+
+function ScreenStrip() {
+  return <div className="lp-marquee">
+    <div className="lp-marquee-track">
+      {[0, 1].map((copy) => SCREENS.map((screen) => <div className="lp-shot" key={`${copy}-${screen.title}`} aria-hidden={copy === 1 || undefined}>
+        <div className="lp-shot-bar"><Icon name={screen.icon} size={13} />{screen.title}</div>
+        <div className="lp-shot-body" aria-hidden="true">{screen.body}</div>
+      </div>))}
+    </div>
+  </div>;
+}
+
 // Scroll reveal, marketing surface only: each block fades up once when it enters the viewport.
-const REVEAL = ".lp-section-head, .lp-tile, .lp-band h2, .lp-steps li, .lp-pricing-intro, .lp-plan, .lp-faq > div, .lp-cta";
+const REVEAL = ".lp-section-head, .lp-marquee, .lp-tile, .lp-band h2, .lp-steps li, .lp-pricing-intro, .lp-plan, .lp-faq > div, .lp-cta";
 function useReveal() {
   const root = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -76,14 +115,29 @@ function useReveal() {
   return root;
 }
 
+// Nav underline follows the section in the middle of the screen.
+const NAV = [["fonctionnalites", "Fonctionnalités"], ["tarifs", "Tarifs"], ["faq", "Questions"]];
+function useActiveSection() {
+  const [active, setActive] = useState("");
+  useEffect(() => {
+    const observer = new IntersectionObserver((entries) => {
+      for (const entry of entries) if (entry.isIntersecting) setActive(entry.target.id);
+    }, { rootMargin: "-45% 0px -50% 0px" });
+    for (const [id] of NAV) { const section = document.getElementById(id); if (section) observer.observe(section); }
+    return () => observer.disconnect();
+  }, []);
+  return active;
+}
+
 export function Landing() {
   const root = useReveal();
+  const active = useActiveSection();
   const [billing, setBilling] = useState<Billing>("monthly");
   const featured = PLANS.find((plan) => plan.featured)!;
   return <div className="lp" ref={root}>
     <header className="lp-header">
       <Brand />
-      <nav aria-label="Sections"><a href="#fonctionnalites">Fonctionnalités</a><a href="#tarifs">Tarifs</a><a href="#faq">Questions</a></nav>
+      <nav aria-label="Sections">{NAV.map(([id, label]) => <a key={id} href={`#${id}`} className={active === id ? "active" : ""}>{label}</a>)}</nav>
       <a className="lp-login" href="/connexion">Se connecter</a>
     </header>
 
@@ -99,6 +153,14 @@ export function Landing() {
       <section className="lp-audience" aria-label="Pour qui">
         <span>Conçu pour</span>
         <ul>{AUDIENCES.map((audience) => <li key={audience}>{audience}</li>)}</ul>
+      </section>
+
+      <section className="lp-shots" aria-label="Les écrans de FormaPlus">
+        <div className="lp-section-head">
+          <p className="lp-eyebrow">L&apos;application</p>
+          <h2>Tous les écrans de l&apos;école, au même endroit.</h2>
+        </div>
+        <ScreenStrip />
       </section>
 
       <section id="fonctionnalites" className="lp-section">
