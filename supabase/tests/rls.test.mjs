@@ -157,4 +157,18 @@ assert.equal((await db.query(`select public.orphan_user_id('PARTI@ecole.dz') as 
 assert.equal((await db.query(`select public.orphan_user_id('demo@formaplus.test') as id`)).rows[0].id, null, "a login that still belongs to a school is not orphan");
 assert.ok(await fails("D", "select public.orphan_user_id('parti@ecole.dz')"), "a director cannot look up logins");
 
+// Default deny: every table keeps row security on, and a signed-out visitor reads nothing anywhere.
+// Supabase grants anon the same table rights as authenticated; only the policies keep it out.
+assert.deepEqual((await db.query(`select relname from pg_class c join pg_namespace n on n.oid = c.relnamespace
+  where n.nspname = 'public' and c.relkind = 'r' and not c.relrowsecurity`)).rows, [], "a table without row security");
+assert.deepEqual((await db.query(`select tablename, policyname from pg_policies where schemaname = 'public' and 'anon' = any(roles)`)).rows, [], "a policy open to signed-out visitors");
+await db.exec(`grant all on all tables in schema public to anon;`); // worst case: anon has every table right Supabase could grant
+for (const table of [...tables, "activity_log", "teacher_pay", "student_notes", "student_documents", "group_students"]) {
+  const rows = await (async () => {
+    await db.exec(`reset role; set test.uid = ''; set role anon;`);
+    try { return (await db.query(`select * from ${table}`)).rows.length; } catch { return 0; } finally { await db.exec("reset role"); }
+  })();
+  assert.equal(rows, 0, `signed-out visitor can read ${table}`);
+}
+
 console.log("all access checks passed");

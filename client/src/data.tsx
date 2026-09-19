@@ -49,7 +49,9 @@ export function friendlyError(error: { code?: string; message: string }) {
   if (error.code === "23505") return "Cet élément existe déjà.";
   if (error.code === "23514") return "Valeur invalide : vérifiez les champs du formulaire.";
   if (/fetch|network/i.test(error.message)) return "Connexion au serveur impossible. Vérifiez votre connexion internet.";
-  return `Erreur : ${error.message}`;
+  // Raw Postgres messages name tables, columns and constraints: keep them for the console, not the screen.
+  console.error(error);
+  return "Opération impossible. Réessayez ; si cela persiste, contactez le support.";
 }
 
 export function DataProvider({ member, children, fallback }: { member: AuthMember; children: ReactNode; fallback: (state: { error?: string; retry: () => void }) => ReactNode }) {

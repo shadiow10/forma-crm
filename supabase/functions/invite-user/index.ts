@@ -48,7 +48,10 @@ Deno.serve(async (req) => {
   let userId: string | undefined = invited?.user?.id;
   let reactivated = false;
   if (inviteError) {
-    if (!/already|registered|exists/i.test(inviteError.message)) return reply({ error: inviteError.message }, 400);
+    if (!/already|registered|exists/i.test(inviteError.message)) {
+      console.error("invite failed:", inviteError.message); // details stay in the function logs
+      return reply({ error: "L'invitation n'a pas pu être envoyée. Réessayez dans un instant." }, 400);
+    }
     // Removing someone's access leaves their login in place, so a new invitation bounces here.
     // Attach it again when it belongs to no school at all; they keep their existing password.
     // ponytail: one school per login for now; joining a second school comes with multi-school support.
@@ -65,7 +68,8 @@ Deno.serve(async (req) => {
   });
   if (memberError) {
     if (!reactivated) await admin.auth.admin.deleteUser(userId!); // invited a moment ago: undo it
-    return reply({ error: memberError.message }, 400);
+    console.error("membership insert failed:", memberError.message);
+    return reply({ error: "Impossible d'ajouter cette personne à l'école." }, 400);
   }
   return reply({ ok: true, reactivated });
 });
