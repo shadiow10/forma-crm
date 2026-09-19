@@ -7,7 +7,8 @@ export type AttendanceStatus = "P" | "A" | "L";
 
 export type School = { id: number; name: string; slug: string; currency: string; phone: string | null; email: string | null; address: string | null; is_demo: boolean };
 export type Course = { id: number; name: string; short_name: string; duration: string; price: number; color: string };
-export type Teacher = { id: number; full_name: string; subject: string | null; phone: string | null; email: string | null; hourly_rate: number; contract: string; color: string };
+// hourly_rate comes from the teacher_pay view: null for a secretaire, who cannot read it.
+export type Teacher = { id: number; full_name: string; subject: string | null; phone: string | null; email: string | null; hourly_rate: number | null; contract: string; color: string };
 export type Group = { id: number; name: string; course_id: number | null; teacher_id: number | null; room: string | null; days: string[]; start_time: string | null; end_time: string | null; capacity: number; status: "Ouvert" | "Complet" | "Annulé"; color: string };
 export type Student = { id: number; full_name: string; phone: string; email: string | null; address: string | null; dob: string | null; source: string | null; created_at: string };
 export type GroupStudent = { group_id: number; student_id: number };
@@ -51,13 +52,14 @@ export async function fetchAll<T>(build: () => any, order: string[]): Promise<T[
 // ponytail: whole school in memory; move lists to server-side paging when a school passes ~10k students.
 export async function loadSchoolData(client: SupabaseClient, schoolId: number): Promise<SchoolData> {
   const from = (table: string, columns: string) => () => client.from(table).select(columns).eq("school_id", schoolId);
-  const [school, courses, teachers, groups, students, groupStudents, enrollments, balances, payments, attendanceStats, members] = await Promise.all([
+  const [school, courses, teachers, pay, groups, students, groupStudents, enrollments, balances, payments, attendanceStats, members] = await Promise.all([
     client.from("schools").select("id, name, slug, currency, phone, email, address, is_demo").eq("id", schoolId).single().then(({ data, error }) => {
       if (error) throw error;
       return data as School;
     }),
     fetchAll<Course>(from("courses", "id, name, short_name, duration, price, color"), ["name", "id"]),
-    fetchAll<Teacher>(from("teachers", "id, full_name, subject, phone, email, hourly_rate, contract, color"), ["full_name", "id"]),
+    fetchAll<Omit<Teacher, "hourly_rate">>(from("teachers", "id, full_name, subject, phone, email, contract, color"), ["full_name", "id"]),
+    fetchAll<{ teacher_id: number; hourly_rate: number }>(from("teacher_pay", "teacher_id, hourly_rate"), ["teacher_id"]),
     fetchAll<Group>(from("groups", "id, name, course_id, teacher_id, room, days, start_time, end_time, capacity, status, color"), ["name", "id"]),
     fetchAll<Student>(from("students", "id, full_name, phone, email, address, dob, source, created_at"), ["full_name", "id"]),
     fetchAll<GroupStudent>(from("group_students", "group_id, student_id"), ["group_id", "student_id"]),
@@ -67,5 +69,9 @@ export async function loadSchoolData(client: SupabaseClient, schoolId: number): 
     fetchAll<AttendanceStat>(from("attendance_stats", "group_id, student_id, sessions, present, late, absent"), ["group_id", "student_id"]),
     fetchAll<MemberRow>(from("school_members", "user_id, role, full_name, email, teacher_id"), ["created_at", "user_id"]),
   ]);
-  return { school, courses, teachers, groups, students, groupStudents, enrollments, balances, payments, attendanceStats, members };
+  const rates = new Map(pay.map((row) => [row.teacher_id, row.hourly_rate]));
+  return {
+    school, courses, groups, students, groupStudents, enrollments, balances, payments, attendanceStats, members,
+    teachers: teachers.map((teacher) => ({ ...teacher, hourly_rate: rates.get(teacher.id) ?? null })),
+  };
 }

@@ -144,13 +144,16 @@ function UserSettings({ userId }: { userId: string }) {
       ]}
       onSubmit={async (values) => {
         if (blocked()) return false;
-        const { error } = await supabase.functions.invoke("invite-user", { body: {
+        const { data, error } = await supabase.functions.invoke("invite-user", { body: {
           school_id: school.id, email: values.email.trim(), full_name: values.full_name.trim(), role: values.role,
           teacher_id: values.role === "teacher" ? Number(values.teacher) : null,
         } });
         if (error) { notify(await invokeError(error)); return false; }
         await reload();
-        notify(`Invitation envoyée à ${values.email.trim()}.`);
+        // A login whose access was removed keeps its password: no new email is sent.
+        notify(data?.reactivated
+          ? `Accès rétabli pour ${values.email.trim()} : cette personne se reconnecte avec son mot de passe habituel.`
+          : `Invitation envoyée à ${values.email.trim()}.`);
         return true;
       }} />}
 

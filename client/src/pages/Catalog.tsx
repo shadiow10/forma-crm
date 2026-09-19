@@ -105,7 +105,7 @@ export function Teachers() {
         <h3>{teacher.full_name}</h3>
         <p className="teacher-subject">{teacher.subject || "Spécialité non renseignée"}</p>
         <div className="teacher-details"><span><Icon name="phone" size={14} />{teacher.phone || "—"}</span><span><Icon name="mail" size={14} />{teacher.email || "—"}</span></div>
-        <div className="teacher-footer"><span>{count} groupe{count > 1 ? "s" : ""}</span><strong>{money(teacher.hourly_rate)}/h</strong></div>
+        <div className="teacher-footer"><span>{count} groupe{count > 1 ? "s" : ""}</span><strong>{teacher.hourly_rate === null ? "—" : `${money(teacher.hourly_rate)}/h`}</strong></div>
       </div>;
     })}</div> : <Panel><EmptyState title="Aucun formateur" text="Ajoutez les formateurs de votre centre." /></Panel>}
     {teachers.length > 0 && <Panel title="Heures prévues par semaine"><div className="hours-grid">{teachers.map((teacher) => {
@@ -138,7 +138,7 @@ function TeacherDrawer({ teacherId, onClose, onEdit }: { teacherId: number; onCl
       <div className="info-grid">
         <div><span>Téléphone</span><strong>{teacher.phone || "—"}</strong></div>
         <div><span>Email</span><strong>{teacher.email || "—"}</strong></div>
-        <div><span>Tarif horaire</span><strong>{money(teacher.hourly_rate)}/h</strong></div>
+        <div><span>Tarif horaire</span><strong>{teacher.hourly_rate === null ? "—" : `${money(teacher.hourly_rate)}/h`}</strong></div>
         <div><span>Contrat</span><strong>{teacher.contract}</strong></div>
         <div><span>Heures / semaine</span><strong>{Math.round(weeklyHours(teacher.id, groups) * 10) / 10} h</strong></div>
         <div><span>Compte de connexion</span><strong>{account ? account.email ?? "Actif" : "Aucun (Paramètres → Utilisateurs)"}</strong></div>

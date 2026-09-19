@@ -4,7 +4,7 @@ import { PGlite } from "@electric-sql/pglite";
 import fs from "fs";
 import assert from "assert/strict";
 const db = new PGlite();
-await db.exec(`create role authenticated nologin; create role anon nologin; create schema auth; create table auth.users (id uuid primary key, email text, encrypted_password text);
+await db.exec(`create role authenticated nologin; create role anon nologin; create role service_role nologin; create schema auth; create table auth.users (id uuid primary key, email text, encrypted_password text);
 create schema storage; grant usage on schema storage to authenticated;
 create table storage.buckets (id text primary key, name text, public boolean, file_size_limit bigint, allowed_mime_types text[]);
 create table storage.objects (id bigint generated always as identity primary key, bucket_id text, name text);
@@ -17,7 +17,7 @@ await db.exec(`alter default privileges in schema public grant all on tables to 
 const migrations = new URL("../migrations/", import.meta.url);
 for (const file of fs.readdirSync(migrations).filter((name) => name.endsWith(".sql")).sort()) await db.exec(fs.readFileSync(new URL(file, migrations), "utf8"));
 await db.exec(fs.readFileSync(new URL("../seed.sql", import.meta.url), "utf8"));
-const U = { D: "00000000-0000-0000-0000-00000000000d", S: "00000000-0000-0000-0000-00000000000s".replace("s","5"), T: "00000000-0000-0000-0000-00000000000e", D2: "00000000-0000-0000-0000-0000000000d2", X: "00000000-0000-0000-0000-0000000000de" };
+const U = { D: "00000000-0000-0000-0000-00000000000d", S: "00000000-0000-0000-0000-00000000000s".replace("s","5"), T: "00000000-0000-0000-0000-00000000000e", D2: "00000000-0000-0000-0000-0000000000d2", X: "00000000-0000-0000-0000-0000000000de", O: "00000000-0000-0000-0000-0000000000a0" };
 await db.exec(`insert into auth.users values ('${U.D}'),('${U.S}'),('${U.T}'),('${U.D2}');
 insert into schools (id, name, slug) values (2, 'Autre École', 'autre-ecole');
 insert into courses (school_id, name, short_name, duration, price) values (2, 'Anglais', 'Anglais', '3 mois', 30000);
@@ -135,4 +135,26 @@ assert.equal((await as("S", "update enrollments set status = 'En cours' where id
 assert.equal((await as("D", "update enrollments set total = total + 1 where id = 3 returning id")).length, 1, "director can change the total");
 assert.ok(!(await fails("T", `insert into attendance values (1, 5, 7, '2026-09-14', 'L') on conflict (group_id, student_id, session_date)
   do update set school_id = excluded.school_id, group_id = excluded.group_id, student_id = excluded.student_id, session_date = excluded.session_date, status = excluded.status`)), "attendance upsert (as the app sends it) still works");
+// A school keeps at least one director; swapping directors within one transaction is allowed.
+assert.ok(await fails("D", `delete from school_members where user_id = '${U.D}'`), "the last director cannot be removed");
+assert.ok(await fails("D", `update school_members set role = 'secretaire' where user_id = '${U.D}'`), "the last director cannot be demoted");
+await db.exec(`reset role; set test.uid = '${U.D}'; set role authenticated; begin;
+  update school_members set role = 'director' where user_id = '${U.S}';
+  update school_members set role = 'secretaire' where user_id = '${U.D}';
+commit; reset role;`); // handover in one transaction: allowed
+assert.equal((await db.query("select count(*)::int n from school_members where school_id = 1 and role = 'director'")).rows[0].n, 1, "handover kept exactly one director");
+await db.exec(`update school_members set role = 'director' where user_id = '${U.D}'; update school_members set role = 'secretaire' where user_id = '${U.S}';`);
+
+// Teacher pay: the director and the teacher themselves, nobody else.
+assert.ok(await fails("S", "select hourly_rate from teachers"), "secretaire cannot read the pay column");
+assert.equal(await count("S", "teacher_pay"), 0, "secretaire sees no pay rows");
+assert.equal(await count("D", "teacher_pay"), 5, "director sees every rate");
+assert.deepEqual((await as("T", "select teacher_id from teacher_pay")).map((r) => r.teacher_id), [2], "teacher sees only their own rate");
+
+// Re-inviting: orphan_user_id finds a login attached to no school, and only the service role may call it.
+await db.exec(`insert into auth.users (id, email) values ('${U.O}', 'parti@ecole.dz');`);
+assert.equal((await db.query(`select public.orphan_user_id('PARTI@ecole.dz') as id`)).rows[0].id, U.O, "finds the removed login, ignoring case");
+assert.equal((await db.query(`select public.orphan_user_id('demo@formaplus.test') as id`)).rows[0].id, null, "a login that still belongs to a school is not orphan");
+assert.ok(await fails("D", "select public.orphan_user_id('parti@ecole.dz')"), "a director cannot look up logins");
+
 console.log("all access checks passed");

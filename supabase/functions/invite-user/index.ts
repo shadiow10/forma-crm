@@ -3,7 +3,9 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 
 const cors = {
-  "Access-Control-Allow-Origin": "*",
+  // Only the app's own site may call this from a browser. SITE_URL is set with
+  // `supabase secrets set SITE_URL=https://...`; without it, any origin is allowed.
+  "Access-Control-Allow-Origin": Deno.env.get("SITE_URL") ?? "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
@@ -31,24 +33,39 @@ Deno.serve(async (req) => {
   const { data: school } = await caller.from("schools").select("is_demo").eq("id", school_id).single();
   if (school?.is_demo) return reply({ error: "La démonstration est en lecture seule." }, 403);
 
+  // A school adds a handful of people, not a hundred: cap invitations so a stolen director
+  // session cannot burn the email quota. Counted from the memberships created in the last hour.
+  const { count: recent } = await caller.from("school_members")
+    .select("user_id", { count: "exact", head: true })
+    .eq("school_id", school_id)
+    .gte("created_at", new Date(Date.now() - 3600_000).toISOString());
+  if ((recent ?? 0) >= 10) return reply({ error: "Trop d'invitations en une heure. Réessayez plus tard." }, 429);
+
   // Creating a login needs the service role, which never leaves this function.
   const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
   // No redirectTo from the request: the email link always goes to the project's Site URL (Auth → URL Configuration).
   const { data: invited, error: inviteError } = await admin.auth.admin.inviteUserByEmail(cleanEmail);
+  let userId: string | undefined = invited?.user?.id;
+  let reactivated = false;
   if (inviteError) {
-    // ponytail: one school per login for now; attaching an existing account to a second school comes with multi-school support.
-    const exists = /already|registered|exists/i.test(inviteError.message);
-    return reply({ error: exists ? "Un compte existe déjà avec cet email." : inviteError.message }, 400);
+    if (!/already|registered|exists/i.test(inviteError.message)) return reply({ error: inviteError.message }, 400);
+    // Removing someone's access leaves their login in place, so a new invitation bounces here.
+    // Attach it again when it belongs to no school at all; they keep their existing password.
+    // ponytail: one school per login for now; joining a second school comes with multi-school support.
+    const { data: orphan } = await admin.rpc("orphan_user_id", { p_email: cleanEmail });
+    if (!orphan) return reply({ error: "Un compte existe déjà avec cet email." }, 400);
+    userId = orphan as string;
+    reactivated = true;
   }
 
   const { error: memberError } = await caller.from("school_members").insert({
-    school_id, user_id: invited.user.id, role, email: cleanEmail,
+    school_id, user_id: userId, role, email: cleanEmail,
     full_name: String(full_name ?? "").trim() || null,
     teacher_id: role === "teacher" ? teacher_id : null,
   });
   if (memberError) {
-    await admin.auth.admin.deleteUser(invited.user.id);
+    if (!reactivated) await admin.auth.admin.deleteUser(userId!); // invited a moment ago: undo it
     return reply({ error: memberError.message }, 400);
   }
-  return reply({ ok: true });
+  return reply({ ok: true, reactivated });
 });
