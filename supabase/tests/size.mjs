@@ -1,5 +1,7 @@
 // Measures the real disk cost of one student-year with this exact schema (tables + indexes + toast).
-// Run: node supabase/tests/size.mjs   (capacity planning: how many students fit in one Supabase project)
+// Run: node supabase/tests/size.mjs   (capacity planning: disk, bandwidth and query time per school)
+// Scenario knobs, e.g. a 150-seat centre after 3 years of 3-month courses:
+//   STUDENTS=1800 SESSIONS=36 PAYMENTS=3 ENROLL=1 node supabase/tests/size.mjs
 import { PGlite } from "@electric-sql/pglite";
 import fs from "fs";
 
@@ -14,10 +16,10 @@ grant usage on schema auth to authenticated; grant execute on function auth.uid(
 const migrations = new URL("../migrations/", import.meta.url);
 for (const file of fs.readdirSync(migrations).filter((n) => n.endsWith(".sql")).sort()) await db.exec(fs.readFileSync(new URL(file, migrations), "utf8"));
 
-const STUDENTS = 400;
-const SESSIONS = 120;       // 3 sessions a week over a 40-week year
-const PAYMENTS = 4;         // versements per enrollment
-const ENROLL = 1.3;         // enrollments per student per year
+const STUDENTS = Number(process.env.STUDENTS ?? 400);
+const SESSIONS = Number(process.env.SESSIONS ?? 120);       // 3 sessions a week over a 40-week year
+const PAYMENTS = Number(process.env.PAYMENTS ?? 4);         // versements per enrollment
+const ENROLL = Number(process.env.ENROLL ?? 1.3);         // enrollments per student per year
 console.log(`Generating ${STUDENTS} students · ${SESSIONS} sessions · ${PAYMENTS} payments/enrollment · ${ENROLL} enrollments/student`);
 
 await db.exec(`
@@ -82,3 +84,8 @@ const gz = zlib.gzipSync(Buffer.from(all)).length;
 console.log("One full load:", (raw / 1024).toFixed(0), "KB raw ·", (gz / 1024).toFixed(0), "KB compressed (what Supabase counts as egress)");
 const perMonth = (loads) => (gz * loads / 1073741824);
 for (const loads of [500, 2000, 6000]) console.log(loads, "loads/month =", perMonth(loads).toFixed(2), "GB · 250 GB allows", Math.floor(250 / perMonth(loads)), "such schools");
+
+const timed = async (label, sql) => { await db.query(sql); const t0 = performance.now(); for (let i = 0; i < 5; i++) await db.query(sql); const ms = (performance.now() - t0) / 5; console.log(label.padEnd(16), ms.toFixed(1).padStart(7), "ms"); return ms; };
+let loadMs = 0;
+for (const [name, sql] of Object.entries(sel)) loadMs += await timed(name, sql + " where school_id = 1");
+console.log("Per page load:", loadMs.toFixed(0), "ms of database work (this machine, single core)");
