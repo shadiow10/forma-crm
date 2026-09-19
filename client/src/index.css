@@ -516,22 +516,16 @@ tbody tr[tabindex]:focus-visible, .class-card:focus-visible, .teacher-card:focus
 .lp-header { position: sticky; top: 0; z-index: 20; display: flex; align-items: center; gap: 28px; max-width: 1200px; margin: 0 auto; padding: 16px 24px; background: rgba(247,245,240,.9); backdrop-filter: blur(10px); }
 .lp-header nav { display: flex; gap: 26px; margin-left: auto; }
 .lp-header nav a { font-size: 15px; font-weight: 600; text-decoration: none; color: var(--lp-text); }
-.lp-header nav a:hover { color: var(--navy); }
 .lp-login { margin-left: auto; padding: 9px 16px; border: 1px solid var(--navy); border-radius: 999px; font-size: 15px; font-weight: 700; text-decoration: none; color: var(--navy); }
-.lp-login:hover { background: var(--navy); color: #fff !important; }
 .lp-header nav + .lp-login { margin-left: 0; }
 .lp-brand { display: inline-flex; align-items: center; gap: 10px; text-decoration: none; }
 .lp-brand strong { font: 800 19px Manrope, sans-serif; letter-spacing: -.03em; color: var(--navy); }
 .lp-brand strong span { color: var(--teal); }
 
 /* Buttons and links */
-.lp-btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 52px; padding: 0 26px; border: 1px solid transparent; border-radius: 999px; font-size: 16px; font-weight: 700; text-decoration: none; cursor: pointer; transition: transform 140ms, box-shadow 180ms, background 180ms; }
-.lp-btn:active { transform: scale(.98); }
+.lp-btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 52px; padding: 0 26px; border: 1px solid transparent; border-radius: 999px; font-size: 16px; font-weight: 700; text-decoration: none; cursor: pointer; }
 .lp-btn.primary { background: var(--navy); color: #fff !important; }
-.lp-btn.primary:hover { box-shadow: 0 10px 26px rgba(24,43,73,.25); }
 .lp-link { display: inline-flex; align-items: center; gap: 6px; color: var(--navy) !important; font-weight: 700; text-decoration: none; border-bottom: 1px solid currentColor; padding-bottom: 2px; }
-.lp-link svg { transition: transform 180ms; }
-.lp-link:hover svg { transform: translateX(3px); }
 .lp-btn:focus-visible, .lp-link:focus-visible, .lp-billing button:focus-visible, .lp summary:focus-visible, .lp-plan-cta:focus-visible { outline: 3px solid rgba(42,157,143,.5); outline-offset: 3px; }
 
 /* Hero: stacked center, product still underneath */
@@ -622,22 +616,19 @@ tbody tr[tabindex]:focus-visible, .class-card:focus-visible, .teacher-card:focus
 .lp-included li, .lp-plan-extras li { display: flex; gap: 10px; align-items: flex-start; }
 .lp-included svg { margin-top: 5px; color: var(--teal); flex-shrink: 0; }
 .lp-ledger { display: grid; gap: 14px; }
-.lp-plan { display: grid; grid-template-columns: 1.3fr 1fr 1.1fr auto; align-items: center; gap: 24px; padding: 28px 30px; border: 1px solid var(--lp-line); border-radius: 22px; background: var(--paper); transition: border-color 180ms, transform 180ms; }
-.lp-plan:hover { border-color: #c9c5b9; }
+.lp-plan { display: grid; grid-template-columns: 1.3fr 1fr 1.1fr auto; align-items: center; gap: 24px; padding: 28px 30px; border: 1px solid var(--lp-line); border-radius: 22px; background: var(--paper); }
 .lp-plan-name h3 { display: flex; align-items: center; gap: 10px; font-size: 24px; }
 .lp-plan-name p { margin: 4px 0 0; color: var(--muted); font-size: 14px; }
 .lp-plan-size { display: grid; gap: 2px; color: var(--lp-text); font-size: 14px; }
 .lp-plan-size span:first-child { color: var(--lp-ink); font-weight: 700; }
 .lp-plan-price strong { display: block; font: 800 30px Manrope, sans-serif; color: var(--navy); letter-spacing: -.04em; white-space: nowrap; }
 .lp-plan-price span { color: var(--muted); font-size: 13px; }
-.lp-plan-cta { display: inline-flex; align-items: center; gap: 8px; min-height: 48px; padding: 0 20px; border: 1px solid var(--navy); border-radius: 999px; font-weight: 700; text-decoration: none; color: var(--navy) !important; white-space: nowrap; transition: background 180ms, color 180ms; }
-.lp-plan-cta:hover { background: var(--navy); color: #fff !important; }
+.lp-plan-cta { display: inline-flex; align-items: center; gap: 8px; min-height: 48px; padding: 0 20px; border: 1px solid var(--navy); border-radius: 999px; font-weight: 700; text-decoration: none; color: var(--navy) !important; white-space: nowrap; }
 .lp-plan.featured { padding: 36px 30px; border: 0; background: var(--navy); box-shadow: 0 30px 70px rgba(24,43,73,.25); }
 .lp-plan.featured h3, .lp-plan.featured .lp-plan-price strong { color: #fff; }
 .lp-plan.featured .lp-plan-name p, .lp-plan.featured .lp-plan-price span, .lp-plan.featured .lp-plan-size { color: #a9b8cd; }
 .lp-plan.featured .lp-plan-size span:first-child { color: #fff; }
 .lp-plan-cta.primary { border-color: #8ed2c7; background: #8ed2c7; color: var(--navy) !important; }
-.lp-plan-cta.primary:hover { background: #fff; border-color: #fff; color: var(--navy) !important; }
 .lp-badge { padding: 3px 10px; border-radius: 999px; background: rgba(142,210,199,.18); color: #8ed2c7; font: 700 12px "DM Sans", sans-serif; letter-spacing: 0; }
 .lp-plan-extras { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 10px 28px; margin: 4px 0 0; padding: 20px 0 0; border-top: 1px solid rgba(255,255,255,.12); list-style: none; color: #cfd9e8; font-size: 14px; }
 .lp-plan-extras svg { margin-top: 4px; color: #8ed2c7; flex-shrink: 0; }
@@ -649,7 +640,7 @@ tbody tr[tabindex]:focus-visible, .class-card:focus-visible, .teacher-card:focus
 .lp-faq details:first-child { border-top: 1px solid var(--lp-line); }
 .lp-faq summary { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 22px 4px; color: var(--navy); font-size: 18px; font-weight: 700; cursor: pointer; list-style: none; }
 .lp-faq summary::-webkit-details-marker { display: none; }
-.lp-faq summary svg { flex-shrink: 0; color: var(--teal); transition: transform 200ms; }
+.lp-faq summary svg { flex-shrink: 0; color: var(--teal); }
 .lp-faq details[open] summary svg { transform: rotate(45deg); }
 .lp-faq details p { margin: 0 4px 22px; max-width: 640px; color: var(--lp-text); }
 
@@ -731,7 +722,84 @@ tbody tr[tabindex]:focus-visible, .class-card:focus-visible, .teacher-card:focus
   .lp-btn { width: 100%; }
   .lp-actions { gap: 20px; }
 }
-@media (prefers-reduced-motion: reduce) { .lp *, .lp *::before { transition: none !important; } }
+
+
+/* Landing motion. Rules: transform/opacity only, strong ease-out (--ease-out from :root),
+   hover motion only on real pointers, reduced motion keeps fades and drops movement. */
+.lp { --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1); }
+@keyframes lp-rise { from { opacity: 0; transform: translateY(12px); } }
+@keyframes lp-rise-far { from { opacity: 0; transform: translateY(32px); } }
+@keyframes lp-pop { from { opacity: 0; transform: scale(0.9); } }
+@keyframes lp-fade { from { opacity: 0; } }
+
+/* Hero: first view only, 60ms stagger, then the product rises in */
+.lp-hero > * { animation: lp-rise 600ms var(--ease-out) both; }
+.lp-hero > :nth-child(2) { animation-delay: 60ms; }
+.lp-hero > :nth-child(3) { animation-delay: 120ms; }
+.lp-hero > :nth-child(4) { animation-delay: 180ms; }
+.lp-hero > .lp-app { animation: lp-rise-far 900ms var(--ease-out) 240ms both; }
+.lp-app-card { animation: lp-rise 700ms var(--ease-out) 800ms both; }
+/* Explanation: the attendance marks get ticked row by row */
+.lp-app-marks b.on { animation: lp-pop 240ms var(--ease-out) both; }
+.lp-app-row:nth-child(1) b.on { animation-delay: 1000ms; }
+.lp-app-row:nth-child(2) b.on { animation-delay: 1120ms; }
+.lp-app-row:nth-child(3) b.on { animation-delay: 1240ms; }
+.lp-app-row:nth-child(4) b.on { animation-delay: 1360ms; }
+.lp-app-row:nth-child(5) b.on { animation-delay: 1480ms; }
+
+/* Scroll reveal: once per block, set by useReveal() */
+[data-reveal] { transition: opacity 700ms var(--ease-out), transform 700ms var(--ease-out); }
+[data-reveal]:not([data-visible]) { opacity: 0; transform: translateY(20px); }
+.lp-bento > [data-reveal]:nth-child(2), .lp-steps > [data-reveal]:nth-child(2) { transition-delay: 70ms; }
+.lp-bento > [data-reveal]:nth-child(3), .lp-steps > [data-reveal]:nth-child(3) { transition-delay: 140ms; }
+.lp-bento > [data-reveal]:nth-child(4) { transition-delay: 210ms; }
+.lp-bento > [data-reveal]:nth-child(5) { transition-delay: 280ms; }
+
+/* Price swap on Mensuel/Annuel: short fade, 2px blur masks the text change */
+.lp-swap { display: inline-block; transition: opacity 220ms var(--ease-out), filter 220ms var(--ease-out), transform 220ms var(--ease-out); }
+@starting-style { .lp-swap { opacity: 0; filter: blur(2px); transform: translateY(4px); } }
+
+/* FAQ answer eases in instead of popping */
+.lp-faq details[open] p { transition: opacity 200ms var(--ease-out), transform 200ms var(--ease-out); }
+@starting-style { .lp-faq details[open] p { opacity: 0; transform: translateY(-4px); } }
+
+/* Payment confirmed: rare success moment */
+.lp-done-icon { animation: lp-pop 500ms var(--ease-out) both; }
+.lp-done h1, .lp-done > p { animation: lp-rise 500ms var(--ease-out) 100ms both; }
+.lp-next li { animation: lp-rise 500ms var(--ease-out) 200ms both; }
+.lp-next li:nth-child(2) { animation-delay: 270ms; }
+.lp-next li:nth-child(3) { animation-delay: 340ms; }
+
+/* Press feedback on every pressable, touch included */
+.lp-btn, .lp-plan-cta, .lp-login { transition: transform 160ms var(--ease-out), background-color 200ms ease, color 200ms ease, border-color 200ms ease, box-shadow 200ms ease; }
+.lp-btn:active, .lp-plan-cta:active, .lp-login:active { transform: scale(0.97); }
+.lp-billing button { transition: background-color 200ms ease, color 200ms ease; }
+.lp-plan { transition: border-color 200ms ease; }
+.lp-plan[data-reveal] { transition: opacity 700ms var(--ease-out), transform 700ms var(--ease-out), border-color 200ms ease; }
+.lp-checkout .lp-method { transition: border-color 150ms ease, background-color 150ms ease; }
+.lp-link svg, .lp-faq summary svg { transition: transform 200ms var(--ease-out); }
+
+/* Hover only where a real pointer exists (a tap would leave these stuck on) */
+@media (hover: hover) and (pointer: fine) {
+  .lp-header nav a:hover { color: var(--navy); }
+  .lp-login:hover { background: var(--navy); color: #fff !important; }
+  .lp-btn.primary:hover { box-shadow: 0 10px 26px rgba(24,43,73,.25); }
+  .lp-link:hover svg { transform: translateX(3px); }
+  .lp-plan:not(.featured):hover { border-color: #c9c5b9; }
+  .lp-plan-cta:hover { background: var(--navy); color: #fff !important; }
+  .lp-plan-cta.primary:hover { background: #fff; border-color: #fff; color: var(--navy) !important; }
+}
+
+/* Reduced motion: fewer and gentler, not zero. Keep fades, drop movement. */
+@media (prefers-reduced-motion: reduce) {
+  .lp-hero > *, .lp-hero > .lp-app, .lp-app-card, .lp-done-icon, .lp-done h1, .lp-done > p, .lp-next li { animation-name: lp-fade; }
+  .lp-app-marks b.on { animation: none; }
+  [data-reveal] { transition: opacity 400ms ease; transition-delay: 0ms !important; }
+  [data-reveal]:not([data-visible]) { transform: none; }
+  .lp-swap, .lp-faq details[open] p { transition: opacity 200ms ease; }
+  .lp-btn:active, .lp-plan-cta:active, .lp-login:active { transform: none; }
+  .lp-link:hover svg { transform: none; }
+}
 
 @media print {
   body * { visibility: hidden; }

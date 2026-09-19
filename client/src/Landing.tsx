@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { FormEvent } from "react";
 import { Icon } from "./ui";
 import type { IconName } from "./ui";
@@ -61,10 +61,26 @@ function AppPreview() {
   </div>;
 }
 
+// Scroll reveal, marketing surface only: each block fades up once when it enters the viewport.
+const REVEAL = ".lp-section-head, .lp-tile, .lp-band h2, .lp-steps li, .lp-pricing-intro, .lp-plan, .lp-faq > div, .lp-cta";
+function useReveal() {
+  const root = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const targets = [...(root.current?.querySelectorAll<HTMLElement>(REVEAL) ?? [])];
+    const observer = new IntersectionObserver((entries) => {
+      for (const entry of entries) if (entry.isIntersecting) { entry.target.setAttribute("data-visible", ""); observer.unobserve(entry.target); }
+    }, { rootMargin: "0px 0px -80px 0px" });
+    for (const target of targets) { target.setAttribute("data-reveal", ""); observer.observe(target); }
+    return () => observer.disconnect();
+  }, []);
+  return root;
+}
+
 export function Landing() {
+  const root = useReveal();
   const [billing, setBilling] = useState<Billing>("monthly");
   const featured = PLANS.find((plan) => plan.featured)!;
-  return <div className="lp">
+  return <div className="lp" ref={root}>
     <header className="lp-header">
       <Brand />
       <nav aria-label="Sections"><a href="#fonctionnalites">Fonctionnalités</a><a href="#tarifs">Tarifs</a><a href="#faq">Questions</a></nav>
@@ -153,7 +169,7 @@ export function Landing() {
             </div>
             <div className="lp-plan-size"><span>{plan.students}</span><span>{plan.users}</span></div>
             <div className="lp-plan-price">
-              <strong>{price(planTotal(plan, billing))}</strong>
+              <strong key={billing} className="lp-swap">{price(planTotal(plan, billing))}</strong>
               <span>{billing === "yearly" ? `par an · soit ${price(Math.round(plan.monthly * 10 / 12))}/mois` : "par mois"}</span>
             </div>
             <a className={`lp-plan-cta ${plan.featured ? "primary" : ""}`} href={`/commander?plan=${plan.id}&periode=${billing}`} aria-label={`Choisir ${plan.name}`}>
@@ -266,7 +282,7 @@ export function Checkout() {
           <button type="button" className={billing === "yearly" ? "active" : ""} aria-pressed={billing === "yearly"} onClick={() => setBilling("yearly")}>Annuel</button>
         </div>
         <ul>{[plan.students, plan.users, ...plan.features].map((feature) => <li key={feature}><Icon name="check" size={14} />{feature}</li>)}</ul>
-        <div className="lp-total"><span>Total {billing === "yearly" ? "annuel" : "mensuel"}</span><strong>{price(planTotal(plan, billing))}</strong></div>
+        <div className="lp-total"><span>Total {billing === "yearly" ? "annuel" : "mensuel"}</span><strong key={billing + planId} className="lp-swap">{price(planTotal(plan, billing))}</strong></div>
         {billing === "yearly" && <p className="lp-price-note">Vous économisez {price(plan.monthly * 2)} par an.</p>}
       </aside>
     </div>}
