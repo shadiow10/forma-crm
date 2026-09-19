@@ -84,6 +84,7 @@ export default function Login() {
           ? <button className="text-button" type="button" onClick={() => switchMode("reset")}>Mot de passe oublié ?</button>
           : <button className="text-button" type="button" onClick={() => switchMode("login")}>Retour à la connexion</button>}
       </p>
+      <p className="auth-muted auth-foot"><a className="text-button" href="/">← Découvrir FormaPlus</a></p>
     </AuthShell>
   );
 }

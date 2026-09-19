@@ -3,6 +3,7 @@ import { createRoot } from "react-dom/client";
 import App from "./App";
 import { signOut, useAuth } from "./auth";
 import { DataProvider } from "./data";
+import { Checkout, Landing } from "./Landing";
 import Login, { AuthShell, SetPassword } from "./Login";
 import "./index.css";
 
@@ -18,7 +19,12 @@ const Message = ({ title, text, action }: { title: string; text: string; action?
 function Root() {
   const auth = useAuth();
   if (auth.status === "loading") return <AuthShell><p className="auth-muted">Chargement…</p></AuthShell>;
-  if (auth.status === "signedOut") return <Login />;
+  if (auth.status === "signedOut") {
+    // Public site for visitors; any app address (e.g. /etudiants) still leads to the login.
+    if (window.location.pathname === "/") return <Landing />;
+    if (window.location.pathname === "/commander") return <Checkout />;
+    return <Login />;
+  }
   if (auth.status === "setPassword") return <SetPassword email={auth.email} />;
   if (auth.status === "noAccess") return <Message title="Accès non configuré" text={`Le compte ${auth.email} n'est rattaché à aucun établissement. Demandez à votre directeur de vous inviter.`} />;
   if (auth.status === "error") return <Message title="Erreur de chargement" text={`Impossible de charger votre profil (${auth.message}).`} action={{ label: "Réessayer", run: () => window.location.reload() }} />;
