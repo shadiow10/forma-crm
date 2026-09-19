@@ -23,11 +23,26 @@ const planTotal = (plan: Plan, billing: Billing) => (billing === "yearly" ? plan
 const AUDIENCES = ["Écoles privées", "Centres de formation", "Écoles de soutien", "Écoles de langues", "Préscolaire"];
 
 const FAQ = [
+  { q: "Combien de temps pour démarrer ?", a: "Le jour même. Vous ajoutez vos formations, vos groupes et vos étudiants, puis vous invitez votre équipe. Avec la formule Pro, notre équipe importe vos listes Excel pour vous." },
+  { q: "Faut-il former l'équipe ?", a: "Une courte prise en main suffit : les écrans reprennent les gestes du quotidien — inscrire, encaisser, faire l'appel. La formule Pro inclut une séance de formation pour votre secrétariat." },
+  { q: "Que deviennent nos données si nous partons ?", a: "Elles restent les vôtres. Les listes d'étudiants, les paiements, les présences et le catalogue s'exportent à tout moment en fichiers lisibles dans Excel." },
   { q: "Comment payer ?", a: "Par carte Edahabia ou CIB en ligne, ou par virement / versement CCP. L'accès est ouvert dès la confirmation du paiement." },
   { q: "Que se passe-t-il après le paiement ?", a: "Votre espace école est créé et le directeur reçoit un email pour choisir son mot de passe. Il invite ensuite son équipe depuis Paramètres." },
   { q: "Mes données sont-elles séparées des autres écoles ?", a: "Oui. Chaque école a son propre espace ; les règles d'accès sont appliquées par la base de données elle-même, pas seulement par l'écran." },
   { q: "Puis-je changer de formule ?", a: "Oui, à tout moment. Le changement s'applique à la période suivante." },
   { q: "Faut-il installer quelque chose ?", a: "Non. FormaPlus fonctionne dans le navigateur, sur ordinateur comme sur téléphone." },
+];
+
+const PROBLEMS: { icon: IconName; title: string; text: string }[] = [
+  { icon: "clock", title: "Des heures perdues chaque semaine", text: "Recopier les listes d'appel, recompter les absences, refaire les totaux : du temps qui ne va pas aux étudiants." },
+  { icon: "wallet", title: "Des impayés découverts trop tard", text: "Un carnet de versements, un reçu introuvable : on ne sait plus qui a payé quoi, ni combien il reste." },
+  { icon: "warning", title: "Des données fragiles", text: "Un fichier Excel sur une clé USB, un cahier dans un tiroir. Une perte, et c'est une année de dossiers qui disparaît." },
+];
+
+const ROLES: { icon: IconName; role: string; text: string; can: string[] }[] = [
+  { icon: "building", role: "Directeur", text: "Voit toute l'école et la pilote.", can: ["Finances et soldes de chaque étudiant", "Équipe, accès et paramètres", "Modification et suppression des paiements"] },
+  { icon: "file", role: "Secrétaire", text: "Fait tourner le quotidien.", can: ["Inscriptions et dossiers étudiants", "Encaissements, sans pouvoir les modifier", "Groupes, planning et présences"] },
+  { icon: "teacher", role: "Formateur", text: "Se concentre sur ses groupes.", can: ["Son planning uniquement", "L'appel de ses propres groupes", "Les noms de ses étudiants, rien de plus"] },
 ];
 
 function Brand({ light = false }: { light?: boolean }) {
@@ -101,7 +116,7 @@ function ScreenStrip() {
 }
 
 // Scroll reveal, marketing surface only: each block fades up once when it enters the viewport.
-const REVEAL = ".lp-section-head, .lp-marquee, .lp-tile, .lp-band h2, .lp-steps li, .lp-pricing-intro, .lp-plan, .lp-faq > div, .lp-cta";
+const REVEAL = ".lp-section-head, .lp-marquee, .lp-problem article, .lp-role, .lp-tile, .lp-band h2, .lp-steps li, .lp-pricing-intro, .lp-plan, .lp-faq > div, .lp-cta";
 function useReveal() {
   const root = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -116,12 +131,12 @@ function useReveal() {
 }
 
 // Nav underline follows the section in the middle of the screen.
-const NAV = [["fonctionnalites", "Fonctionnalités"], ["tarifs", "Tarifs"], ["faq", "Questions"]];
+const NAV = [["fonctionnalites", "Fonctionnalités"], ["roles", "Pour qui"], ["tarifs", "Tarifs"], ["faq", "Questions"]];
 function useActiveSection() {
   const [active, setActive] = useState("");
   useEffect(() => {
     const observer = new IntersectionObserver((entries) => {
-      for (const entry of entries) if (entry.isIntersecting) setActive(entry.target.id);
+      for (const entry of entries) { const id = entry.target.id; setActive((current) => entry.isIntersecting ? id : current === id ? "" : current); }
     }, { rootMargin: "-45% 0px -50% 0px" });
     for (const [id] of NAV) { const section = document.getElementById(id); if (section) observer.observe(section); }
     return () => observer.disconnect();
@@ -132,13 +147,22 @@ function useActiveSection() {
 export function Landing() {
   const root = useReveal();
   const active = useActiveSection();
+  const [menuOpen, setMenuOpen] = useState(false);
+  useEffect(() => {
+    if (!menuOpen) return;
+    const close = (event: KeyboardEvent) => { if (event.key === "Escape") setMenuOpen(false); };
+    window.addEventListener("keydown", close);
+    return () => window.removeEventListener("keydown", close);
+  }, [menuOpen]);
   const [billing, setBilling] = useState<Billing>("monthly");
   const featured = PLANS.find((plan) => plan.featured)!;
   return <div className="lp" ref={root}>
     <header className="lp-header">
       <Brand />
-      <nav aria-label="Sections">{NAV.map(([id, label]) => <a key={id} href={`#${id}`} className={active === id ? "active" : ""}>{label}</a>)}</nav>
+      <nav className="lp-nav" aria-label="Sections">{NAV.map(([id, label]) => <a key={id} href={`#${id}`} className={active === id ? "active" : ""}>{label}</a>)}</nav>
       <a className="lp-login" href="/connexion">Se connecter</a>
+      <button className="lp-burger" type="button" aria-label="Menu" aria-expanded={menuOpen} aria-controls="lp-menu" onClick={() => setMenuOpen(!menuOpen)}><Icon name={menuOpen ? "close" : "menu"} size={20} /></button>
+      {menuOpen && <nav id="lp-menu" className="lp-menu" aria-label="Menu">{NAV.map(([id, label]) => <a key={id} href={`#${id}`} onClick={() => setMenuOpen(false)}>{label}</a>)}</nav>}
     </header>
 
     <main>
@@ -153,6 +177,15 @@ export function Landing() {
       <section className="lp-audience" aria-label="Pour qui">
         <span>Conçu pour</span>
         <ul>{AUDIENCES.map((audience) => <li key={audience}>{audience}</li>)}</ul>
+      </section>
+
+      <section className="lp-section lp-problem">
+        <div className="lp-section-head">
+          <p className="lp-eyebrow">Le problème</p>
+          <h2>La gestion de l'école se perd dans les cahiers.</h2>
+          <p>Un tableur pour les inscriptions, un cahier pour l'appel, un carnet pour les versements. Chaque information existe en trois versions, dont deux sont fausses.</p>
+        </div>
+        <div className="lp-problem-grid">{PROBLEMS.map((item) => <article key={item.title}><span className="lp-icon"><Icon name={item.icon} size={20} /></span><h3>{item.title}</h3><p>{item.text}</p></article>)}</div>
       </section>
 
       <section className="lp-shots" aria-label="Les écrans de FormaPlus">
@@ -195,6 +228,20 @@ export function Landing() {
             <p>Prêts à imprimer dès qu'une formation est terminée et réglée.</p>
           </article>
         </div>
+      </section>
+
+      <section id="roles" className="lp-section lp-roles">
+        <div className="lp-section-head">
+          <p className="lp-eyebrow">Pour qui</p>
+          <h2>Chaque rôle a son espace.</h2>
+          <p>Chacun voit ce dont il a besoin, et rien d'autre. Les règles sont appliquées par la base de données, pas seulement par l'écran.</p>
+        </div>
+        <div className="lp-role-grid">{ROLES.map((item) => <article className="lp-role" key={item.role}>
+          <span className="lp-icon"><Icon name={item.icon} size={20} /></span>
+          <h3>{item.role}</h3>
+          <p>{item.text}</p>
+          <ul>{item.can.map((line) => <li key={line}><Icon name="check" size={14} />{line}</li>)}</ul>
+        </article>)}</div>
       </section>
 
       <section className="lp-band">
