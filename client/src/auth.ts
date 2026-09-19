@@ -1,9 +1,9 @@
 import type { Session } from "@supabase/supabase-js";
 import { useEffect, useState } from "react";
-import type { PageKey } from "./App";
-import { supabase } from "./lib/supabase";
+import { arrivedToSetPassword, supabase } from "./lib/supabase";
 
 export type Role = "director" | "secretaire" | "teacher";
+export type PageKey = "dashboard" | "students" | "enrollments" | "formations" | "teachers" | "groups" | "planning" | "attendance" | "payments" | "certificates" | "settings";
 
 export type Member = {
   role: Role;
@@ -24,19 +24,30 @@ export const rolePages: Record<Role, PageKey[]> = {
 export type AuthState =
   | { status: "loading" }
   | { status: "signedOut" }
+  | { status: "setPassword"; email: string }
   | { status: "error"; message: string }
   | { status: "noAccess"; email: string }
-  | { status: "ready"; member: Member; email: string };
+  | { status: "ready"; member: Member; email: string; userId: string };
+
+let passwordListener: (() => void) | null = null;
+// Called once the user has chosen their password after an invitation or reset link.
+export const passwordChosen = () => passwordListener?.();
 
 export function useAuth(): AuthState {
   const [session, setSession] = useState<Session | null>();
   const [members, setMembers] = useState<Member[]>();
   const [error, setError] = useState("");
+  const [mustSetPassword, setMustSetPassword] = useState(arrivedToSetPassword);
 
   useEffect(() => {
+    passwordListener = () => setMustSetPassword(false);
     supabase.auth.getSession().then(({ data }) => setSession(data.session));
-    const { data } = supabase.auth.onAuthStateChange((_event, next) => setSession(next));
-    return () => data.subscription.unsubscribe();
+    const { data } = supabase.auth.onAuthStateChange((event, next) => {
+      if (event === "PASSWORD_RECOVERY") setMustSetPassword(true);
+      if (event === "SIGNED_OUT") setMustSetPassword(false);
+      setSession(next);
+    });
+    return () => { data.subscription.unsubscribe(); passwordListener = null; };
   }, []);
 
   const userId = session?.user.id;
@@ -57,11 +68,12 @@ export function useAuth(): AuthState {
   if (session === undefined) return { status: "loading" };
   if (session === null) return { status: "signedOut" };
   const email = session.user.email ?? "";
+  if (mustSetPassword) return { status: "setPassword", email };
   if (error) return { status: "error", message: error };
   if (!members) return { status: "loading" };
   // ponytail: first membership wins; pick the school from the subdomain once schools get their own addresses.
   if (!members.length) return { status: "noAccess", email };
-  return { status: "ready", member: members[0], email };
+  return { status: "ready", member: members[0], email, userId: session.user.id };
 }
 
 export const signOut = () => supabase.auth.signOut();

@@ -237,7 +237,6 @@ tbody tr:hover { background: #f1faf8; }
 .day-col { position: relative; border-left: 1px solid #eef0ee; }
 .day-head { height: 31px; display: flex; justify-content: center; gap: 7px; align-items: center; color: #7e8a94; font-size: 9px; font-weight: 700; }
 .day-head small { color: #abb2b9; font-weight: 500; }
-.day-col:first-of-type .day-head { color: var(--teal); }
 .day-slots { position: relative; height: 288px; }
 .calendar-slot { height: 48px; border-top: 1px solid #f0f1ef; }
 .calendar-event { position: absolute; left: 4px; right: 4px; min-height: 45px; padding: 6px; border-left: 3px solid; border-radius: 4px; cursor: pointer; }
@@ -666,6 +665,47 @@ tbody tr:hover { background: #f1faf8; }
 .auth-submit { width: 100%; min-height: 42px; margin-top: 18px; background: var(--navy); color: #fff; font-size: 13px; }
 .auth-form .auth-submit { margin-top: 4px; }
 .auth-foot { margin-top: 18px; font-size: 11px; text-align: center; }
+
+
+/* Connected app additions */
+.page-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.global-search { position: relative; width: 260px; }
+.search-results { position: absolute; top: calc(100% + 6px); left: -8px; right: -8px; z-index: 40; display: flex; flex-direction: column; padding: 6px; border: 1px solid var(--border); border-radius: 10px; background: #fff; box-shadow: var(--shadow); }
+.search-results button { display: flex; justify-content: space-between; gap: 10px; padding: 8px 10px; border: 0; border-radius: 7px; background: transparent; text-align: left; font-size: 12px; color: var(--ink); }
+.search-results button:hover, .search-results button:focus-visible { background: var(--sand); }
+.search-results span, .search-empty { color: var(--muted); font-size: 11px; }
+.search-empty { padding: 8px 10px; }
+.days-picker { display: flex; flex-wrap: wrap; gap: 6px; }
+.days-picker button { min-width: 44px; padding: 7px 8px; border: 1px solid var(--border); border-radius: 7px; background: #fff; color: #566170; font-size: 11px; font-weight: 600; }
+.days-picker button.active { border-color: var(--teal); background: #e3f3f0; color: #1f7a6f; }
+.presence-choices { display: flex; gap: 6px; }
+.presence-choices .presence { width: 34px; height: 30px; opacity: .45; cursor: pointer; }
+.presence-choices .presence.selected { opacity: 1; box-shadow: 0 0 0 2px currentColor inset; }
+.presence-choices .presence:hover:not(:disabled) { opacity: .85; }
+.attendance-controls input.select { background-image: none; padding-right: 9px; }
+.table-empty { margin: 0; padding: 22px 16px; color: var(--muted); font-size: 12px; text-align: center; }
+.card-actions { display: inline-flex; gap: 2px; }
+.doc-upload { display: flex; gap: 6px; align-items: center; }
+.upload-button { position: relative; overflow: hidden; background: var(--navy); color: #fff; cursor: pointer; }
+.upload-button input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+.badge-button { padding: 0; border: 0; background: transparent; }
+.note-row { margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--border); }
+.note-row span { color: var(--muted); font-size: 10px; }
+.note-row p { margin: 4px 0 0; color: #475665; font-size: 12px; white-space: pre-wrap; }
+.inline-add { display: flex; gap: 8px; margin-top: 12px; }
+.inline-add .field { flex: 1; }
+.day-col.today .day-head { color: var(--teal); font-weight: 800; }
+.day-col.today .day-slots { background: rgba(42,157,143,.04); }
+.risk-row { cursor: pointer; }
+.registration-card .button { margin-top: 10px; }
+.auth-success { margin: 20px 0 0; padding: 12px; border-radius: 8px; background: #e6f5ee; color: #2d805d; font-size: 13px; line-height: 1.5; }
+.auth-foot .text-button { font-size: 12px; }
+.nav-item { text-decoration: none; }
+tbody tr[tabindex]:focus-visible, .class-card:focus-visible, .teacher-card:focus-visible { outline: 2px solid var(--teal); outline-offset: -2px; }
+@media (max-width: 760px) {
+  .global-search { width: 100%; }
+  .doc-upload { flex-wrap: wrap; }
+}
 
 @media print {
   body * { visibility: hidden; }

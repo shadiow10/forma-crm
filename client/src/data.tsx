@@ -1,0 +1,139 @@
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import type { ReactNode } from "react";
+import type { Member as AuthMember } from "./auth";
+import { supabase } from "./lib/supabase";
+import { loadSchoolData } from "./lib/queries";
+import type { Enrollment, EnrollmentStatus, Group, SchoolData, Student } from "./lib/queries";
+import { percent } from "./ui";
+
+export type PaymentStatus = "Payé" | "Partiel" | "Non payé" | "—";
+export type StudentSummary = {
+  enrollments: Enrollment[];
+  latest: Enrollment | undefined;
+  status: EnrollmentStatus | "Sans inscription";
+  total: number;
+  paid: number;
+  balance: number;
+  paymentStatus: PaymentStatus;
+  attendance: number | null; // % of sessions present or late, null when no session recorded
+};
+
+type Store = SchoolData & {
+  me: AuthMember;
+  canEdit: boolean; // director or secretaire
+  isDirector: boolean;
+  money: (value: number) => string;
+  reload: () => Promise<void>;
+  notify: (message: string) => void;
+  notice: string;
+  clearNotice: () => void;
+  // Runs a write. Shows the error in French and returns false on failure; reloads data and shows `success` otherwise.
+  save: (action: () => PromiseLike<{ error: { code?: string; message: string } | null }>, success: string) => Promise<boolean>;
+  studentById: Map<number, Student>;
+  groupById: Map<number, Group>;
+  summaryOf: (studentId: number) => StudentSummary;
+  balanceOf: (enrollmentId: number) => { paid: number; balance: number };
+  groupStudentIds: (groupId: number) => number[];
+  attendanceRate: (studentId: number, groupId?: number) => number | null;
+};
+
+const DataContext = createContext<Store | null>(null);
+
+export function friendlyError(error: { code?: string; message: string }) {
+  if (error.code === "42501") return "Action non autorisée pour votre rôle.";
+  if (error.code === "23503") return "Impossible : cet élément est utilisé ailleurs (inscriptions, paiements ou groupes).";
+  if (error.code === "23505") return "Cet élément existe déjà.";
+  if (error.code === "23514") return "Valeur invalide : vérifiez les champs du formulaire.";
+  if (/fetch|network/i.test(error.message)) return "Connexion au serveur impossible. Vérifiez votre connexion internet.";
+  return `Erreur : ${error.message}`;
+}
+
+export function DataProvider({ member, children, fallback }: { member: AuthMember; children: ReactNode; fallback: (state: { error?: string; retry: () => void }) => ReactNode }) {
+  const [data, setData] = useState<SchoolData>();
+  const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
+
+  const reload = useCallback(async () => {
+    try {
+      setData(await loadSchoolData(supabase, member.school.id));
+      setError("");
+    } catch (caught) {
+      setError(friendlyError(caught as { code?: string; message: string }));
+    }
+  }, [member.school.id]);
+
+  useEffect(() => { void reload(); }, [reload]);
+
+  // Notices disappear on their own after a few seconds.
+  useEffect(() => {
+    if (!notice) return;
+    const timer = window.setTimeout(() => setNotice(""), 4500);
+    return () => window.clearTimeout(timer);
+  }, [notice]);
+
+  const store = useMemo<Store | null>(() => {
+    if (!data) return null;
+    const currency = data.school.currency || "DA";
+    const balances = new Map(data.balances.map((row) => [row.enrollment_id, row]));
+    const enrollmentsByStudent = new Map<number, Enrollment[]>();
+    for (const enrollment of data.enrollments) enrollmentsByStudent.set(enrollment.student_id, [...(enrollmentsByStudent.get(enrollment.student_id) ?? []), enrollment]);
+    const statsByStudent = new Map<number, typeof data.attendanceStats>();
+    for (const stat of data.attendanceStats) statsByStudent.set(stat.student_id, [...(statsByStudent.get(stat.student_id) ?? []), stat]);
+    const studentsByGroup = new Map<number, number[]>();
+    for (const row of data.groupStudents) studentsByGroup.set(row.group_id, [...(studentsByGroup.get(row.group_id) ?? []), row.student_id]);
+
+    const balanceOf = (enrollmentId: number) => {
+      const row = balances.get(enrollmentId);
+      return { paid: row?.paid ?? 0, balance: row?.balance ?? 0 };
+    };
+    const attendanceRate = (studentId: number, groupId?: number) => {
+      const stats = (statsByStudent.get(studentId) ?? []).filter((stat) => groupId === undefined || stat.group_id === groupId);
+      const sessions = stats.reduce((sum, stat) => sum + stat.sessions, 0);
+      return sessions ? percent(stats.reduce((sum, stat) => sum + stat.present + stat.late, 0), sessions) : null;
+    };
+    const summaryOf = (studentId: number): StudentSummary => {
+      const enrollments = enrollmentsByStudent.get(studentId) ?? [];
+      const latest = enrollments[enrollments.length - 1]; // loaded in enrolled_on order
+      const billable = enrollments.filter((enrollment) => enrollment.status !== "Abandonné");
+      const total = billable.reduce((sum, enrollment) => sum + enrollment.total, 0);
+      const paid = billable.reduce((sum, enrollment) => sum + balanceOf(enrollment.id).paid, 0);
+      const balance = billable.reduce((sum, enrollment) => sum + balanceOf(enrollment.id).balance, 0);
+      const paymentStatus: PaymentStatus = !billable.length ? "—" : balance === 0 ? "Payé" : paid > 0 ? "Partiel" : "Non payé";
+      return { enrollments, latest, status: latest?.status ?? "Sans inscription", total, paid, balance, paymentStatus, attendance: attendanceRate(studentId) };
+    };
+
+    return {
+      ...data,
+      me: member,
+      canEdit: member.role !== "teacher",
+      isDirector: member.role === "director",
+      money: (value: number) => `${new Intl.NumberFormat("fr-FR").format(value)} ${currency}`,
+      reload,
+      notify: setNotice,
+      notice,
+      clearNotice: () => setNotice(""),
+      save: async (action, success) => {
+        const { error } = await action();
+        if (error) { setNotice(friendlyError(error)); return false; }
+        await reload();
+        setNotice(success);
+        return true;
+      },
+      studentById: new Map(data.students.map((student) => [student.id, student])),
+      groupById: new Map(data.groups.map((group) => [group.id, group])),
+      summaryOf,
+      balanceOf,
+      groupStudentIds: (groupId: number) => studentsByGroup.get(groupId) ?? [],
+      attendanceRate,
+    };
+  }, [data, member, notice, reload]);
+
+  if (!store) return <>{fallback({ error: error || undefined, retry: reload })}</>;
+  return <DataContext.Provider value={store}>{children}</DataContext.Provider>;
+}
+
+export function useData() {
+  const store = useContext(DataContext);
+  if (!store) throw new Error("useData must be used inside <DataProvider>");
+  return store;
+}

@@ -4,7 +4,11 @@ import { PGlite } from "@electric-sql/pglite";
 import fs from "fs";
 import assert from "assert/strict";
 const db = new PGlite();
-await db.exec(`create role authenticated nologin; create role anon nologin; create schema auth; create table auth.users (id uuid primary key);
+await db.exec(`create role authenticated nologin; create role anon nologin; create schema auth; create table auth.users (id uuid primary key, email text);
+create schema storage; grant usage on schema storage to authenticated;
+create table storage.buckets (id text primary key, name text, public boolean, file_size_limit bigint, allowed_mime_types text[]);
+create table storage.objects (id bigint generated always as identity primary key, bucket_id text, name text);
+alter table storage.objects enable row level security; grant all on storage.objects to authenticated;
 create function auth.uid() returns uuid language sql stable as $$ select nullif(current_setting('test.uid', true), '')::uuid $$;
 grant usage on schema auth to authenticated; grant execute on function auth.uid() to authenticated;`);
 const migrations = new URL("../migrations/", import.meta.url);
@@ -63,4 +67,30 @@ assert.equal((await as("T", "update attendance set status = 'A' where group_id =
 assert.ok(await fails("T", "insert into attendance values (1, 1, 1, '2026-09-14', 'P')"), "teacher cannot record another group");
 assert.ok(await fails("T", "insert into attendance values (1, 5, 1, '2026-09-14', 'P')"), "teacher cannot record a student outside the group");
 assert.equal((await as("T", "delete from attendance returning 1")).length, 0, "teacher cannot delete attendance");
+
+// Attendance totals follow attendance rules; documents storage is limited to the office of the school in the path.
+assert.equal(await count("D", "attendance_stats") > 0, true);
+assert.equal((await as("T", "select distinct group_id from attendance_stats")).map((r) => r.group_id).join(), "5", "teacher stats only for own group");
+assert.equal(await count("D2", "attendance_stats"), 0);
+assert.ok(!(await fails("S", "insert into storage.objects (bucket_id, name) values ('student-documents', '1/3/cni.pdf')")), "secretaire uploads to own school");
+assert.ok(await fails("D2", "insert into storage.objects (bucket_id, name) values ('student-documents', '1/3/x.pdf')"), "other school cannot upload into school 1");
+assert.ok(await fails("T", "insert into storage.objects (bucket_id, name) values ('student-documents', '1/3/x.pdf')"), "teacher cannot upload documents");
+assert.ok(await fails("S", "insert into storage.objects (bucket_id, name) values ('student-documents', 'abc/x.pdf')"), "malformed path rejected");
+assert.equal(await count("D2", "storage.objects"), 0, "other school cannot list documents");
+assert.ok(await fails("D", "update groups set end_time = '08:00' where id = 1"), "end time must be after start");
+
+// Deleting students/enrollments would cascade to payments: director only.
+assert.equal((await as("S", "delete from enrollments where id = 2 returning id")).length, 0, "secretaire cannot delete enrollments");
+assert.equal((await as("S", "delete from students where id = 2 returning id")).length, 0, "secretaire cannot delete students");
+assert.equal(await count("S", "payments where enrollment_id = 2"), 1, "payment survived");
+// create_enrollment is all-or-nothing and follows the caller rights.
+const newId = (await as("S", "select create_enrollment(1, 7, 1, 1, '2026-09-20', 45000, '', 10000, 'Espèces') as id"))[0].id;
+assert.equal(await count("S", `payments where enrollment_id = ${newId}`), 1);
+assert.equal(await count("S", "group_students where group_id = 1 and student_id = 7"), 1);
+assert.equal((await as("S", `select balance from enrollment_balances where enrollment_id = ${newId}`))[0].balance, 35000);
+const before = await count("D", "enrollments");
+assert.ok(await fails("S", "select create_enrollment(1, 7, 1, 1, null, 45000, null, 5000, 'Bitcoin')"), "bad payment method rejected");
+assert.equal(await count("D", "enrollments"), before, "nothing saved when the payment fails");
+assert.ok(await fails("T", "select create_enrollment(1, 7, 1, 5, null, 1, null, 0, 'Espèces')"), "teacher cannot enroll");
+assert.ok(await fails("D2", "select create_enrollment(1, 7, 1, 1, null, 1, null, 0, 'Espèces')"), "other school cannot enroll");
 console.log("all access checks passed");
