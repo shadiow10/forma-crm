@@ -116,3 +116,7 @@ client/public/__manus__/version.json
 # Supabase CLI cache (contains the linked project ref)
 supabase/.temp/
 size-tmp.mjs
+
+# Database dumps: real student data, never commit
+backup*.sql
+*.dump
