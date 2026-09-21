@@ -25,7 +25,7 @@ export function AuthShell({ children }: { children: ReactNode }) {
 const errorMessage = (error: { code?: string; status?: number; message?: string }) => {
   if (error.code === "invalid_credentials") return "Email ou mot de passe incorrect.";
   if (error.code === "email_not_confirmed") return "Ce compte n'est pas encore confirmé. Contactez votre directeur.";
-  if (error.code === "weak_password") return "Mot de passe trop faible : au moins 8 caractères, avec lettres et chiffres.";
+  if (error.code === "weak_password") return "Mot de passe trop faible : 10 caractères minimum, avec une majuscule, une minuscule et un chiffre.";
   if (error.code === "same_password") return "Choisissez un mot de passe différent de l'ancien.";
   if (error.status === 429) return "Trop de tentatives. Réessayez dans quelques minutes.";
   return "Opération impossible. Vérifiez votre connexion internet et réessayez.";
@@ -112,7 +112,7 @@ export function SetPassword({ email }: { email: string }) {
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();
-    if (password.length < 8) return setError("Le mot de passe doit contenir au moins 8 caractères.");
+    if (!/^(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9]).{10,}$/.test(password)) return setError("10 caractères minimum, avec une majuscule, une minuscule et un chiffre.");
     if (password !== confirm) return setError("Les deux mots de passe ne correspondent pas.");
     setBusy(true);
     if (await isLeaked(password)) {
@@ -133,7 +133,7 @@ export function SetPassword({ email }: { email: string }) {
       <form className="auth-form" onSubmit={submit}>
         <label>
           Nouveau mot de passe
-          <input className="field" type="password" autoComplete="new-password" required autoFocus minLength={8} value={password} onChange={(event) => setPassword(event.target.value)} />
+          <input className="field" type="password" autoComplete="new-password" required autoFocus minLength={10} value={password} onChange={(event) => setPassword(event.target.value)} />
         </label>
         <label>
           Confirmer le mot de passe

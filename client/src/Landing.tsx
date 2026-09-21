@@ -338,6 +338,9 @@ export function Landing() {
 
 // ---------------------------------------------------------------- Demo checkout
 
+// Supabase refuses anything weaker, so the form asks for the same thing.
+const STRONG_PASSWORD = /^(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9]).{10,}$/;
+
 const SCHOOL_TYPES = ["École privée", "Centre de formation", "École de soutien scolaire", "École de langues", "Crèche / préscolaire"];
 
 export function Checkout() {
@@ -359,7 +362,7 @@ export function Checkout() {
     if (!values.director.trim()) next.director = "Indiquez le nom du directeur.";
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(values.email.trim())) next.email = "Email invalide.";
     if (!/^0[5-7]\d{8}$/.test(values.phone.replace(/[\s.-]/g, ""))) next.phone = "Numéro mobile algérien : 05, 06 ou 07 suivi de 8 chiffres.";
-    if (values.password.length < 8) next.password = "Au moins 8 caractères.";
+    if (!STRONG_PASSWORD.test(values.password)) next.password = "10 caractères minimum, avec une majuscule, une minuscule et un chiffre.";
     setErrors(next);
     if (Object.keys(next).length) return;
     setStep("sending");
@@ -369,8 +372,10 @@ export function Checkout() {
       console.error(signUp.error); // the exact reason, for us; the visitor gets the message below
       setStep("form");
       const already = /already|registered|exists/i.test(signUp.error.message);
-      setErrors({ [already ? "email" : "form"]: already
+      const weak = signUp.error.code === "weak_password";
+      setErrors({ [already ? "email" : weak ? "password" : "form"]: already
         ? "Un compte existe déjà avec cet email. Connectez-vous, puis renvoyez votre demande."
+        : weak ? "Mot de passe trop simple : 10 caractères minimum, avec une majuscule, une minuscule et un chiffre."
         : "Création du compte impossible. Vérifiez votre connexion et réessayez." });
       return;
     }
@@ -422,7 +427,7 @@ export function Checkout() {
           {field("director", "Nom complet *", { autoComplete: "name" })}
           {field("email", "Email *", { type: "email", autoComplete: "email", placeholder: "directeur@ecole.dz" })}
           {field("phone", "Téléphone mobile *", { type: "tel", autoComplete: "tel", placeholder: "0555 00 00 00" })}
-          {field("password", "Mot de passe *", { type: "password", autoComplete: "new-password", placeholder: "8 caractères minimum" })}
+          {field("password", "Mot de passe *", { type: "password", autoComplete: "new-password", placeholder: "10 caractères, 1 majuscule, 1 chiffre" })}
           <p className="lp-terms">Ces identifiants sont les vôtres : votre espace s'ouvre avec eux dès que votre paiement est confirmé.</p>
         </fieldset>
         <fieldset disabled={step === "sending"}>
