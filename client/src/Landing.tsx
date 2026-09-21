@@ -362,13 +362,15 @@ export function Checkout() {
     setErrors(next);
     if (Object.keys(next).length) return;
     setStep("sending");
-    const { data, error } = await supabase.from("orders").insert({
-      school_name: values.school.trim(), school_type: values.type, wilaya: values.wilaya.trim(),
-      director_name: values.director.trim(), email: values.email.trim().toLowerCase(), phone: values.phone.replace(/[s.-]/g, ""),
-      plan: planId, billing, notes: `Paiement souhaité : ${values.method === "card" ? "carte Edahabia ou CIB" : "virement ou CCP"}`,
-    }).select("id").single();
+    // place_order runs as owner: it can write the order and hand back its number without opening the table.
+    const { data, error } = await supabase.rpc("place_order", {
+      p_school_name: values.school, p_school_type: values.type, p_wilaya: values.wilaya,
+      p_director_name: values.director, p_email: values.email, p_phone: values.phone,
+      p_plan: planId, p_billing: billing,
+      p_notes: `Paiement souhaité : ${values.method === "card" ? "carte Edahabia ou CIB" : "virement ou CCP"}`,
+    });
     if (error || !data) { setStep("form"); setErrors({ form: "Envoi impossible. Vérifiez votre connexion et réessayez." }); return; }
-    setReference(`CMD-${String(data.id).padStart(5, "0")}`);
+    setReference(`CMD-${String(data).padStart(5, "0")}`);
     setStep("done");
     window.scrollTo({ top: 0 });
   };
