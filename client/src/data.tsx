@@ -64,6 +64,7 @@ export function DataProvider({ member, children, fallback }: { member: AuthMembe
       setData(await loadSchoolData(supabase, member.school.id));
       setError("");
     } catch (caught) {
+      console.error("Chargement des données :", caught); // exact table and reason, for us
       setError(friendlyError(caught as { code?: string; message: string }));
     }
   }, [member.school.id]);
