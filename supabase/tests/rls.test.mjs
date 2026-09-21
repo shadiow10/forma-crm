@@ -17,7 +17,7 @@ await db.exec(`alter default privileges in schema public grant all on tables to 
 const migrations = new URL("../migrations/", import.meta.url);
 for (const file of fs.readdirSync(migrations).filter((name) => name.endsWith(".sql")).sort()) await db.exec(fs.readFileSync(new URL(file, migrations), "utf8"));
 await db.exec(fs.readFileSync(new URL("../seed.sql", import.meta.url), "utf8"));
-const U = { D: "00000000-0000-0000-0000-00000000000d", S: "00000000-0000-0000-0000-00000000000s".replace("s","5"), T: "00000000-0000-0000-0000-00000000000e", D2: "00000000-0000-0000-0000-0000000000d2", X: "00000000-0000-0000-0000-0000000000de", O: "00000000-0000-0000-0000-0000000000a0" };
+const U = { D: "00000000-0000-0000-0000-00000000000d", S: "00000000-0000-0000-0000-00000000000s".replace("s","5"), T: "00000000-0000-0000-0000-00000000000e", D2: "00000000-0000-0000-0000-0000000000d2", X: "00000000-0000-0000-0000-0000000000de", O: "00000000-0000-0000-0000-0000000000a0" , N: "00000000-0000-0000-0000-0000000000a1" , L: "00000000-0000-0000-0000-0000000000a2" };
 await db.exec(`insert into auth.users values ('${U.D}'),('${U.S}'),('${U.T}'),('${U.D2}');
 insert into schools (id, name, slug) values (2, 'Autre École', 'autre-ecole');
 insert into courses (school_id, name, short_name, duration, price) values (2, 'Anglais', 'Anglais', '3 mois', 30000);
@@ -186,5 +186,34 @@ assert.equal((await anon("update orders set status = 'payé' returning id")).len
 assert.equal((await anon("delete from orders returning id")).length, 0, "a visitor cannot delete an order");
 assert.equal(await count("D", "orders"), 0, "a director cannot read orders either");
 assert.equal(Number((await db.query("select count(*)::int n from orders")).rows[0].n), 1, "the order is there for the dashboard");
+
+// Self-service signup: the director orders, you mark the order paid, his school opens.
+await db.exec(`insert into auth.users (id, email) values ('${U.N}', 'nouveau@ecole.dz')`);
+const orderId = Number((await as("N", `select place_order('École de la Paix', 'École privée', 'Oran', 'Nassim K', 'nassim@ecole.dz', '0555998877', 'pro', 'yearly', null) as id`))[0].id);
+assert.deepEqual((await as("N", "select status, school_name from my_order_status()"))[0], { status: "nouveau", school_name: "École de la Paix" }, "he can follow his own order");
+assert.equal((await as("N", "select * from my_order_status()")).length, 1, "and only his own");
+assert.equal(await count("N", "schools"), 0, "no school before payment");
+assert.ok(await fails("N", `select approve_order(${orderId})`), "a director cannot open his own school");
+
+await db.exec(`update orders set status = 'payé' where id = ${orderId}`); // what you do in the dashboard
+assert.equal(await count("N", "schools"), 1, "his school is open");
+assert.deepEqual((await as("N", "select name, slug from schools"))[0], { name: "École de la Paix", slug: "ecole-de-la-paix" }, "named and addressed from the order");
+assert.deepEqual((await as("N", "select role, full_name from school_members where user_id = auth.uid()"))[0], { role: "director", full_name: "Nassim K" }, "he is its director");
+const school = Number((await db.query(`select school_id from orders where id = ${orderId}`)).rows[0].school_id);
+await db.exec(`update orders set status = 'payé' where id = ${orderId}`);
+assert.equal(Number((await db.query(`select school_id from orders where id = ${orderId}`)).rows[0].school_id), school, "marking it paid twice opens nothing twice");
+
+// Same school name twice: the web address gets a number, never a clash.
+const second = Number((await as("N", `select place_order('École de la Paix', null, 'Oran', 'Nassim K', 'nassim@ecole.dz', '0555998877', 'essentiel', 'monthly', null) as id`))[0].id);
+await db.exec(`update orders set status = 'payé' where id = ${second}`);
+assert.equal((await db.query("select slug from schools where name = 'École de la Paix' order by id")).rows.map((r) => r.slug).join(), "ecole-de-la-paix,ecole-de-la-paix-2");
+// An order sent before creating an account cannot be approved by mistake.
+await db.exec(`insert into orders (school_name, wilaya, director_name, email, phone, plan, billing) values ('Sans compte', 'Alger', 'Directeur X', 'x@y.dz', '0555000000', 'pro', 'monthly')`);
+await assert.rejects(db.query(`update orders set status = 'payé' where school_name = 'Sans compte'`), /compte/, "an order with no account is refused, with an explanation");
+// An account created after the order (or on a browser that was not signed in yet) is matched by email.
+await db.exec(`insert into auth.users (id, email) values ('${U.L}', 'tardif@ecole.dz');
+insert into orders (school_name, wilaya, director_name, email, phone, plan, billing) values ('École Tardive', 'Blida', 'Directeur Tardif', 'tardif@ecole.dz', '0555000001', 'pro', 'monthly');
+update orders set status = 'payé' where school_name = 'École Tardive';`);
+assert.equal(await count("L", "schools"), 1, "his school opens even though the order had no account at the time");
 
 console.log("all access checks passed");

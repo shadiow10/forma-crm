@@ -344,7 +344,7 @@ export function Checkout() {
   const params = new URLSearchParams(window.location.search);
   const [planId, setPlanId] = useState(PLANS.some((plan) => plan.id === params.get("plan")) ? params.get("plan")! : "pro");
   const [billing, setBilling] = useState<Billing>(params.get("periode") === "yearly" ? "yearly" : "monthly");
-  const [values, setValues] = useState({ school: "", type: SCHOOL_TYPES[0], wilaya: "", director: "", email: "", phone: "", method: "card" });
+  const [values, setValues] = useState({ school: "", type: SCHOOL_TYPES[0], wilaya: "", director: "", email: "", phone: "", password: "", method: "cash" });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [step, setStep] = useState<"form" | "sending" | "done">("form");
   const [reference, setReference] = useState("");
@@ -359,15 +359,26 @@ export function Checkout() {
     if (!values.director.trim()) next.director = "Indiquez le nom du directeur.";
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(values.email.trim())) next.email = "Email invalide.";
     if (!/^0[5-7]\d{8}$/.test(values.phone.replace(/[\s.-]/g, ""))) next.phone = "Numéro mobile algérien : 05, 06 ou 07 suivi de 8 chiffres.";
+    if (values.password.length < 8) next.password = "Au moins 8 caractères.";
     setErrors(next);
     if (Object.keys(next).length) return;
     setStep("sending");
+    // His own login, created now; the school is attached to it once you confirm the payment.
+    const signUp = await supabase.auth.signUp({ email: values.email.trim().toLowerCase(), password: values.password });
+    if (signUp.error) {
+      setStep("form");
+      const already = /already|registered|exists/i.test(signUp.error.message);
+      setErrors({ [already ? "email" : "form"]: already
+        ? "Un compte existe déjà avec cet email. Connectez-vous, puis renvoyez votre demande."
+        : "Création du compte impossible. Vérifiez votre connexion et réessayez." });
+      return;
+    }
     // place_order runs as owner: it can write the order and hand back its number without opening the table.
     const { data, error } = await supabase.rpc("place_order", {
       p_school_name: values.school, p_school_type: values.type, p_wilaya: values.wilaya,
       p_director_name: values.director, p_email: values.email, p_phone: values.phone,
       p_plan: planId, p_billing: billing,
-      p_notes: `Paiement souhaité : ${values.method === "card" ? "carte Edahabia ou CIB" : "virement ou CCP"}`,
+      p_notes: `Paiement souhaité : ${values.method === "cash" ? "en main propre" : "virement ou CCP"}`,
     });
     if (error || !data) { setStep("form"); setErrors({ form: "Envoi impossible. Vérifiez votre connexion et réessayez." }); return; }
     setReference(`CMD-${String(data).padStart(5, "0")}`);
@@ -387,15 +398,15 @@ export function Checkout() {
 
     {step === "done" ? <section className="lp-done">
       <span className="lp-done-icon"><Icon name="checkCircle" size={34} /></span>
-      <h1>Demande envoyée</h1>
+      <h1>Compte créé</h1>
       <p>Merci, {values.director.trim()}. Demande <strong>{reference}</strong> · {plan.name} · {price(planTotal(plan, billing))}{billing === "yearly" ? "/an" : "/mois"}</p>
       <ol className="lp-next">
-        <li><strong>Nous vous appelons</strong><span>Sous 24 h ouvrées au {values.phone.trim()}, pour répondre à vos questions.</span></li>
-        <li><strong>Vous réglez</strong><span>Carte Edahabia ou CIB, virement ou versement CCP — comme vous préférez.</span></li>
-        <li><strong>Votre espace est ouvert</strong><span>« {values.school.trim()} » est créé et {values.email.trim()} reçoit un lien pour choisir son mot de passe.</span></li>
+        <li><strong>Nous vous appelons</strong><span>Sous 24 h ouvrées au {values.phone.trim()}, pour convenir du règlement.</span></li>
+        <li><strong>Vous réglez</strong><span>En main propre, par virement ou par versement CCP.</span></li>
+        <li><strong>Votre espace s'ouvre</strong><span>« {values.school.trim()} » devient accessible avec {values.email.trim()} et le mot de passe que vous venez de choisir.</span></li>
       </ol>
-      <p className="lp-price-note">Aucun montant n'a été débité. Rien n'est dû avant notre appel.</p>
-      <a className="lp-btn primary" href="/">Retour au site</a>
+      <p className="lp-price-note">Aucun montant n'a été débité. Vous pouvez déjà vous connecter : votre espace apparaîtra dès la confirmation.</p>
+      <a className="lp-btn primary" href="/connexion">Aller à la connexion</a>
     </section> : <div className="lp-checkout">
       <form className="lp-checkout-form" onSubmit={submit} noValidate>
         <h1>Demander FormaPlus</h1>
@@ -406,15 +417,17 @@ export function Checkout() {
           {field("wilaya", "Wilaya *", { placeholder: "Ex. Alger" })}
         </fieldset>
         <fieldset disabled={step === "sending"}>
-          <legend>Le directeur (compte principal)</legend>
+          <legend>Votre compte de directeur</legend>
           {field("director", "Nom complet *", { autoComplete: "name" })}
           {field("email", "Email *", { type: "email", autoComplete: "email", placeholder: "directeur@ecole.dz" })}
           {field("phone", "Téléphone mobile *", { type: "tel", autoComplete: "tel", placeholder: "0555 00 00 00" })}
+          {field("password", "Mot de passe *", { type: "password", autoComplete: "new-password", placeholder: "8 caractères minimum" })}
+          <p className="lp-terms">Ces identifiants sont les vôtres : votre espace s'ouvre avec eux dès que votre paiement est confirmé.</p>
         </fieldset>
         <fieldset disabled={step === "sending"}>
-          <legend>Comment souhaitez-vous payer ?</legend>
+          <legend>Comment allez-vous payer ?</legend>
           <div className="lp-methods">
-            {[["card", "Carte Edahabia ou CIB", "Nous vous envoyons le lien de paiement"], ["transfer", "Virement ou versement CCP", "Nous vous transmettons nos coordonnées"]].map(([id, title, text]) =>
+            {[["cash", "En main propre", "Nous passons, ou vous passez nous voir"], ["transfer", "Virement ou versement CCP", "Nous vous transmettons nos coordonnées"]].map(([id, title, text]) =>
               <label key={id} className={`lp-method ${values.method === id ? "active" : ""}`}><input type="radio" name="method" value={id} checked={values.method === id} onChange={set("method")} /><div><strong>{title}</strong><span>{text}</span></div></label>)}
           </div>
         </fieldset>
