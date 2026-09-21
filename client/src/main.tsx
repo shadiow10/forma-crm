@@ -1,4 +1,5 @@
-import { StrictMode } from "react";
+import { Component, StrictMode } from "react";
+import type { ReactNode } from "react";
 import { createRoot } from "react-dom/client";
 import App from "./App";
 import { signOut, useAuth } from "./auth";
@@ -16,6 +17,17 @@ const Message = ({ title, text, action }: { title: string; text: string; action?
     <p className="auth-muted auth-foot"><button className="text-button" onClick={signOut}>Se déconnecter</button></p>
   </AuthShell>
 );
+
+// A crash anywhere in the app shows a message instead of a blank page.
+class Boundary extends Component<{ children: ReactNode }, { failed: boolean }> {
+  state = { failed: false };
+  static getDerivedStateFromError() { return { failed: true }; }
+  componentDidCatch(error: unknown) { console.error(error); }
+  render() {
+    if (!this.state.failed) return this.props.children;
+    return <Message title="Une erreur est survenue" text="Cette page n'a pas pu s'afficher. Rechargez ; si cela se reproduit, prévenez-nous." action={{ label: "Recharger", run: () => window.location.reload() }} />;
+  }
+}
 
 function Root() {
   const auth = useAuth();
@@ -41,6 +53,8 @@ function Root() {
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
-    <Root />
+    <Boundary>
+      <Root />
+    </Boundary>
   </StrictMode>
 );

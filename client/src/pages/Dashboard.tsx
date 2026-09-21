@@ -3,7 +3,7 @@ import { useData } from "../data";
 import { Badge, Button, COLORS, DAYS, EmptyState, Icon, MetricCard, PageHeader, Panel, formatDate, formatTime, initialsBadge, statusTone, todayISO } from "../ui";
 
 export function Dashboard({ goTo, openStudent, firstName }: { goTo: (page: PageKey) => void; openStudent: (id: number) => void; firstName: string }) {
-  const { students, enrollments, groups, payments, attendanceStats, courses, studentById, groupStudentIds, summaryOf, balanceOf, money } = useData();
+  const { students, enrollments, groups, payments, attendanceStats, courses, teachers, studentById, groupStudentIds, summaryOf, balanceOf, money, canEdit } = useData();
   const today = new Date();
   const todayName = DAYS[today.getDay()];
   const monthPrefix = todayISO().slice(0, 7);
@@ -20,6 +20,14 @@ export function Dashboard({ goTo, openStudent, firstName }: { goTo: (page: PageK
   const courseName = (id: number) => courses.find((course) => course.id === id)?.name ?? "—";
   const dateLabel = today.toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
 
+  // A school that has never enrolled anyone gets the setup list instead of empty panels.
+  const setup: { label: string; hint: string; page: PageKey; done: boolean }[] = [
+    { label: "Ajoutez vos formations", hint: "Intitulé, durée et prix", page: "formations", done: courses.length > 0 },
+    { label: "Ajoutez vos formateurs", hint: "Qui enseigne quoi", page: "teachers", done: teachers.length > 0 },
+    { label: "Créez vos groupes", hint: "Horaires, salle et formateur", page: "groups", done: groups.length > 0 },
+    { label: "Inscrivez vos étudiants", hint: "Fiche, formation et premier versement", page: "enrollments", done: enrollments.length > 0 },
+  ];
+
   return <>
     <PageHeader eyebrow={dateLabel} title={`Bonjour ${firstName},`} description="Voici ce qui se passe dans votre centre aujourd'hui." actionLabel="Nouvelle inscription" onAction={() => goTo("enrollments")} />
     <div className="metrics-grid">
@@ -30,6 +38,14 @@ export function Dashboard({ goTo, openStudent, firstName }: { goTo: (page: PageK
       <MetricCard label="Présence moyenne" value={presentRate === null ? "—" : `${presentRate}%`} note={`sur ${sessions} présences notées`} icon="checkCircle" accent={COLORS.green} />
       <MetricCard label="Encaissé ce mois" value={money(collectedThisMonth)} note={`${owing.length} dossier${owing.length > 1 ? "s" : ""} avec un solde`} icon="wallet" accent={COLORS.yellow} />
     </div>
+    {canEdit && !enrollments.length && <Panel title="Premiers pas">
+      <div className="activity-list">{setup.map((step) => <div className="activity-row" key={step.page}>
+        <span className="activity-icon" style={{ background: step.done ? COLORS.tealLight : "#eef0f2", color: step.done ? COLORS.teal : COLORS.muted }}><Icon name={step.done ? "check" : "plus"} size={15} /></span>
+        <div><strong>{step.label}</strong><span>{step.hint}</span></div>
+        {step.done ? <Badge tone="success">Fait</Badge> : <Button variant="soft" onClick={() => goTo(step.page)}>Ouvrir</Button>}
+      </div>)}</div>
+      <p className="form-hint"><Icon name="spark" size={13} /> Ces quatre étapes suffisent pour commencer. Vous pourrez inviter votre équipe dans Paramètres.</p>
+    </Panel>}
     <div className="dashboard-grid top-grid">
       <Panel title="Cours aujourd'hui" action={<Button variant="ghost" icon="arrow" onClick={() => goTo("planning")}>Voir le planning</Button>}>
         {todayGroups.length ? <div className="activity-list">{todayGroups.map((group) => <div className="activity-row" key={group.id}>
