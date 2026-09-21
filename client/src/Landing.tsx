@@ -366,6 +366,7 @@ export function Checkout() {
     // His own login, created now; the school is attached to it once you confirm the payment.
     const signUp = await supabase.auth.signUp({ email: values.email.trim().toLowerCase(), password: values.password });
     if (signUp.error) {
+      console.error(signUp.error); // the exact reason, for us; the visitor gets the message below
       setStep("form");
       const already = /already|registered|exists/i.test(signUp.error.message);
       setErrors({ [already ? "email" : "form"]: already
