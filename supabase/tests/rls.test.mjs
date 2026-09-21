@@ -161,7 +161,9 @@ assert.ok(await fails("D", "select public.orphan_user_id('parti@ecole.dz')"), "a
 // Supabase grants anon the same table rights as authenticated; only the policies keep it out.
 assert.deepEqual((await db.query(`select relname from pg_class c join pg_namespace n on n.oid = c.relnamespace
   where n.nspname = 'public' and c.relkind = 'r' and not c.relrowsecurity`)).rows, [], "a table without row security");
-assert.deepEqual((await db.query(`select tablename, policyname from pg_policies where schemaname = 'public' and 'anon' = any(roles)`)).rows, [], "a policy open to signed-out visitors");
+// The order form is the single deliberate exception: a visitor may insert an order, nothing else.
+assert.deepEqual((await db.query(`select tablename, policyname, cmd from pg_policies where schemaname = 'public' and 'anon' = any(roles)`)).rows,
+  [{ tablename: "orders", policyname: "anyone can place an order", cmd: "INSERT" }], "a policy open to signed-out visitors");
 await db.exec(`grant all on all tables in schema public to anon;`); // worst case: anon has every table right Supabase could grant
 for (const table of [...tables, "activity_log", "teacher_pay", "student_notes", "student_documents", "group_students"]) {
   const rows = await (async () => {
@@ -170,5 +172,19 @@ for (const table of [...tables, "activity_log", "teacher_pay", "student_notes", 
   })();
   assert.equal(rows, 0, `signed-out visitor can read ${table}`);
 }
+
+// Orders from the landing page: anyone may send one, nobody may read or change one.
+const anon = async (sql) => { await db.exec(`reset role; set test.uid = ''; set role anon;`); try { return (await db.query(sql)).rows; } finally { await db.exec("reset role"); } };
+const anonFails = async (sql) => { try { await anon(sql); return false; } catch { return true; } };
+await db.exec("grant all on all tables in schema public to anon; grant usage, select on all sequences in schema public to anon;");
+const order = `insert into orders (school_name, wilaya, director_name, email, phone, plan, billing) values ('École Test', 'Alger', 'Ahmed B', 'a@b.dz', '0555112233', 'pro', 'monthly')`;
+assert.ok(!(await anonFails(order)), "a visitor can send an order");
+assert.ok(await anonFails(`${order.replace("'0555112233'", "'123'")}`), "a bad phone number is refused");
+assert.ok(await anonFails(order.replace("'pro'", "'gratuit'")), "an unknown plan is refused");
+assert.equal((await anon("select * from orders")).length, 0, "a visitor cannot read orders");
+assert.equal((await anon("update orders set status = 'payé' returning id")).length, 0, "a visitor cannot change an order");
+assert.equal((await anon("delete from orders returning id")).length, 0, "a visitor cannot delete an order");
+assert.equal(await count("D", "orders"), 0, "a director cannot read orders either");
+assert.equal(Number((await db.query("select count(*)::int n from orders")).rows[0].n), 1, "the order is there for the dashboard");
 
 console.log("all access checks passed");

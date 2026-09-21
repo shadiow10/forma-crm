@@ -346,12 +346,12 @@ export function Checkout() {
   const [billing, setBilling] = useState<Billing>(params.get("periode") === "yearly" ? "yearly" : "monthly");
   const [values, setValues] = useState({ school: "", type: SCHOOL_TYPES[0], wilaya: "", director: "", email: "", phone: "", method: "card" });
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [step, setStep] = useState<"form" | "paying" | "done">("form");
-  const [reference] = useState(() => `FP-${Date.now().toString(36).toUpperCase()}`);
+  const [step, setStep] = useState<"form" | "sending" | "done">("form");
+  const [reference, setReference] = useState("");
   const plan = PLANS.find((item) => item.id === planId)!;
   const set = (key: keyof typeof values) => (event: { target: { value: string } }) => { setValues({ ...values, [key]: event.target.value }); setErrors({ ...errors, [key]: "" }); };
 
-  const submit = (event: FormEvent) => {
+  const submit = async (event: FormEvent) => {
     event.preventDefault();
     const next: Record<string, string> = {};
     if (!values.school.trim()) next.school = "Indiquez le nom de l'établissement.";
@@ -361,8 +361,16 @@ export function Checkout() {
     if (!/^0[5-7]\d{8}$/.test(values.phone.replace(/[\s.-]/g, ""))) next.phone = "Numéro mobile algérien : 05, 06 ou 07 suivi de 8 chiffres.";
     setErrors(next);
     if (Object.keys(next).length) return;
-    setStep("paying");
-    window.setTimeout(() => { setStep("done"); window.scrollTo({ top: 0 }); }, 1400); // simulated payment
+    setStep("sending");
+    const { data, error } = await supabase.from("orders").insert({
+      school_name: values.school.trim(), school_type: values.type, wilaya: values.wilaya.trim(),
+      director_name: values.director.trim(), email: values.email.trim().toLowerCase(), phone: values.phone.replace(/[s.-]/g, ""),
+      plan: planId, billing, notes: `Paiement souhaité : ${values.method === "card" ? "carte Edahabia ou CIB" : "virement ou CCP"}`,
+    }).select("id").single();
+    if (error || !data) { setStep("form"); setErrors({ form: "Envoi impossible. Vérifiez votre connexion et réessayez." }); return; }
+    setReference(`CMD-${String(data.id).padStart(5, "0")}`);
+    setStep("done");
+    window.scrollTo({ top: 0 });
   };
 
   const field = (key: keyof typeof values, label: string, props: Record<string, string> = {}) => <label>
@@ -373,48 +381,49 @@ export function Checkout() {
 
   return <div className="lp lp-checkout-page">
     <header className="lp-header"><Brand /><a className="lp-login" href="/#tarifs">← Retour aux tarifs</a></header>
-    <p className="lp-demo-banner" role="note"><Icon name="warning" size={15} /> Démonstration : aucun paiement n'est effectué et aucun compte n'est créé.</p>
+    <p className="lp-demo-banner" role="note"><Icon name="phone" size={15} /> Le paiement en ligne arrive bientôt. Envoyez votre demande : nous vous rappelons sous 24 h pour finaliser.</p>
 
     {step === "done" ? <section className="lp-done">
       <span className="lp-done-icon"><Icon name="checkCircle" size={34} /></span>
-      <h1>Paiement confirmé</h1>
-      <p>Merci, {values.director.trim()}. Commande <strong>{reference}</strong> · {plan.name} · {price(planTotal(plan, billing))}{billing === "yearly" ? "/an" : "/mois"}</p>
+      <h1>Demande envoyée</h1>
+      <p>Merci, {values.director.trim()}. Demande <strong>{reference}</strong> · {plan.name} · {price(planTotal(plan, billing))}{billing === "yearly" ? "/an" : "/mois"}</p>
       <ol className="lp-next">
-        <li><strong>Espace créé</strong><span>« {values.school.trim()} » est prêt, vide et séparé des autres écoles.</span></li>
-        <li><strong>Email d'accès</strong><span>{values.email.trim()} reçoit un lien pour choisir son mot de passe.</span></li>
-        <li><strong>Votre équipe</strong><span>Dans Paramètres → Utilisateurs, invitez secrétaires et formateurs.</span></li>
+        <li><strong>Nous vous appelons</strong><span>Sous 24 h ouvrées au {values.phone.trim()}, pour répondre à vos questions.</span></li>
+        <li><strong>Vous réglez</strong><span>Carte Edahabia ou CIB, virement ou versement CCP — comme vous préférez.</span></li>
+        <li><strong>Votre espace est ouvert</strong><span>« {values.school.trim()} » est créé et {values.email.trim()} reçoit un lien pour choisir son mot de passe.</span></li>
       </ol>
-      <p className="lp-price-note">En production, ces trois étapes sont automatiques après la confirmation du paiement.</p>
-      <a className="lp-btn primary" href="/connexion">Aller à la connexion</a>
+      <p className="lp-price-note">Aucun montant n'a été débité. Rien n'est dû avant notre appel.</p>
+      <a className="lp-btn primary" href="/">Retour au site</a>
     </section> : <div className="lp-checkout">
       <form className="lp-checkout-form" onSubmit={submit} noValidate>
-        <h1>Commander FormaPlus</h1>
-        <fieldset disabled={step === "paying"}>
+        <h1>Demander FormaPlus</h1>
+        <fieldset disabled={step === "sending"}>
           <legend>Votre établissement</legend>
           {field("school", "Nom de l'établissement *", { placeholder: "Ex. École Ibn Sina", autoComplete: "organization" })}
           <label>Type d'établissement<select className="field" value={values.type} onChange={set("type")}>{SCHOOL_TYPES.map((type) => <option key={type}>{type}</option>)}</select></label>
           {field("wilaya", "Wilaya *", { placeholder: "Ex. Alger" })}
         </fieldset>
-        <fieldset disabled={step === "paying"}>
+        <fieldset disabled={step === "sending"}>
           <legend>Le directeur (compte principal)</legend>
           {field("director", "Nom complet *", { autoComplete: "name" })}
           {field("email", "Email *", { type: "email", autoComplete: "email", placeholder: "directeur@ecole.dz" })}
           {field("phone", "Téléphone mobile *", { type: "tel", autoComplete: "tel", placeholder: "0555 00 00 00" })}
         </fieldset>
-        <fieldset disabled={step === "paying"}>
-          <legend>Paiement</legend>
+        <fieldset disabled={step === "sending"}>
+          <legend>Comment souhaitez-vous payer ?</legend>
           <div className="lp-methods">
-            {[["card", "Carte Edahabia ou CIB", "Paiement en ligne, accès immédiat"], ["transfer", "Virement ou versement CCP", "Accès dès réception du paiement"]].map(([id, title, text]) =>
+            {[["card", "Carte Edahabia ou CIB", "Nous vous envoyons le lien de paiement"], ["transfer", "Virement ou versement CCP", "Nous vous transmettons nos coordonnées"]].map(([id, title, text]) =>
               <label key={id} className={`lp-method ${values.method === id ? "active" : ""}`}><input type="radio" name="method" value={id} checked={values.method === id} onChange={set("method")} /><div><strong>{title}</strong><span>{text}</span></div></label>)}
           </div>
         </fieldset>
         <p className="lp-terms">En commandant, vous acceptez les <a href="/cgv" target="_blank">conditions générales de vente</a> et la <a href="/confidentialite" target="_blank">politique de confidentialité</a>.</p>
-        <button className="lp-btn primary lp-pay" type="submit" disabled={step === "paying"}>{step === "paying" ? "Paiement en cours…" : `Payer ${price(planTotal(plan, billing))} (démo)`}</button>
+        {errors.form && <p className="field-error" role="alert">{errors.form}</p>}
+        <button className="lp-btn primary lp-pay" type="submit" disabled={step === "sending"}>{step === "sending" ? "Envoi…" : "Envoyer ma demande"}</button>
       </form>
 
       <aside className="lp-summary">
         <h2>Récapitulatif</h2>
-        <label>Formule<select className="field" value={planId} onChange={(event) => setPlanId(event.target.value)} disabled={step === "paying"}>{PLANS.map((item) => <option key={item.id} value={item.id}>{item.name} · {price(item.monthly)}/mois</option>)}</select></label>
+        <label>Formule<select className="field" value={planId} onChange={(event) => setPlanId(event.target.value)} disabled={step === "sending"}>{PLANS.map((item) => <option key={item.id} value={item.id}>{item.name} · {price(item.monthly)}/mois</option>)}</select></label>
         <div className="lp-billing small" role="group" aria-label="Période de facturation">
           <button type="button" className={billing === "monthly" ? "active" : ""} aria-pressed={billing === "monthly"} onClick={() => setBilling("monthly")}>Mensuel</button>
           <button type="button" className={billing === "yearly" ? "active" : ""} aria-pressed={billing === "yearly"} onClick={() => setBilling("yearly")}>Annuel</button>
