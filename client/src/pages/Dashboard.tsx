@@ -38,14 +38,16 @@ export function Dashboard({ goTo, openStudent, firstName }: { goTo: (page: PageK
       <MetricCard label="Présence moyenne" value={presentRate === null ? "—" : `${presentRate}%`} note={`sur ${sessions} présences notées`} icon="checkCircle" accent={COLORS.green} />
       <MetricCard label="Encaissé ce mois" value={money(collectedThisMonth)} note={`${owing.length} dossier${owing.length > 1 ? "s" : ""} avec un solde`} icon="wallet" accent={COLORS.yellow} />
     </div>
-    {canEdit && !enrollments.length && <Panel title="Premiers pas">
-      <div className="activity-list">{setup.map((step) => <div className="activity-row" key={step.page}>
-        <span className="activity-icon" style={{ background: step.done ? COLORS.tealLight : "#eef0f2", color: step.done ? COLORS.teal : COLORS.muted }}><Icon name={step.done ? "check" : "plus"} size={15} /></span>
-        <div><strong>{step.label}</strong><span>{step.hint}</span></div>
-        {step.done ? <Badge tone="success">Fait</Badge> : <Button variant="soft" onClick={() => goTo(step.page)}>Ouvrir</Button>}
-      </div>)}</div>
-      <p className="form-hint"><Icon name="spark" size={13} /> Ces quatre étapes suffisent pour commencer. Vous pourrez inviter votre équipe dans Paramètres.</p>
-    </Panel>}
+    {canEdit && !enrollments.length && <section className="setup-panel">
+      <h2>Premiers pas</h2>
+      <p className="setup-intro">Quatre étapes pour que votre école tourne. Vous pourrez inviter votre équipe ensuite, dans Paramètres.</p>
+      <ol className="setup-steps">{setup.map((step, index) => <li className={step.done ? "done" : ""} key={step.page}>
+        <span className="setup-number">{step.done ? <Icon name="check" size={20} /> : index + 1}</span>
+        <strong>{step.label}</strong>
+        <span className="setup-hint">{step.hint}</span>
+        {step.done ? <span className="setup-done">Fait</span> : <button className="setup-cta" onClick={() => goTo(step.page)}>Commencer <Icon name="arrow" size={16} /></button>}
+      </li>)}</ol>
+    </section>}
     <div className="dashboard-grid top-grid">
       <Panel title="Cours aujourd'hui" action={<Button variant="ghost" icon="arrow" onClick={() => goTo("planning")}>Voir le planning</Button>}>
         {todayGroups.length ? <div className="activity-list">{todayGroups.map((group) => <div className="activity-row" key={group.id}>

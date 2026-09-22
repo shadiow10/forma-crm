@@ -507,6 +507,25 @@ tbody tr[tabindex]:focus-visible, .class-card:focus-visible, .teacher-card:focus
 }
 
 
+/* First steps for a brand new school: centred, one big button per step */
+.setup-panel { max-width: 860px; margin: 0 auto 22px; padding: 34px 28px 30px; border: 1px solid var(--border); border-radius: 16px; background: var(--paper); text-align: center; }
+.setup-panel h2 { margin: 0; color: var(--ink); font: 800 26px Manrope, sans-serif; letter-spacing: -.04em; }
+.setup-intro { max-width: 520px; margin: 10px auto 26px; color: #6b7681; font-size: 13px; line-height: 1.6; }
+.setup-steps { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin: 0; padding: 0; list-style: none; }
+.setup-steps li { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 22px 14px 18px; border: 1px solid var(--border); border-radius: 14px; background: #fcfbf8; }
+.setup-steps li.done { border-color: var(--teal); background: #e6f4f1; }
+.setup-number { display: grid; place-items: center; width: 44px; height: 44px; margin-bottom: 6px; border-radius: 50%; background: var(--navy); color: #fff; font: 800 18px Manrope, sans-serif; }
+.setup-steps li.done .setup-number { background: var(--teal); }
+.setup-steps strong { color: var(--ink); font: 700 15px Manrope, sans-serif; letter-spacing: -.02em; }
+.setup-hint { margin-bottom: 14px; color: #8b949d; font-size: 11px; line-height: 1.5; }
+.setup-cta { display: inline-flex; align-items: center; justify-content: center; gap: 8px; width: 100%; min-height: 46px; margin-top: auto; padding-top: 0; padding: 0 16px; border: 0; border-radius: 10px; background: var(--navy); color: #fff; font: 700 14px Manrope, sans-serif; cursor: pointer; transition: transform 140ms, box-shadow 160ms; }
+.setup-cta:active { transform: scale(.97); }
+.setup-cta:focus-visible { outline: 3px solid rgba(42,157,143,.5); outline-offset: 2px; }
+.setup-done { display: inline-flex; align-items: center; width: 100%; min-height: 46px; justify-content: center; margin-top: auto; color: #1f7a6f; font: 700 14px Manrope, sans-serif; }
+@media (hover: hover) and (pointer: fine) { .setup-cta:hover { box-shadow: 0 8px 20px rgba(24,43,73,.22); } }
+@media (max-width: 900px) { .setup-steps { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 560px) { .setup-panel { padding: 26px 16px; } .setup-steps { grid-template-columns: 1fr; } }
+
 /* Tabs inside a panel toolbar (Paiements: Historique / Impayés) */
 .tabs { display: flex; gap: 4px; padding: 3px; border-radius: 10px; background: #f1efe9; }
 .tabs button { display: flex; align-items: center; gap: 6px; padding: 7px 12px; border: 0; border-radius: 8px; background: transparent; color: #7b8792; font: 700 12px Manrope, sans-serif; cursor: pointer; }
