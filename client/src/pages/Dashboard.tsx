@@ -38,15 +38,14 @@ export function Dashboard({ goTo, openStudent, firstName }: { goTo: (page: PageK
       <MetricCard label="Présence moyenne" value={presentRate === null ? "—" : `${presentRate}%`} note={`sur ${sessions} présences notées`} icon="checkCircle" accent={COLORS.green} />
       <MetricCard label="Encaissé ce mois" value={money(collectedThisMonth)} note={`${owing.length} dossier${owing.length > 1 ? "s" : ""} avec un solde`} icon="wallet" accent={COLORS.yellow} />
     </div>
-    {canEdit && !enrollments.length && <section className="setup-panel">
-      <h2>Premiers pas</h2>
+    {canEdit && !enrollments.length && <Panel title="Premiers pas" className="setup-panel">
       <p className="setup-intro">Quatre étapes pour que votre école tourne. Vous pourrez inviter votre équipe ensuite, dans Paramètres.</p>
       <ol className="setup-steps">{setup.map((step, index) => <li className={step.done ? "done" : ""} key={step.page}>
         <span className="setup-number">{step.done ? <Icon name="check" size={18} /> : index + 1}</span>
         <span className="setup-text"><strong>{step.label}</strong><span className="setup-hint">{step.hint}</span></span>
         {step.done ? <span className="setup-done">Fait</span> : <button className="setup-cta" onClick={() => goTo(step.page)}>Commencer <Icon name="arrow" size={15} /></button>}
       </li>)}</ol>
-    </section>}
+    </Panel>}
     <div className="dashboard-grid top-grid">
       <Panel title="Cours aujourd'hui" action={<Button variant="ghost" icon="arrow" onClick={() => goTo("planning")}>Voir le planning</Button>}>
         {todayGroups.length ? <div className="activity-list">{todayGroups.map((group) => <div className="activity-row" key={group.id}>

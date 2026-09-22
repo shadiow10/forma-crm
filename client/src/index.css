@@ -507,11 +507,10 @@ tbody tr[tabindex]:focus-visible, .class-card:focus-visible, .teacher-card:focus
 }
 
 
-/* First steps for a brand new school: one box, a row per step */
-.setup-panel { max-width: 720px; margin: 0 auto 22px; padding: 28px 26px 26px; border: 1px solid var(--border); border-radius: 16px; background: var(--paper); text-align: center; }
-.setup-panel h2 { margin: 0; color: var(--ink); font: 800 22px Manrope, sans-serif; letter-spacing: -.04em; }
-.setup-intro { max-width: 460px; margin: 8px auto 20px; color: #6b7681; font-size: 12px; line-height: 1.6; }
-.setup-steps { display: grid; gap: 10px; margin: 0; padding: 0; list-style: none; text-align: left; }
+/* First steps for a brand new school: an ordinary dashboard panel, one row per step */
+.setup-panel { margin-bottom: 18px; }
+.setup-intro { margin: -8px 0 14px; color: #8b949d; font-size: 11px; }
+.setup-steps { display: grid; gap: 10px; margin: 0; padding: 0; list-style: none; }
 .setup-steps li { display: grid; grid-template-columns: 34px 1fr auto; align-items: center; gap: 14px; padding: 12px 14px; border: 1px solid var(--border); border-radius: 12px; background: #fcfbf8; }
 .setup-steps li.done { border-color: #bfe3dc; background: #f0f8f6; }
 .setup-number { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 50%; background: var(--navy); color: #fff; font: 800 15px Manrope, sans-serif; }
@@ -519,12 +518,12 @@ tbody tr[tabindex]:focus-visible, .class-card:focus-visible, .teacher-card:focus
 .setup-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .setup-steps strong { color: var(--ink); font: 700 14px Manrope, sans-serif; letter-spacing: -.02em; }
 .setup-hint { color: #8b949d; font-size: 11px; line-height: 1.4; }
-.setup-cta { display: inline-flex; align-items: center; justify-content: center; gap: 7px; min-height: 40px; padding: 0 18px; border: 0; border-radius: 10px; background: var(--navy); color: #fff; font: 700 13px Manrope, sans-serif; cursor: pointer; transition: transform 140ms, box-shadow 160ms; }
+.setup-cta { display: inline-flex; align-items: center; justify-content: center; gap: 7px; min-height: 38px; padding: 0 16px; border: 0; border-radius: 10px; background: var(--navy); color: #fff; font: 700 12px Manrope, sans-serif; cursor: pointer; transition: transform 140ms, box-shadow 160ms; }
 .setup-cta:active { transform: scale(.97); }
 .setup-cta:focus-visible { outline: 3px solid rgba(42,157,143,.5); outline-offset: 2px; }
-.setup-done { color: #1f7a6f; font: 700 13px Manrope, sans-serif; padding: 0 8px; }
+.setup-done { color: #1f7a6f; font: 700 12px Manrope, sans-serif; padding: 0 8px; }
 @media (hover: hover) and (pointer: fine) { .setup-cta:hover { box-shadow: 0 6px 16px rgba(24,43,73,.2); } }
-@media (max-width: 560px) { .setup-panel { padding: 22px 14px; } .setup-steps li { grid-template-columns: 34px 1fr; gap: 10px 12px; } .setup-cta, .setup-done { grid-column: 1 / -1; width: 100%; } }
+@media (max-width: 560px) { .setup-steps li { grid-template-columns: 34px 1fr; gap: 10px 12px; } .setup-cta, .setup-done { grid-column: 1 / -1; width: 100%; } }
 
 /* Tabs inside a panel toolbar (Paiements: Historique / Impayés) */
 .tabs { display: flex; gap: 4px; padding: 3px; border-radius: 10px; background: #f1efe9; }
