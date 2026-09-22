@@ -42,10 +42,9 @@ export function Dashboard({ goTo, openStudent, firstName }: { goTo: (page: PageK
       <h2>Premiers pas</h2>
       <p className="setup-intro">Quatre étapes pour que votre école tourne. Vous pourrez inviter votre équipe ensuite, dans Paramètres.</p>
       <ol className="setup-steps">{setup.map((step, index) => <li className={step.done ? "done" : ""} key={step.page}>
-        <span className="setup-number">{step.done ? <Icon name="check" size={20} /> : index + 1}</span>
-        <strong>{step.label}</strong>
-        <span className="setup-hint">{step.hint}</span>
-        {step.done ? <span className="setup-done">Fait</span> : <button className="setup-cta" onClick={() => goTo(step.page)}>Commencer <Icon name="arrow" size={16} /></button>}
+        <span className="setup-number">{step.done ? <Icon name="check" size={18} /> : index + 1}</span>
+        <span className="setup-text"><strong>{step.label}</strong><span className="setup-hint">{step.hint}</span></span>
+        {step.done ? <span className="setup-done">Fait</span> : <button className="setup-cta" onClick={() => goTo(step.page)}>Commencer <Icon name="arrow" size={15} /></button>}
       </li>)}</ol>
     </section>}
     <div className="dashboard-grid top-grid">
