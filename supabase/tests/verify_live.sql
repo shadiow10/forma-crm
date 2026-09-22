@@ -18,6 +18,9 @@ union all select 'teachers still readable',
              and has_column_privilege('authenticated','teachers','school_id','select') then 'OK' else 'FAIL' end
 union all select 'teacher_pay readable by staff',
        case when has_table_privilege('authenticated','public.teacher_pay','select') then 'OK' else 'FAIL' end
+union all select 'teacher_pay runs with owner rights',
+       case when coalesce((select option_value from pg_class c, pg_options_to_table(c.reloptions)
+                           where c.relname = 'teacher_pay' and option_name = 'security_invoker'), 'false') = 'false' then 'OK' else 'FAIL' end
 union all select 'orders: visitors order through place_order only',
        case when has_function_privilege('anon','public.place_order(text,text,text,text,text,text,text,text,text)','execute')
              and (select count(*) from pg_policies where tablename = 'orders') = 0 then 'OK' else 'FAIL' end
