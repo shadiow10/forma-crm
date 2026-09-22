@@ -2,6 +2,8 @@
 @import "tailwindcss";
 
 :root {
+  --brand-screen: #3b82f6; /* logo screen */
+  --brand-ink: #14294d;    /* logo blocks */
   font-family: "DM Sans", sans-serif;
   color: #17202a;
   background: #f7f5f0;
@@ -27,7 +29,7 @@ button:disabled { opacity: .5; cursor: not-allowed; }
 .app-shell { min-height: 100vh; display: flex; background: var(--sand); }
 .sidebar { width: 252px; background: var(--navy); color: #eaf0fa; min-height: 100vh; padding: 22px 14px 16px; display: flex; flex-direction: column; flex-shrink: 0; position: sticky; top: 0; height: 100vh; z-index: 30; }
 .brand { display: flex; align-items: center; gap: 10px; padding: 0 10px 23px; }
-.brand-mark { display: grid; place-items: center; width: 32px; height: 32px; border-radius: 11px; color: var(--navy); background: #8ed2c7; font-family: Manrope, sans-serif; font-weight: 800; font-size: 20px; }
+.brand-mark { display: grid; place-items: center; flex-shrink: 0; }
 .brand strong { display: block; font: 800 18px Manrope, sans-serif; letter-spacing: -.03em; color: #fff; }
 .brand strong span { color: #86cbc1; }
 .brand small { display: block; margin-top: 2px; color: #8fa1bc; font-size: 10px; letter-spacing: .03em; }
@@ -601,7 +603,7 @@ tbody tr[tabindex]:focus-visible, .class-card:focus-visible, .teacher-card:focus
 /* Product still */
 .lp-app { position: relative; display: grid; grid-template-columns: 64px 1fr; max-width: 980px; margin: 64px auto 0; border: 1px solid #d9dde2; border-bottom: 0; border-radius: 22px 22px 0 0; background: var(--paper); box-shadow: 0 -2px 0 rgba(255,255,255,.6) inset, 0 40px 90px rgba(24,43,73,.16); text-align: left; overflow: visible; }
 .lp-app-side { display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 18px 0; border-radius: 22px 0 0 0; background: var(--navy); color: #8fa1bc; }
-.lp-app-side .brand-mark { width: 30px; height: 30px; font-size: 16px; margin-bottom: 8px; }
+.lp-app-side .brand-mark { margin-bottom: 8px; }
 .lp-app-side i { display: grid; place-items: center; width: 36px; height: 36px; border-radius: 10px; }
 .lp-app-side i.on { background: rgba(92,194,180,.2); color: #8ed2c7; }
 .lp-app-main { padding: 26px 260px 30px 30px; } /* right side kept free for the floating card */

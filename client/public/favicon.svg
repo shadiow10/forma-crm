@@ -1,10 +1,11 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
-  <rect width="32" height="32" rx="7" fill="#182b49"/>
-  <g transform="translate(4 4)" fill="none" stroke="#ffffff" stroke-width="1.9">
-    <rect x="2.2" y="3.2" width="19.6" height="14" rx="2.4"/>
-    <path d="M9 20.8h6M12 17.2v3.6" stroke-linecap="round"/>
-    <rect x="6.4" y="11" width="2.7" height="3.4" rx=".6" fill="#ffffff" stroke="none"/>
-    <rect x="10.6" y="6.6" width="2.7" height="7.8" rx=".6" fill="#ffffff" stroke="none"/>
-    <rect x="14.8" y="9.2" width="2.7" height="5.2" rx=".6" fill="#ffffff" stroke="none"/>
+  <rect width="32" height="32" rx="7" fill="#14294d"/>
+  <g transform="translate(4 4) scale(1)">
+    <rect x="1.6" y="2.4" width="20.8" height="14.6" rx="2.1" fill="#3b82f6"/>
+    <path d="M10.1 17h3.8l.9 2.9h-5.6z" fill="#14294d"/>
+    <rect x="7.4" y="19.7" width="9.2" height="1.7" rx=".85" fill="#14294d"/>
+    <path d="M5.9 14.6v-3.1l3.2-1.1v4.2z" fill="#14294d"/>
+    <path d="M9.7 14.6V6.6l3.6-1.5v9.5z" fill="#14294d"/>
+    <rect x="14.4" y="9.2" width="2.5" height="5.4" rx=".3" fill="#14294d"/>
   </g>
 </svg>

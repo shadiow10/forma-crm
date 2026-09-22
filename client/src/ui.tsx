@@ -117,15 +117,16 @@ const variants: Record<Variant, CSSProperties> = {
   soft: { background: COLORS.tealLight, color: COLORS.teal, borderColor: "transparent" },
   danger: { background: COLORS.coralLight, color: "#C96549", borderColor: "transparent" },
 };
-// The logo: a screen with a bar chart, same shape as the brand mark.
+// The logo: a screen showing blocks, drawn once and reused everywhere.
 export const BrandMark = ({ size = 32 }: { size?: number }) => (
   <span className="brand-mark" style={{ width: size, height: size }} aria-hidden="true">
-    <svg width={size * 0.62} height={size * 0.62} viewBox="0 0 24 24" fill="none">
-      <rect x="2.2" y="3.2" width="19.6" height="14" rx="2.4" stroke="currentColor" strokeWidth="1.9" />
-      <path d="M9 20.8h6M12 17.2v3.6" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" />
-      <rect x="6.4" y="11" width="2.7" height="3.4" rx=".6" fill="currentColor" />
-      <rect x="10.6" y="6.6" width="2.7" height="7.8" rx=".6" fill="currentColor" />
-      <rect x="14.8" y="9.2" width="2.7" height="5.2" rx=".6" fill="currentColor" />
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <rect x="1.6" y="2.4" width="20.8" height="14.6" rx="2.1" fill="var(--brand-screen)" />
+      <path d="M10.1 17h3.8l.9 2.9h-5.6z" fill="var(--brand-ink)" />
+      <rect x="7.4" y="19.7" width="9.2" height="1.7" rx=".85" fill="var(--brand-ink)" />
+      <path d="M5.9 14.6v-3.1l3.2-1.1v4.2z" fill="var(--brand-ink)" />
+      <path d="M9.7 14.6V6.6l3.6-1.5v9.5z" fill="var(--brand-ink)" />
+      <rect x="14.4" y="9.2" width="2.5" height="5.4" rx=".3" fill="var(--brand-ink)" />
     </svg>
   </span>
 );
