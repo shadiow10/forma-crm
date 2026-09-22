@@ -10,7 +10,7 @@ import { GroupDrawer, Groups, Planning } from "./pages/Groups";
 import { Payments } from "./pages/Payments";
 import { StudentDrawer } from "./pages/StudentDrawer";
 import { Enrollments, Students } from "./pages/Students";
-import { Icon, initials } from "./ui";
+import { BrandMark, Icon, initials } from "./ui";
 import type { IconName } from "./ui";
 
 // Each page has its own address so refresh, back/forward and shared links work.
@@ -87,7 +87,7 @@ export default function App({ member, email, userId, onSignOut }: { member: Memb
 
   return <div className="app-shell">
     <aside className={`sidebar ${sidebarOpen ? "open" : ""}`}>
-      <div className="brand"><span className="brand-mark">F</span><div><strong>FORMA<span>PLUS</span></strong><small>Gestion d'école</small></div><button className="mobile-close" onClick={() => setSidebarOpen(false)} aria-label="Fermer le menu"><Icon name="close" size={18} /></button></div>
+      <div className="brand"><BrandMark /><div><strong>CLASSTRA<span>.</span></strong><small>Gestion de centre</small></div><button className="mobile-close" onClick={() => setSidebarOpen(false)} aria-label="Fermer le menu"><Icon name="close" size={18} /></button></div>
       <div className="school-switcher"><span className="school-avatar">{initials(school.name)}</span><div><strong>{school.name}</strong><span>{roleLabels[member.role]}</span></div></div>
       <nav className="nav-groups" aria-label="Navigation principale"><div className="nav-group"><span className="nav-label">GESTION DU CENTRE</span>
         {PAGES.filter((item) => allowed.includes(item.key)).map((item) => <a key={item.key} href={item.path} className={`nav-item ${page === item.key ? "active" : ""}`} aria-current={page === item.key ? "page" : undefined}
@@ -113,7 +113,7 @@ export default function App({ member, email, userId, onSignOut }: { member: Memb
       </header>
       {readOnly && <div className="demo-banner" role="note"><Icon name="lock" size={15} /><span><strong>Démonstration en lecture seule.</strong> Les données sont fictives ; vous pouvez tout parcourir, rien n'est enregistré.</span><button className="text-button" onClick={onSignOut}>Quitter la démo</button></div>}
       <div className="content-wrap">{renderPage()}</div>
-      <footer className="app-footer"><span>FormaPlus · {school.name}</span><span><span className="status-live" /> Données synchronisées avec le serveur</span></footer>
+      <footer className="app-footer"><span>Classtra · {school.name}</span><span><span className="status-live" /> Données synchronisées avec le serveur</span></footer>
     </main>
     {studentId !== null && <StudentDrawer key={studentId} studentId={studentId} onClose={() => setStudentId(null)} />}
     {groupId !== null && <GroupDrawer key={groupId} groupId={groupId} onClose={() => setGroupId(null)} goTo={goTo} />}

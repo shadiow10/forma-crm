@@ -2,18 +2,19 @@ import { useState } from "react";
 import type { FormEvent, ReactNode } from "react";
 import { passwordChosen, signOut } from "./auth";
 import { supabase } from "./lib/supabase";
+import { BrandMark } from "./ui";
 
 export function AuthShell({ children }: { children: ReactNode }) {
   return (
     <div className="auth-page">
       <div className="auth-card">
         <div className="auth-brand">
-          <span className="brand-mark">F</span>
+          <BrandMark size={36} />
           <div>
             <strong>
-              FORMA<span>PLUS</span>
+              CLASSTRA<span>.</span>
             </strong>
-            <small>Gestion d'école</small>
+            <small>Gestion de centre</small>
           </div>
         </div>
         {children}
@@ -84,7 +85,7 @@ export default function Login() {
           ? <button className="text-button" type="button" onClick={() => switchMode("reset")}>Mot de passe oublié ?</button>
           : <button className="text-button" type="button" onClick={() => switchMode("login")}>Retour à la connexion</button>}
       </p>
-      <p className="auth-muted auth-foot"><a className="text-button" href="/">← Découvrir FormaPlus</a></p>
+      <p className="auth-muted auth-foot"><a className="text-button" href="/">← Découvrir Classtra</a></p>
     </AuthShell>
   );
 }

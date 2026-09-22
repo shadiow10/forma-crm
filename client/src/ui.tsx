@@ -117,6 +117,19 @@ const variants: Record<Variant, CSSProperties> = {
   soft: { background: COLORS.tealLight, color: COLORS.teal, borderColor: "transparent" },
   danger: { background: COLORS.coralLight, color: "#C96549", borderColor: "transparent" },
 };
+// The logo: a screen with a bar chart, same shape as the brand mark.
+export const BrandMark = ({ size = 32 }: { size?: number }) => (
+  <span className="brand-mark" style={{ width: size, height: size }} aria-hidden="true">
+    <svg width={size * 0.62} height={size * 0.62} viewBox="0 0 24 24" fill="none">
+      <rect x="2.2" y="3.2" width="19.6" height="14" rx="2.4" stroke="currentColor" strokeWidth="1.9" />
+      <path d="M9 20.8h6M12 17.2v3.6" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" />
+      <rect x="6.4" y="11" width="2.7" height="3.4" rx=".6" fill="currentColor" />
+      <rect x="10.6" y="6.6" width="2.7" height="7.8" rx=".6" fill="currentColor" />
+      <rect x="14.8" y="9.2" width="2.7" height="5.2" rx=".6" fill="currentColor" />
+    </svg>
+  </span>
+);
+
 export const Button = ({ children, variant = "primary", icon, onClick, type = "button", disabled = false }: { children: ReactNode; variant?: Variant; icon?: IconName; onClick?: () => void; type?: "button" | "submit"; disabled?: boolean }) => (
   <button type={type} disabled={disabled} onClick={onClick} className="button" style={variants[variant]}>{icon && <Icon name={icon} size={15} />}{children}</button>
 );

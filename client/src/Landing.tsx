@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "./lib/supabase";
 import type { FormEvent, ReactNode } from "react";
-import { Icon } from "./ui";
+import { BrandMark, Icon } from "./ui";
 import type { IconName } from "./ui";
 
 // Public site: landing page and a DEMO checkout. Nothing here charges money or creates accounts.
@@ -31,7 +31,7 @@ const FAQ = [
   { q: "Que se passe-t-il après le paiement ?", a: "Votre espace école est créé et le directeur reçoit un email pour choisir son mot de passe. Il invite ensuite son équipe depuis Paramètres." },
   { q: "Mes données sont-elles séparées des autres écoles ?", a: "Oui. Chaque école a son propre espace ; les règles d'accès sont appliquées par la base de données elle-même, pas seulement par l'écran." },
   { q: "Puis-je changer de formule ?", a: "Oui, à tout moment. Le changement s'applique à la période suivante." },
-  { q: "Faut-il installer quelque chose ?", a: "Non. FormaPlus fonctionne dans le navigateur, sur ordinateur comme sur téléphone." },
+  { q: "Faut-il installer quelque chose ?", a: "Non. Classtra fonctionne dans le navigateur, sur ordinateur comme sur téléphone." },
 ];
 
 const PROBLEMS: { icon: IconName; title: string; text: string }[] = [
@@ -73,14 +73,14 @@ function DemoButton({ className = "lp-btn" }: { className?: string }) {
 }
 
 export function Brand({ light = false }: { light?: boolean }) {
-  return <a className={`lp-brand ${light ? "light" : ""}`} href="/"><span className="brand-mark">F</span><strong>FORMA<span>PLUS</span></strong></a>;
+  return <a className={`lp-brand ${light ? "light" : ""}`} href="/"><BrandMark size={34} /><strong>CLASSTRA<span>.</span></strong></a>;
 }
 
 // A still of the real app, drawn in HTML so it stays sharp and matches the product.
 function AppPreview() {
   return <div className="lp-app" aria-hidden="true">
     <div className="lp-app-side">
-      <span className="brand-mark">F</span>
+      <BrandMark size={30} />
       {(["grid", "graduation", "file", "users", "calendar", "check", "wallet"] as IconName[]).map((icon, index) => <i key={icon} className={index === 5 ? "on" : ""}><Icon name={icon} size={15} /></i>)}
     </div>
     <div className="lp-app-main">
@@ -216,7 +216,7 @@ export function Landing() {
         <div className="lp-problem-grid">{PROBLEMS.map((item) => <article key={item.title}><span className="lp-icon"><Icon name={item.icon} size={20} /></span><h3>{item.title}</h3><p>{item.text}</p></article>)}</div>
       </section>
 
-      <section className="lp-shots" aria-label="Les écrans de FormaPlus">
+      <section className="lp-shots" aria-label="Les écrans de Classtra">
         <div className="lp-section-head">
           <p className="lp-eyebrow">L&apos;application</p>
           <h2>Tous les écrans de l&apos;école, au même endroit.</h2>
@@ -415,7 +415,7 @@ export function Checkout() {
       <a className="lp-btn primary" href="/connexion">Aller à la connexion</a>
     </section> : <div className="lp-checkout">
       <form className="lp-checkout-form" onSubmit={submit} noValidate>
-        <h1>Demander FormaPlus</h1>
+        <h1>Demander Classtra</h1>
         <fieldset disabled={step === "sending"}>
           <legend>Votre établissement</legend>
           {field("school", "Nom de l'établissement *", { placeholder: "Ex. École Ibn Sina", autoComplete: "organization" })}

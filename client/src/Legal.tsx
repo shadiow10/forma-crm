@@ -11,21 +11,21 @@ const PAGES: Record<string, { title: string; body: ReactNode }> = {
     title: "Mentions légales",
     body: <>
       <h2>Éditeur du site</h2>
-      <p>FormaPlus est édité par <Todo>raison sociale et forme juridique</Todo>, dont le siège est situé <Todo>adresse complète, wilaya</Todo>.</p>
+      <p>Classtra est édité par <Todo>raison sociale et forme juridique</Todo>, dont le siège est situé <Todo>adresse complète, wilaya</Todo>.</p>
       <p>Registre du commerce : <Todo>n° RC</Todo> · NIF : <Todo>n°</Todo> · NIS : <Todo>n°</Todo> · Article d'imposition : <Todo>n°</Todo></p>
       <p>Directeur de la publication : <Todo>nom du responsable</Todo>. Contact : <Todo>email</Todo> · <Todo>téléphone</Todo>.</p>
       <h2>Hébergement</h2>
       <p>Site : Vercel Inc., États-Unis — <Todo>adresse et téléphone, à reprendre de vercel.com/legal</Todo>.</p>
       <p>Base de données et fichiers : Supabase Inc. — <Todo>adresse, à reprendre de supabase.com/legal</Todo>, région d'hébergement <Todo>région choisie dans Supabase</Todo>.</p>
       <h2>Propriété intellectuelle</h2>
-      <p>Le logiciel FormaPlus, son nom, son logo et le contenu de ce site sont protégés. Toute reproduction sans autorisation écrite est interdite. Les données saisies par chaque établissement restent sa propriété.</p>
+      <p>Le logiciel Classtra, son nom, son logo et le contenu de ce site sont protégés. Toute reproduction sans autorisation écrite est interdite. Les données saisies par chaque établissement restent sa propriété.</p>
     </>,
   },
   "/cgv": {
     title: "Conditions générales de vente",
     body: <>
       <h2>1. Objet</h2>
-      <p>Les présentes conditions régissent l'abonnement au logiciel en ligne FormaPlus, service de gestion d'établissements d'enseignement et de formation (étudiants, inscriptions, paiements, présences, planning, certificats), conformément à la loi n° 18-05 du 10 mai 2018 relative au commerce électronique.</p>
+      <p>Les présentes conditions régissent l'abonnement au logiciel en ligne Classtra, service de gestion d'établissements d'enseignement et de formation (étudiants, inscriptions, paiements, présences, planning, certificats), conformément à la loi n° 18-05 du 10 mai 2018 relative au commerce électronique.</p>
       <h2>2. Formules et prix</h2>
       <p>Les formules et leurs prix sont affichés sur la page Tarifs, en dinars algériens, <Todo>HT ou TTC, taux de TVA</Todo>. Le prix applicable est celui affiché le jour de la commande. Une modification de prix ne s'applique qu'à la période suivante et est annoncée au moins 30 jours à l'avance.</p>
       <h2>3. Commande et paiement</h2>
@@ -37,7 +37,7 @@ const PAGES: Record<string, { title: string; body: ReactNode }> = {
       <h2>6. Données de l'établissement</h2>
       <p>L'établissement reste propriétaire de ses données et peut les exporter à tout moment depuis le logiciel. Après la fin de l'abonnement, les données restent disponibles à l'export pendant <Todo>durée, ex. 30 jours</Todo>, puis sont supprimées définitivement. Le traitement des données est décrit dans la politique de confidentialité.</p>
       <h2>7. Disponibilité et responsabilité</h2>
-      <p>FormaPlus met en œuvre les moyens raisonnables pour assurer l'accès au service 24 h/24, sauf maintenance ou panne d'un fournisseur. Sa responsabilité est limitée au montant payé au titre des 12 derniers mois. L'établissement est responsable des informations qu'il saisit et des accès qu'il donne à son équipe.</p>
+      <p>Classtra met en œuvre les moyens raisonnables pour assurer l'accès au service 24 h/24, sauf maintenance ou panne d'un fournisseur. Sa responsabilité est limitée au montant payé au titre des 12 derniers mois. L'établissement est responsable des informations qu'il saisit et des accès qu'il donne à son équipe.</p>
       <h2>8. Droit applicable</h2>
       <p>Les présentes conditions sont soumises au droit algérien. À défaut d'accord amiable, tout litige relève des juridictions de <Todo>ville</Todo>.</p>
     </>,
@@ -45,10 +45,10 @@ const PAGES: Record<string, { title: string; body: ReactNode }> = {
   "/confidentialite": {
     title: "Politique de confidentialité",
     body: <>
-      <p>Cette politique explique quelles données personnelles FormaPlus traite et pourquoi, conformément à la loi n° 18-07 du 10 juin 2018 relative à la protection des personnes physiques dans le traitement des données à caractère personnel.</p>
+      <p>Cette politique explique quelles données personnelles Classtra traite et pourquoi, conformément à la loi n° 18-07 du 10 juin 2018 relative à la protection des personnes physiques dans le traitement des données à caractère personnel.</p>
       <h2>Deux situations différentes</h2>
-      <p><strong>Nos clients</strong> (directeurs et équipes des établissements) : FormaPlus est responsable du traitement de leurs données de compte et de facturation.</p>
-      <p><strong>Les étudiants des établissements</strong> : chaque établissement est responsable des données de ses étudiants. FormaPlus les héberge et les traite uniquement pour faire fonctionner le logiciel, sur instruction de l'établissement, sans jamais les utiliser à d'autres fins.</p>
+      <p><strong>Nos clients</strong> (directeurs et équipes des établissements) : Classtra est responsable du traitement de leurs données de compte et de facturation.</p>
+      <p><strong>Les étudiants des établissements</strong> : chaque établissement est responsable des données de ses étudiants. Classtra les héberge et les traite uniquement pour faire fonctionner le logiciel, sur instruction de l'établissement, sans jamais les utiliser à d'autres fins.</p>
       <h2>Données traitées</h2>
       <p>Comptes : nom, email, rôle, journal des actions dans le logiciel. Commandes : nom de l'établissement, wilaya, nom, email et téléphone du directeur, formule choisie. Étudiants (saisis par l'établissement) : identité, coordonnées, inscriptions, paiements, présences, documents déposés et notes de suivi.</p>
       <h2>Finalités</h2>
