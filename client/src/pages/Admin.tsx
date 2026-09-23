@@ -172,17 +172,25 @@ function UserSettings({ userId }: { userId: string }) {
 
 // ---------------------------------------------------------------- Activity log
 
-type LogRow = { id: number; at: string; actor: string | null; actor_name: string | null; table_name: string; action: "INSERT" | "UPDATE" | "DELETE"; old_row: Record<string, any> | null; new_row: Record<string, any> | null };
+type LogRow = { id: number; at: string; actor: string | null; actor_name: string | null; table_name: string; action: "INSERT" | "UPDATE" | "DELETE"; old_row: Record<string, any> | null; new_row: Record<string, any> | null; changed: string[] | null };
+// The log keeps no personal details, only the names of the fields that changed (see migration 0012),
+// so names are resolved against the live data and fall back once the record is gone.
+const FIELD_LABELS: Record<string, string> = {
+  full_name: "nom", phone: "téléphone", email: "email", address: "adresse", dob: "date de naissance",
+  notes: "notes", source: "origine", staff: "responsable", last_contact: "dernier contact", teacher_id: "fiche formateur",
+};
+const changedFields = (changed: string[] | null) =>
+  changed?.length ? ` (${changed.map((field) => FIELD_LABELS[field] ?? field).join(", ")})` : "";
 const LOG_KINDS = [["", "Tout"], ["payments", "Paiements"], ["enrollments", "Inscriptions"], ["students", "Étudiants"], ["school_members", "Accès"]] as const;
 const LOG_ICONS: Record<string, IconName> = { payments: "wallet", enrollments: "file", students: "graduation", school_members: "lock" };
 
 function ActivityLog() {
-  const { studentById, enrollments, courses, money, notify } = useData();
+  const { studentById, enrollments, courses, members, money, notify } = useData();
   const [kind, setKind] = useState("");
   const [rows, setRows] = useState<LogRow[]>();
 
   useEffect(() => {
-    let query = supabase.from("activity_log").select("id, at, actor, actor_name, table_name, action, old_row, new_row").order("at", { ascending: false }).limit(200);
+    let query = supabase.from("activity_log").select("id, at, actor, actor_name, table_name, action, old_row, new_row, changed").order("at", { ascending: false }).limit(200);
     if (kind) query = query.eq("table_name", kind);
     query.then(({ data, error }) => {
       if (error) notify(friendlyError(error));
@@ -194,7 +202,11 @@ function ActivityLog() {
   const studentName = (id?: number) => (id && studentById.get(id)?.full_name) || "un étudiant supprimé";
   const enrollmentLabel = (row: Record<string, any>) => `${studentName(row.student_id)} · ${courses.find((course) => course.id === row.course_id)?.name ?? "formation"}`;
   const payer = (enrollmentId: number) => { const enrollment = enrollments.find((item) => item.id === enrollmentId); return enrollment ? studentName(enrollment.student_id) : "une inscription supprimée"; };
-  const describe = ({ table_name, action, old_row: old, new_row: row }: LogRow) => {
+  const memberName = (userId?: string) => {
+    const member = members.find((item) => item.user_id === userId);
+    return member?.full_name || member?.email || "un utilisateur";
+  };
+  const describe = ({ table_name, action, old_row: old, new_row: row, changed }: LogRow) => {
     const data = (row ?? old)!;
     if (table_name === "payments") {
       if (action === "INSERT") return `a enregistré un paiement de ${money(data.amount)} (${data.method}) pour ${payer(data.enrollment_id)}`;
@@ -206,13 +218,18 @@ function ActivityLog() {
       if (action === "DELETE") return `a supprimé l'inscription ${enrollmentLabel(data)}`;
       if (old!.status !== data.status) return `a passé l'inscription ${enrollmentLabel(data)} de « ${old!.status} » à « ${data.status} »`;
       if (old!.total !== data.total) return `a changé le prix de l'inscription ${enrollmentLabel(data)} : ${money(old!.total)} → ${money(data.total)}`;
-      return `a modifié l'inscription ${enrollmentLabel(data)}`;
+      return `a modifié l'inscription ${enrollmentLabel(data)}${changedFields(changed)}`;
     }
-    if (table_name === "students") return `${action === "INSERT" ? "a ajouté" : action === "DELETE" ? "a supprimé" : "a modifié la fiche de"} ${action === "UPDATE" ? "" : "l'étudiant "}${data.full_name}`;
-    const who = data.full_name || data.email || "un utilisateur";
+    if (table_name === "students") {
+      const student = studentName(data.id);
+      if (action === "INSERT") return `a ajouté l'étudiant ${student}`;
+      if (action === "DELETE") return `a supprimé l'étudiant ${student}`;
+      return `a modifié la fiche de ${student}${changedFields(changed)}`;
+    }
+    const who = memberName(data.user_id);
     if (action === "INSERT") return `a donné l'accès ${roleLabels[data.role as Role] ?? data.role} à ${who}`;
     if (action === "DELETE") return `a retiré l'accès de ${who}`;
-    return old!.role !== data.role ? `a changé le rôle de ${who} : ${roleLabels[old!.role as Role]} → ${roleLabels[data.role as Role]}` : `a modifié l'accès de ${who}`;
+    return old!.role !== data.role ? `a changé le rôle de ${who} : ${roleLabels[old!.role as Role]} → ${roleLabels[data.role as Role]}` : `a modifié l'accès de ${who}${changedFields(changed)}`;
   };
   const time = (at: string) => new Date(at).toLocaleString("fr-FR", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
 
