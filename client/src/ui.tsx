@@ -7,8 +7,8 @@ export const COLORS = {
   ink: "#17202A",
   navy: "#182B49",
   navy2: "#233B61",
-  teal: "#2A9D8F",
-  tealLight: "#E3F3F0",
+  teal: "#2563eb", // accent (kept under this key: used across the pages)
+  tealLight: "#e8eefc",
   coral: "#F28F6B",
   coralLight: "#FDEBE4",
   sand: "#F7F5F0",
