@@ -5,10 +5,10 @@ import type { CSSProperties, ReactNode } from "react";
 
 export const COLORS = {
   ink: "#17202A",
-  navy: "#182B49",
+  navy: "#15163a",
   navy2: "#233B61",
-  teal: "#2563eb", // accent (kept under this key: used across the pages)
-  tealLight: "#e8eefc",
+  teal: "#4338ca", // accent (kept under this key: used across the pages)
+  tealLight: "#ecebfb",
   coral: "#F28F6B",
   coralLight: "#FDEBE4",
   sand: "#F7F5F0",
@@ -117,16 +117,15 @@ const variants: Record<Variant, CSSProperties> = {
   soft: { background: COLORS.tealLight, color: COLORS.teal, borderColor: "transparent" },
   danger: { background: COLORS.coralLight, color: "#C96549", borderColor: "transparent" },
 };
-// The logo: a screen showing blocks, drawn once and reused everywhere.
+// The logo: a graduation cap on a screen, drawn once and reused everywhere.
 export const BrandMark = ({ size = 32 }: { size?: number }) => (
   <span className="brand-mark" style={{ width: size, height: size }} aria-hidden="true">
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-      <rect x="1.6" y="2.4" width="20.8" height="14.6" rx="2.1" fill="var(--brand-screen)" />
-      <path d="M10.1 17h3.8l.9 2.9h-5.6z" fill="var(--brand-ink)" />
-      <rect x="7.4" y="19.7" width="9.2" height="1.7" rx=".85" fill="var(--brand-ink)" />
-      <path d="M5.9 14.6v-3.1l3.2-1.1v4.2z" fill="var(--brand-ink)" />
-      <path d="M9.7 14.6V6.6l3.6-1.5v9.5z" fill="var(--brand-ink)" />
-      <rect x="14.4" y="9.2" width="2.5" height="5.4" rx=".3" fill="var(--brand-ink)" />
+      <rect x="1.7" y="2.6" width="20.6" height="14.6" rx="2.4" fill="var(--brand-screen)" stroke="var(--brand-ink)" strokeWidth="1.9" />
+      <path d="M12 18.4v2.1M8.6 21.4h6.8" stroke="var(--brand-ink)" strokeWidth="1.9" strokeLinecap="round" />
+      <path d="M12 6.2 18.4 8.7 12 11.2 5.6 8.7z" fill="var(--brand-ink)" />
+      <path d="M8.6 9.9v2.2c0 .9 1.5 1.6 3.4 1.6s3.4-.7 3.4-1.6V9.9" stroke="var(--brand-ink)" strokeWidth="1.7" strokeLinejoin="round" />
+      <path d="M18.4 8.7v3.6" stroke="var(--brand-ink)" strokeWidth="1.2" strokeLinecap="round" />
     </svg>
   </span>
 );
