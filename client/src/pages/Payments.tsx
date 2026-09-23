@@ -8,7 +8,7 @@ import { METHODS, PaymentForm } from "./forms";
 export const receiptNumber = (payment: Payment) => `R-${payment.paid_on.slice(0, 4)}-${String(payment.id).padStart(6, "0")}`;
 
 export function Payments({ openStudent }: { openStudent: (id: number) => void }) {
-  const { payments, enrollments, studentById, courses, balanceOf, money, isDirector, save } = useData();
+  const { payments, enrollments, studentById, courses, balanceOf, money, isDirector, save, ask } = useData();
   const [tab, setTab] = useState<"history" | "unpaid">("history");
   const [recording, setRecording] = useState<{ enrollmentId?: number } | null>(null);
   const [receipt, setReceipt] = useState<Payment | null>(null);
@@ -55,8 +55,11 @@ export function Payments({ openStudent }: { openStudent: (id: number) => void })
       ["Étudiant", "Téléphone", "Formation", "Total", "Versé", "Reste", "Dernier versement"],
       ...unpaid.map((row) => [row.student?.full_name ?? "", row.student?.phone ?? "", courseName(row.enrollment.course_id), row.enrollment.total, row.paid, row.balance, row.last ?? "Aucun"]),
     ]);
-  const remove = (id: number, amount: number) => window.confirm(`Supprimer ce paiement de ${money(amount)} ? Le solde de l'inscription augmentera d'autant.`)
-    && save(() => supabase.from("payments").delete().eq("id", id), "Paiement supprimé.");
+  const remove = async (id: number, amount: number) => {
+    const sure = await ask({ title: `Supprimer ce paiement de ${money(amount)} ?`, danger: true, confirmLabel: "Supprimer",
+      text: "Le solde de l'inscription augmentera d'autant. La suppression est notée dans le journal d'activité." });
+    if (sure) await save(() => supabase.from("payments").delete().eq("id", id), "Paiement supprimé.");
+  };
   const stop = (event: { stopPropagation: () => void }) => event.stopPropagation();
 
   return <>

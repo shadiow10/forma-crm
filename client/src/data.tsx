@@ -4,7 +4,8 @@ import type { Member as AuthMember } from "./auth";
 import { supabase } from "./lib/supabase";
 import { loadSchoolData } from "./lib/queries";
 import type { Enrollment, EnrollmentStatus, Group, SchoolData, Student } from "./lib/queries";
-import { percent } from "./ui";
+import { ConfirmDialog, percent } from "./ui";
+import type { Question } from "./ui";
 
 export type PaymentStatus = "Payé" | "Partiel" | "Non payé" | "—";
 export type StudentSummary = {
@@ -27,6 +28,8 @@ type Store = SchoolData & {
   money: (value: number) => string;
   reload: () => Promise<void>;
   notify: (message: string) => void;
+  // Asks the question in the app's own dialog; resolves true when the person confirms.
+  ask: (question: Question) => Promise<boolean>;
   notice: string;
   clearNotice: () => void;
   // Runs a write. Shows the error in French and returns false on failure; reloads data and shows `success` otherwise.
@@ -58,6 +61,7 @@ export function DataProvider({ member, children, fallback }: { member: AuthMembe
   const [data, setData] = useState<SchoolData>();
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+  const [question, setQuestion] = useState<(Question & { answer: (yes: boolean) => void }) | null>(null);
 
   const reload = useCallback(async () => {
     try {
@@ -120,6 +124,7 @@ export function DataProvider({ member, children, fallback }: { member: AuthMembe
       money: (value: number) => `${new Intl.NumberFormat("fr-FR").format(value)} ${currency}`,
       reload,
       notify: setNotice,
+      ask: (next: Question) => new Promise<boolean>((resolve) => setQuestion({ ...next, answer: (yes) => { setQuestion(null); resolve(yes); } })),
       notice,
       clearNotice: () => setNotice(""),
       save: async (action, success) => {
@@ -140,7 +145,10 @@ export function DataProvider({ member, children, fallback }: { member: AuthMembe
   }, [data, member, notice, reload]);
 
   if (!store) return <>{fallback({ error: error || undefined, retry: reload })}</>;
-  return <DataContext.Provider value={store}>{children}</DataContext.Provider>;
+  return <DataContext.Provider value={store}>
+    {children}
+    {question && <ConfirmDialog question={question} onAnswer={question.answer} />}
+  </DataContext.Provider>;
 }
 
 export function useData() {

@@ -27,7 +27,7 @@ function CourseForm({ course, onClose }: { course?: Course; onClose: () => void 
 }
 
 export function Courses() {
-  const { courses, groups, enrollments, groupStudentIds, money, canEdit, isDirector, save } = useData();
+  const { courses, groups, enrollments, groupStudentIds, money, canEdit, isDirector, save, ask } = useData();
   const [editing, setEditing] = useState<Course | "new" | null>(null);
   const stats = (course: Course) => {
     const active = enrollments.filter((enrollment) => enrollment.course_id === course.id && (enrollment.status === "Inscrit" || enrollment.status === "En cours")).length;
@@ -36,7 +36,7 @@ export function Courses() {
     const filled = courseGroups.reduce((sum, group) => sum + groupStudentIds(group.id).length, 0);
     return { active, groups: courseGroups.length, seats, filled };
   };
-  const remove = (course: Course) => window.confirm(`Supprimer la formation « ${course.name} » ?`)
+  const remove = async (course: Course) => await ask({ title: `Supprimer « ${course.name} » ?`, danger: true, confirmLabel: "Supprimer", text: "Les inscriptions liées à cette formation seront perdues." })
     && save(() => supabase.from("courses").delete().eq("id", course.id), "Formation supprimée.");
   const exportCatalogue = () => downloadCSV("catalogue-formations.csv", [["Formation", "Durée", "Prix", "Inscriptions actives", "Groupes"], ...courses.map((course) => { const s = stats(course); return [course.name, course.duration, course.price, s.active, s.groups]; })]);
 
@@ -122,14 +122,14 @@ export function Teachers() {
 }
 
 function TeacherDrawer({ teacherId, onClose, onEdit }: { teacherId: number; onClose: () => void; onEdit: (teacher: Teacher) => void }) {
-  const { teachers, groups, members, money, save, notify } = useData();
+  const { teachers, groups, members, money, save, notify, ask } = useData();
   const teacher = teachers.find((item) => item.id === teacherId);
   if (!teacher) return null;
   const own = groups.filter((group) => group.teacher_id === teacher.id);
   const account = members.find((member) => member.teacher_id === teacher.id);
   const remove = async () => {
     if (account) return notify("Ce formateur a un compte de connexion : retirez d'abord l'utilisateur dans Paramètres → Utilisateurs.");
-    if (!window.confirm(`Supprimer ${teacher.full_name} ? Ses groupes resteront, sans formateur.`)) return;
+    if (!(await ask({ title: `Supprimer ${teacher.full_name} ?`, danger: true, confirmLabel: "Supprimer", text: "Ses groupes resteront, sans formateur." }))) return;
     if (await save(() => supabase.from("teachers").delete().eq("id", teacher.id), "Formateur supprimé.")) onClose();
   };
   return <Drawer title={teacher.full_name} eyebrow="FORMATEUR" onClose={onClose}>

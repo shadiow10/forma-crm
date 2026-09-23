@@ -173,6 +173,24 @@ const optionLabel = (option: Option) => (typeof option === "string" ? option : o
 
 // Generic form in a modal. Values are strings; "days" fields hold comma-separated day names.
 // onSubmit returns true when saved, so the modal closes only on success.
+export type Question = { title: string; text?: string; confirmLabel?: string; danger?: boolean };
+
+export function ConfirmDialog({ question, onAnswer }: { question: Question; onAnswer: (yes: boolean) => void }) {
+  return <div className="drawer-layer confirm-layer" onClick={() => onAnswer(false)}>
+    <div className="confirm-box" role="alertdialog" aria-labelledby="confirm-title" onClick={(event) => event.stopPropagation()}>
+      <span className="confirm-icon" style={{ background: question.danger ? "#FDE8E8" : COLORS.tealLight, color: question.danger ? COLORS.red : COLORS.teal }}>
+        <Icon name={question.danger ? "trash" : "warning"} size={19} />
+      </span>
+      <h2 id="confirm-title">{question.title}</h2>
+      {question.text && <p>{question.text}</p>}
+      <div className="confirm-actions">
+        <Button variant="outline" onClick={() => onAnswer(false)}>Annuler</Button>
+        <Button variant={question.danger ? "danger" : "primary"} onClick={() => onAnswer(true)}>{question.confirmLabel ?? "Confirmer"}</Button>
+      </div>
+    </div>
+  </div>;
+}
+
 export function FormModal({ title, subtitle, fields, initial, submitLabel, onClose, onSubmit, validate }: {
   title: string; subtitle?: string; fields: FieldDef[] | ((values: Record<string, string>) => FieldDef[]); initial: Record<string, string>; submitLabel: string;
   onClose: () => void; onSubmit: (values: Record<string, string>) => Promise<boolean> | boolean;

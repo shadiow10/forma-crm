@@ -13,7 +13,7 @@ const BUCKET = "student-documents";
 
 export function StudentDrawer({ studentId, onClose }: { studentId: number; onClose: () => void }) {
   const store = useData();
-  const { studentById, summaryOf, courses, groupById, payments, money, save, notify, isDirector, school, balanceOf, attendanceRate, blocked } = store;
+  const { studentById, summaryOf, courses, groupById, payments, money, save, notify, isDirector, school, balanceOf, attendanceRate, blocked, ask } = store;
   const student = studentById.get(studentId);
   const [form, setForm] = useState<"edit" | "enroll" | "pay" | null>(null);
   const [payFor, setPayFor] = useState<number>();
@@ -59,7 +59,7 @@ export function StudentDrawer({ studentId, onClose }: { studentId: number; onClo
     window.open(data.signedUrl, "_blank", "noopener");
   };
   const deleteDocument = async (doc: DocumentRow) => {
-    if (blocked() || !window.confirm(`Supprimer « ${doc.type} » ?`)) return;
+    if (blocked() || !(await ask({ title: "Supprimer ce document ?", text: `« ${doc.type} » sera définitivement retiré du dossier.`, confirmLabel: "Supprimer", danger: true }))) return;
     const { error } = await supabase.from("student_documents").delete().eq("id", doc.id);
     if (!error) await supabase.storage.from(BUCKET).remove([doc.file_path]);
     notify(error ? friendlyError(error) : "Document supprimé.");
@@ -80,7 +80,9 @@ export function StudentDrawer({ studentId, onClose }: { studentId: number; onClo
     void loadExtras();
   };
   const deleteStudent = async () => {
-    if (!window.confirm(`Supprimer définitivement ${student.full_name} ? Ses inscriptions, paiements, présences et documents seront aussi supprimés.`)) return;
+    const sure = await ask({ title: `Supprimer ${student.full_name} ?`, danger: true, confirmLabel: "Supprimer définitivement",
+      text: "Ses inscriptions, paiements, présences et documents seront supprimés en même temps. Cette action est définitive." });
+    if (!sure) return;
     const paths = documents.map((doc) => doc.file_path);
     if (await save(() => supabase.from("students").delete().eq("id", student.id), `${student.full_name} a été supprimé(e).`)) {
       if (paths.length) await supabase.storage.from(BUCKET).remove(paths);

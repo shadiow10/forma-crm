@@ -435,8 +435,10 @@ tbody tr:hover { background: #e8eefc; }
 @media (max-width: 640px) { .metrics-grid-4 { grid-template-columns: 1fr 1fr; } .student-filter-main { display: grid; grid-template-columns: 1fr 1fr; width: 100%; } .student-filter-main .search-box { min-width: 0; grid-column: 1 / -1; } .student-filter-bar { align-items: stretch; } .profile-hero { align-items: flex-start; flex-wrap: wrap; } .profile-hero > .button { width: 100%; } .profile-summary-grid, .profile-preview-grid { grid-template-columns: 1fr 1fr; } .registration-meta { grid-template-columns: 1fr 1fr; } .document-row { align-items: flex-start; flex-wrap: wrap; } .document-row .badge { margin-left: 37px; } }
 
 /* ── Form modal (create dialogs) ─────────────────────────────── */
-.form-modal { width: min(560px, 100%); max-height: 92vh; margin: auto; display: flex; flex-direction: column; overflow: hidden; border-radius: 16px; background: var(--paper); box-shadow: 0 30px 80px rgba(21,22,58,.28); animation: drawer-in 220ms var(--ease-out); }
-.drawer-layer:has(.form-modal) { align-items: center; justify-content: center; padding: 20px; }
+.form-modal { width: min(560px, 100%); height: 100%; display: flex; flex-direction: column; overflow: hidden; border-radius: 0; background: var(--paper); box-shadow: 0 30px 80px rgba(21,22,58,.28); animation: drawer-in 220ms var(--ease-out); }
+.drawer-layer:has(.form-modal) { z-index: 90; }
+.form-modal { animation: drawer-in 230ms var(--ease-out); box-shadow: -16px 0 50px rgba(21,22,58,.18) !important; }
+.form-modal-body { flex: 1; }
 .form-modal-head { display: flex; align-items: flex-start; justify-content: space-between; padding: 20px 24px; border-bottom: 1px solid var(--border); }
 .form-modal-head .eyebrow { color: var(--accent); font-size: 9px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
 .form-modal-head h2 { margin: 5px 0 0; color: var(--navy); font: 800 19px Manrope, sans-serif; letter-spacing: -.02em; }
@@ -571,6 +573,17 @@ tbody tr[tabindex]:focus-visible, .class-card:focus-visible, .teacher-card:focus
 .print-receipt td { text-align: right; font-weight: 700; }
 .print-receipt footer { display: flex; justify-content: space-between; align-items: flex-end; margin-top: 26px; font-size: 9pt; color: #555; }
 .print-receipt footer div { width: 200px; height: 70px; padding-top: 6px; border-top: 1px solid #999; text-align: center; }
+
+
+/* Confirmation dialog: the app asks, instead of the browser */
+.confirm-layer { align-items: center; justify-content: center; padding: 20px; z-index: 110; background: rgba(18,30,47,.38); }
+.confirm-box { width: min(420px, 100%); padding: 26px 26px 20px; border-radius: 16px; background: var(--paper); box-shadow: 0 30px 80px rgba(21,22,58,.28); text-align: center; animation: confirm-in 200ms var(--ease-out); }
+.confirm-icon { display: inline-grid; place-items: center; width: 48px; height: 48px; margin-bottom: 14px; border-radius: 14px; }
+.confirm-box h2 { margin: 0; color: var(--ink); font: 800 17px Manrope, sans-serif; letter-spacing: -.02em; line-height: 1.35; }
+.confirm-box p { margin: 9px 0 0; color: #6b7681; font-size: 12px; line-height: 1.6; }
+.confirm-actions { display: flex; gap: 10px; margin-top: 22px; }
+.confirm-actions .button { flex: 1; min-height: 42px; font-size: 12px; }
+@keyframes confirm-in { from { opacity: 0; transform: translateY(8px) scale(.97) } to { opacity: 1; transform: none } }
 
 /* Public site: landing page and demo checkout (16px base, unlike the dense app) */
 .lp { --lp-ink: #17202a; --lp-text: #4a5866; --lp-line: #e3e1da; min-height: 100vh; overflow-x: clip; background: var(--sand); color: var(--lp-ink); font-size: 16px; line-height: 1.6; }

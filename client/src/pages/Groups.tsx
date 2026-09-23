@@ -49,7 +49,7 @@ export function Groups({ openGroup }: { openGroup: (id: number) => void }) {
 }
 
 export function GroupDrawer({ groupId, onClose, goTo }: { groupId: number; onClose: () => void; goTo: (page: PageKey, groupId?: number) => void }) {
-  const { groupById, teachers, courses, students, groupStudentIds, attendanceRate, canEdit, isDirector, school, save } = useData();
+  const { groupById, teachers, courses, students, groupStudentIds, attendanceRate, canEdit, isDirector, school, save, ask } = useData();
   const group = groupById.get(groupId);
   const roster = useRoster(groupId);
   const [editing, setEditing] = useState(false);
@@ -63,10 +63,10 @@ export function GroupDrawer({ groupId, onClose, goTo }: { groupId: number; onClo
     if (!adding) return;
     if (await save(() => supabase.from("group_students").insert({ school_id: school.id, group_id: group.id, student_id: Number(adding) }), "Étudiant ajouté au groupe.")) setAdding("");
   };
-  const removeStudent = (id: number, name: string) => window.confirm(`Retirer ${name} du groupe ?`)
+  const removeStudent = async (id: number, name: string) => await ask({ title: `Retirer ${name} du groupe ?`, danger: true, confirmLabel: "Retirer" })
     && save(() => supabase.from("group_students").delete().eq("group_id", group.id).eq("student_id", id), `${name} retiré(e) du groupe.`);
   const deleteGroup = async () => {
-    if (!window.confirm(`Supprimer le groupe « ${group.name} » ? Ses présences seront aussi supprimées.`)) return;
+    if (!(await ask({ title: `Supprimer le groupe « ${group.name} » ?`, danger: true, confirmLabel: "Supprimer", text: "Ses présences seront supprimées avec lui." }))) return;
     if (await save(() => supabase.from("groups").delete().eq("id", group.id), "Groupe supprimé.")) onClose();
   };
 

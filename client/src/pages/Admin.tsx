@@ -112,13 +112,13 @@ async function invokeError(error: unknown) {
 }
 
 function UserSettings({ userId }: { userId: string }) {
-  const { members, teachers, school, save, notify, reload, blocked } = useData();
+  const { members, teachers, school, save, notify, reload, blocked, ask } = useData();
   const [inviting, setInviting] = useState(false);
   const [editing, setEditing] = useState<MemberRow | null>(null);
   const roleOptions = (Object.keys(roleLabels) as Role[]).map((role) => ({ value: role, label: roleLabels[role] }));
   const teacherOptions = teachers.map((teacher) => ({ value: String(teacher.id), label: teacher.full_name }));
   const teacherField = (values: Record<string, string>) => (values.role === "teacher" ? [{ key: "teacher", label: "Fiche formateur", type: "select" as const, required: true, full: true, options: [{ value: "", label: "Choisir…" }, ...teacherOptions] }] : []);
-  const remove = (member: MemberRow) => window.confirm(`Retirer l'accès de ${member.full_name || member.email} ? Son compte ne pourra plus ouvrir cet établissement.`)
+  const remove = async (member: MemberRow) => await ask({ title: `Retirer l'accès de ${member.full_name || member.email} ?`, danger: true, confirmLabel: "Retirer l'accès", text: "Son compte existera toujours, mais ne pourra plus ouvrir cet établissement." })
     && save(() => supabase.from("school_members").delete().eq("school_id", school.id).eq("user_id", member.user_id), "Accès retiré.");
 
   return <Panel title="Utilisateurs & rôles" action={<Button icon="plus" onClick={() => setInviting(true)}>Inviter un utilisateur</Button>}>
