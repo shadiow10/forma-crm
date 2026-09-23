@@ -70,7 +70,8 @@ export function GroupDrawer({ groupId, onClose, goTo }: { groupId: number; onClo
     if (await save(() => supabase.from("groups").delete().eq("id", group.id), "Groupe supprimé.")) onClose();
   };
 
-  return <Drawer title={group.name} eyebrow="GROUPE" onClose={onClose}>
+  return <>
+    <Drawer title={group.name} eyebrow="GROUPE" onClose={onClose}>
     <div className="class-drawer-head">
       <span className="class-color-large" style={{ background: group.color }} />
       <div>
@@ -103,8 +104,9 @@ export function GroupDrawer({ groupId, onClose, goTo }: { groupId: number; onClo
         {isDirector && <Button variant="danger" icon="trash" onClick={deleteGroup}>Supprimer le groupe</Button>}
       </div>
     </div>
+  </Drawer>
     {editing && <GroupForm group={group} onClose={() => setEditing(false)} />}
-  </Drawer>;
+  </>;
 }
 
 // Weekly grid, 08:00 → 20:00. Groups repeat every week; the arrows only move the dates shown.

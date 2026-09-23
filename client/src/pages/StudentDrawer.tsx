@@ -90,7 +90,8 @@ export function StudentDrawer({ studentId, onClose }: { studentId: number; onClo
     }
   };
 
-  return <Drawer title={student.full_name} eyebrow="FICHE ÉTUDIANT" onClose={onClose}>
+  return <>
+    <Drawer title={student.full_name} eyebrow="FICHE ÉTUDIANT" onClose={onClose}>
     <div className="profile-hero">
       <span className="profile-avatar large">{initials(student.full_name)}</span>
       <div><h2>{student.full_name}</h2><div className="profile-subline"><span>{student.phone}</span><Badge tone={statusTone(summary.status)} dot>{summary.status}</Badge></div></div>
@@ -172,8 +173,9 @@ export function StudentDrawer({ studentId, onClose }: { studentId: number; onClo
       {notes.map((item) => <div className="note-row" key={item.id}><span>{formatDate(item.created_at)}</span><p>{item.body}</p></div>)}
     </div>
 
+  </Drawer>
     {form === "edit" && <StudentForm student={student} onClose={() => setForm(null)} />}
     {form === "enroll" && <EnrollmentForm studentId={student.id} onClose={() => setForm(null)} />}
     {form === "pay" && <PaymentForm enrollmentId={payFor} onClose={() => setForm(null)} />}
-  </Drawer>;
+  </>;
 }
