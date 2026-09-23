@@ -435,10 +435,10 @@ tbody tr:hover { background: #e8eefc; }
 @media (max-width: 640px) { .metrics-grid-4 { grid-template-columns: 1fr 1fr; } .student-filter-main { display: grid; grid-template-columns: 1fr 1fr; width: 100%; } .student-filter-main .search-box { min-width: 0; grid-column: 1 / -1; } .student-filter-bar { align-items: stretch; } .profile-hero { align-items: flex-start; flex-wrap: wrap; } .profile-hero > .button { width: 100%; } .profile-summary-grid, .profile-preview-grid { grid-template-columns: 1fr 1fr; } .registration-meta { grid-template-columns: 1fr 1fr; } .document-row { align-items: flex-start; flex-wrap: wrap; } .document-row .badge { margin-left: 37px; } }
 
 /* ── Form modal (create dialogs) ─────────────────────────────── */
-.form-modal { width: min(560px, 100%); height: 100%; display: flex; flex-direction: column; overflow: hidden; border-radius: 0; background: var(--paper); box-shadow: 0 30px 80px rgba(21,22,58,.28); animation: drawer-in 220ms var(--ease-out); }
-.drawer-layer:has(.form-modal) { z-index: 90; }
-.form-modal { animation: drawer-in 230ms var(--ease-out); box-shadow: -16px 0 50px rgba(21,22,58,.18) !important; }
-.form-modal-body { flex: 1; }
+.form-modal { width: min(560px, 100%); max-height: 92vh; margin: auto; display: flex; flex-direction: column; overflow: hidden; border-radius: 16px; background: var(--paper); box-shadow: 0 30px 80px rgba(21,22,58,.28); animation: drawer-in 220ms var(--ease-out); }
+/* Centred, and above the student drawer instead of behind it */
+.drawer-layer:has(.form-modal) { align-items: center; justify-content: center; padding: 20px; z-index: 90; }
+.form-modal { animation: confirm-in 200ms var(--ease-out); }
 .form-modal-head { display: flex; align-items: flex-start; justify-content: space-between; padding: 20px 24px; border-bottom: 1px solid var(--border); }
 .form-modal-head .eyebrow { color: var(--accent); font-size: 9px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
 .form-modal-head h2 { margin: 5px 0 0; color: var(--navy); font: 800 19px Manrope, sans-serif; letter-spacing: -.02em; }
