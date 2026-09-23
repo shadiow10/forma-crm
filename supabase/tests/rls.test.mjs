@@ -4,7 +4,7 @@ import { PGlite } from "@electric-sql/pglite";
 import fs from "fs";
 import assert from "assert/strict";
 const db = new PGlite();
-await db.exec(`create role authenticated nologin; create role anon nologin; create role service_role nologin; create schema auth; create table auth.users (id uuid primary key, email text, encrypted_password text);
+await db.exec(`create role authenticated nologin; create role anon nologin; create role service_role nologin; create schema auth; create table auth.users (id uuid primary key, email text, encrypted_password text, email_confirmed_at timestamptz default now());
 create schema storage; grant usage on schema storage to authenticated;
 create table storage.buckets (id text primary key, name text, public boolean, file_size_limit bigint, allowed_mime_types text[]);
 create table storage.objects (id bigint generated always as identity primary key, bucket_id text, name text);
@@ -17,7 +17,7 @@ await db.exec(`alter default privileges in schema public grant all on tables to 
 const migrations = new URL("../migrations/", import.meta.url);
 for (const file of fs.readdirSync(migrations).filter((name) => name.endsWith(".sql")).sort()) await db.exec(fs.readFileSync(new URL(file, migrations), "utf8"));
 await db.exec(fs.readFileSync(new URL("../seed.sql", import.meta.url), "utf8"));
-const U = { D: "00000000-0000-0000-0000-00000000000d", S: "00000000-0000-0000-0000-00000000000s".replace("s","5"), T: "00000000-0000-0000-0000-00000000000e", D2: "00000000-0000-0000-0000-0000000000d2", X: "00000000-0000-0000-0000-0000000000de", O: "00000000-0000-0000-0000-0000000000a0" , N: "00000000-0000-0000-0000-0000000000a1" , L: "00000000-0000-0000-0000-0000000000a2" };
+const U = { D: "00000000-0000-0000-0000-00000000000d", S: "00000000-0000-0000-0000-00000000000s".replace("s","5"), T: "00000000-0000-0000-0000-00000000000e", D2: "00000000-0000-0000-0000-0000000000d2", X: "00000000-0000-0000-0000-0000000000de", O: "00000000-0000-0000-0000-0000000000a0" , N: "00000000-0000-0000-0000-0000000000a1" , L: "00000000-0000-0000-0000-0000000000a2" , U: "00000000-0000-0000-0000-0000000000a3" };
 await db.exec(`insert into auth.users values ('${U.D}'),('${U.S}'),('${U.T}'),('${U.D2}');
 insert into schools (id, name, slug) values (2, 'Autre École', 'autre-ecole');
 insert into courses (school_id, name, short_name, duration, price) values (2, 'Anglais', 'Anglais', '3 mois', 30000);
@@ -119,6 +119,48 @@ await as("D", "delete from payments where amount = 2500");
 const log = await as("D", "select actor_name, action, new_row->>'amount' amount from activity_log where actor is not null and table_name = 'payments' order by id");
 assert.deepEqual(log.slice(-2).map((r) => [r.action, r.actor_name]), [["INSERT", "Sara Secrétaire"], ["DELETE", null]]);
 assert.equal(log.at(-2).amount, "2500");
+// Personal details never reach the log, but money keeps its before and after.
+await as("D", "update students set phone = '0555 99 88 77', address = 'Nouvelle adresse', stage = 'encours' where id = 1");
+const studentLog = (await as("D", "select old_row, new_row, changed from activity_log where table_name = 'students' order by id desc limit 1"))[0];
+for (const column of ["full_name", "phone", "email", "address", "dob"]) {
+  assert.equal(studentLog.old_row[column], undefined, `${column} must not be stored in the log`);
+  assert.equal(studentLog.new_row[column], undefined, `${column} must not be stored in the log`);
+}
+assert.deepEqual(studentLog.changed, ["address", "phone"], "the log still names which details changed");
+assert.equal(studentLog.new_row.stage, "encours", "non-identifying columns keep their value");
+
+await as("D", "delete from students where id = 1");
+const deletedLog = (await as("D", "select old_row, changed from activity_log where table_name = 'students' and action = 'DELETE' order by id desc limit 1"))[0];
+assert.equal(deletedLog.old_row.full_name, undefined, "a deleted student leaves no name behind");
+assert.equal(Number(deletedLog.old_row.id), 1, "the log still says which student it was");
+assert.equal(Number((await as("D", `select count(*)::int n from activity_log
+  where jsonb_exists(coalesce(old_row, '{}'), 'phone') or jsonb_exists(coalesce(new_row, '{}'), 'phone')
+     or jsonb_exists(coalesce(old_row, '{}'), 'address') or jsonb_exists(coalesce(new_row, '{}'), 'address')`))[0].n), 0,
+  "no log entry anywhere holds a phone or an address");
+
+// Payments and enrollments are financial records: they keep everything except free-text notes.
+await as("D", "update enrollments set total = total + 5, notes = 'situation familiale' where id = 3");
+const enrollLog = (await as("D", "select old_row, new_row, changed from activity_log where table_name = 'enrollments' order by id desc limit 1"))[0];
+assert.ok(enrollLog.new_row.total && enrollLog.old_row.total, "enrollment amounts are kept");
+assert.equal(enrollLog.new_row.notes, undefined, "free-text notes are not kept");
+assert.deepEqual(enrollLog.changed, ["notes"]);
+const payLog = (await as("D", "select new_row from activity_log where table_name = 'payments' and action = 'INSERT' order by id desc limit 1"))[0];
+assert.ok(payLog.new_row.amount && payLog.new_row.method, "payments keep amount and method in full");
+
+// Access changes stay auditable by role, without storing the person's name or email.
+await as("D", `update school_members set role = 'teacher', teacher_id = 2, full_name = 'Renommée' where user_id = '${U.S}'`);
+const accessLog = (await as("D", "select old_row, new_row, changed from activity_log where table_name = 'school_members' order by id desc limit 1"))[0];
+assert.equal(accessLog.new_row.role, "teacher", "role changes remain visible");
+assert.equal(accessLog.new_row.email, undefined, "staff email is not stored in the log");
+assert.ok(accessLog.changed.includes("full_name"));
+await as("D", `update school_members set role = 'secretaire', teacher_id = null, full_name = 'Sara Secrétaire' where user_id = '${U.S}'`);
+
+// The invite counter is metered per attempt, so it must be out of reach of the app: a director who
+// could delete from it could send unlimited mail from our domain. Denied by the grants outright.
+assert.ok(await fails("D", "select * from invite_attempts"), "director cannot read the invite counter");
+assert.ok(await fails("D", "delete from invite_attempts"), "director cannot clear the invite counter");
+assert.ok(await fails("D", "insert into invite_attempts (school_id) values (1)"), "nobody writes the invite counter by hand");
+
 assert.equal(await count("S", "activity_log"), 0, "secretaire cannot read the log");
 assert.equal(await count("D2", "activity_log where school_id = 1"), 0, "other school cannot read school 1's log");
 assert.ok(await fails("D", "insert into activity_log (school_id, table_name, action) values (1, 'payments', 'DELETE')"), "nobody writes the log by hand");
@@ -163,7 +205,7 @@ assert.deepEqual((await db.query(`select relname from pg_class c join pg_namespa
   where n.nspname = 'public' and c.relkind = 'r' and not c.relrowsecurity`)).rows, [], "a table without row security");
 assert.deepEqual((await db.query(`select tablename, policyname from pg_policies where schemaname = 'public' and 'anon' = any(roles)`)).rows, [], "a policy open to signed-out visitors");
 await db.exec(`grant all on all tables in schema public to anon;`); // worst case: anon has every table right Supabase could grant
-for (const table of [...tables, "activity_log", "teacher_pay", "student_notes", "student_documents", "group_students"]) {
+for (const table of [...tables, "activity_log", "teacher_pay", "student_notes", "student_documents", "group_students", "invite_attempts", "orders"]) {
   const rows = await (async () => {
     await db.exec(`reset role; set test.uid = ''; set role anon;`);
     try { return (await db.query(`select * from ${table}`)).rows.length; } catch { return 0; } finally { await db.exec("reset role"); }
@@ -215,5 +257,15 @@ await db.exec(`insert into auth.users (id, email) values ('${U.L}', 'tardif@ecol
 insert into orders (school_name, wilaya, director_name, email, phone, plan, billing) values ('École Tardive', 'Blida', 'Directeur Tardif', 'tardif@ecole.dz', '0555000001', 'pro', 'monthly');
 update orders set status = 'payé' where school_name = 'École Tardive';`);
 assert.equal(await count("L", "schools"), 1, "his school opens even though the order had no account at the time");
+
+// The email fallback only trusts a CONFIRMED account. Supabase writes the auth.users row at signup,
+// before the link is clicked, so without this an attacker could register a director's address,
+// never confirm it, and be handed the school on payment.
+await db.exec(`insert into auth.users (id, email, email_confirmed_at) values ('${U.U}', 'jamais@ecole.dz', null);
+insert into orders (school_name, wilaya, director_name, email, phone, plan, billing) values ('École Non Confirmée', 'Sétif', 'Directeur NC', 'jamais@ecole.dz', '0555000002', 'pro', 'monthly');`);
+await assert.rejects(db.query(`update orders set status = 'payé' where school_name = 'École Non Confirmée'`), /confirmé/,
+  "an unconfirmed account cannot claim an order");
+assert.equal(Number((await db.query(`select count(*)::int n from schools where name = 'École Non Confirmée'`)).rows[0].n), 0,
+  "and no school was opened for it");
 
 console.log("all access checks passed");
