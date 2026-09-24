@@ -65,7 +65,9 @@ export function DataProvider({ member, children, fallback }: { member: AuthMembe
 
   const reload = useCallback(async () => {
     try {
+      const started = performance.now();
       setData(await loadSchoolData(supabase, member.school.id));
+      console.info(`Données de l'école chargées en ${Math.round(performance.now() - started)} ms`);
       setError("");
     } catch (caught) {
       console.error("Chargement des données :", caught); // exact table and reason, for us

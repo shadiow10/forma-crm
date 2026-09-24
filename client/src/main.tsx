@@ -8,6 +8,9 @@ import { Legal, isLegalPage } from "./Legal";
 import Login, { AuthShell, SetPassword } from "./Login";
 // The signed-in app is a separate download: visitors on the landing page never fetch it.
 const AppShell = lazy(() => import("./AppShell"));
+// Someone with a session will need it in a second: fetch it while the membership check runs,
+// instead of after. One round trip less on a slow connection.
+if (Object.keys(localStorage).some((key) => key.startsWith("sb-") && key.endsWith("-auth-token"))) void import("./AppShell");
 import "./index.css";
 
 const Message = ({ title, text, action }: { title: string; text: string; action?: { label: string; run: () => void } }) => (
