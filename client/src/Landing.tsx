@@ -407,11 +407,11 @@ export function Checkout() {
       <h1>Compte créé</h1>
       <p>Merci, {values.director.trim()}. Demande <strong>{reference}</strong> · {plan.name} · {price(planTotal(plan, billing))}{billing === "yearly" ? "/an" : "/mois"}</p>
       <ol className="lp-next">
-        <li><strong>Nous vous appelons</strong><span>Sous 24 h ouvrées au {values.phone.trim()}, pour convenir du règlement.</span></li>
-        <li><strong>Vous réglez</strong><span>En main propre, par virement ou par versement CCP.</span></li>
+        <li><strong>Confirmez votre email</strong><span>Nous venons d'envoyer un lien à {values.email.trim()} : ouvrez-le pour activer votre compte.</span></li>
+        <li><strong>Nous vous appelons</strong><span>Sous 24 h ouvrées au {values.phone.trim()}, pour convenir du règlement — en main propre, par virement ou par CCP.</span></li>
         <li><strong>Votre espace s'ouvre</strong><span>« {values.school.trim()} » devient accessible avec {values.email.trim()} et le mot de passe que vous venez de choisir.</span></li>
       </ol>
-      <p className="lp-price-note">Aucun montant n'a été débité. Vous pouvez déjà vous connecter : votre espace apparaîtra dès la confirmation.</p>
+      <p className="lp-price-note">Aucun montant n'a été débité. Rien n'est dû avant notre appel.</p>
       <a className="lp-btn primary" href="/connexion">Aller à la connexion</a>
     </section> : <div className="lp-checkout">
       <form className="lp-checkout-form" onSubmit={submit} noValidate>
