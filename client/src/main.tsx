@@ -1,13 +1,13 @@
-import { Component, StrictMode, useEffect, useState } from "react";
+import { Component, StrictMode, Suspense, lazy, useEffect, useState } from "react";
 import type { ReactNode } from "react";
 import { createRoot } from "react-dom/client";
-import App from "./App";
 import { signOut, useAuth } from "./auth";
 import { supabase } from "./lib/supabase";
-import { DataProvider } from "./data";
 import { Checkout, Landing } from "./Landing";
 import { Legal, isLegalPage } from "./Legal";
 import Login, { AuthShell, SetPassword } from "./Login";
+// The signed-in app is a separate download: visitors on the landing page never fetch it.
+const AppShell = lazy(() => import("./AppShell"));
 import "./index.css";
 
 const Message = ({ title, text, action }: { title: string; text: string; action?: { label: string; run: () => void } }) => (
@@ -61,11 +61,10 @@ function Root() {
   if (auth.status === "noAccess") return <Waiting email={auth.email} />;
   if (auth.status === "error") return <Message title="Erreur de chargement" text={`Impossible de charger votre profil (${auth.message}).`} action={{ label: "Réessayer", run: () => window.location.reload() }} />;
   return (
-    <DataProvider member={auth.member} fallback={({ error, retry }) => error
-      ? <Message title="Erreur de chargement" text={error} action={{ label: "Réessayer", run: retry }} />
-      : <AuthShell><p className="auth-muted">Chargement des données de {auth.member.school.name}…</p></AuthShell>}>
-      <App member={auth.member} email={auth.email} userId={auth.userId} onSignOut={signOut} />
-    </DataProvider>
+    <Suspense fallback={<AuthShell><p className="auth-muted">Chargement…</p></AuthShell>}>
+      <AppShell member={auth.member} email={auth.email} userId={auth.userId}
+        onError={(message, retry) => <Message title="Erreur de chargement" text={message} action={{ label: "Réessayer", run: retry }} />} />
+    </Suspense>
   );
 }
 
