@@ -17,7 +17,7 @@ await db.exec(`alter default privileges in schema public grant all on tables to 
 const migrations = new URL("../migrations/", import.meta.url);
 for (const file of fs.readdirSync(migrations).filter((name) => name.endsWith(".sql")).sort()) await db.exec(fs.readFileSync(new URL(file, migrations), "utf8"));
 await db.exec(fs.readFileSync(new URL("../seed.sql", import.meta.url), "utf8"));
-const U = { D: "00000000-0000-0000-0000-00000000000d", S: "00000000-0000-0000-0000-00000000000s".replace("s","5"), T: "00000000-0000-0000-0000-00000000000e", D2: "00000000-0000-0000-0000-0000000000d2", X: "00000000-0000-0000-0000-0000000000de", O: "00000000-0000-0000-0000-0000000000a0" , N: "00000000-0000-0000-0000-0000000000a1" , L: "00000000-0000-0000-0000-0000000000a2" , U: "00000000-0000-0000-0000-0000000000a3" };
+const U = { D: "00000000-0000-0000-0000-00000000000d", S: "00000000-0000-0000-0000-00000000000s".replace("s","5"), T: "00000000-0000-0000-0000-00000000000e", D2: "00000000-0000-0000-0000-0000000000d2", X: "00000000-0000-0000-0000-0000000000de", O: "00000000-0000-0000-0000-0000000000a0" , N: "00000000-0000-0000-0000-0000000000a1" , L: "00000000-0000-0000-0000-0000000000a2" , U: "00000000-0000-0000-0000-0000000000a3", Y: "00000000-0000-0000-0000-0000000000a4" };
 await db.exec(`insert into auth.users values ('${U.D}'),('${U.S}'),('${U.T}'),('${U.D2}');
 insert into schools (id, name, slug) values (2, 'Autre École', 'autre-ecole');
 insert into courses (school_id, name, short_name, duration, price) values (2, 'Anglais', 'Anglais', '3 mois', 30000);
@@ -272,5 +272,38 @@ assert.equal(Number((await db.query(`select count(*)::int n from schools where n
 for (let i = 0; i < 4; i++) await as("N", order("0555 99 88 77"));   // 5 in total with the one above
 assert.ok(await fails("N", order("0555 99 88 77")), "the sixth order from one address is refused");
 assert.ok(!(await fails("N", "select place_order('École Test', null, 'Alger', 'Ahmed B', 'autre@ecole.dz', '0555998877', 'pro', 'monthly', null)")), "another address still gets through");
+
+// Subscription: covered, then 15 days of grace, then read-only. School 1 belongs to D and S.
+const setPaid = (expr) => db.query(`update schools set paid_until = ${expr} where id = 1`);
+const canWrite = async () => !(await fails("S", "insert into students (school_id, full_name, phone) values (1, 'Test Abo', '0555')"));
+
+await setPaid("current_date + 3");                       // paid up
+assert.ok(await canWrite(), "a school in its paid period writes normally");
+await setPaid("current_date - 14");                      // overdue, inside the 15-day grace
+assert.ok(await canWrite(), "the grace period keeps the school working");
+await setPaid("current_date - 16");                      // past grace
+assert.ok(!(await canWrite()), "past the grace period the school stops writing");
+assert.ok(await count("D", "students") > 0, "a frozen school still reads its data (export must work)");
+assert.equal((await as("D", "update students set full_name = 'X' returning id")).length, 0, "and cannot edit");
+assert.equal((await as("D", "delete from payments returning id")).length, 0, "and cannot delete");
+assert.ok(await fails("D", "insert into storage.objects (bucket_id, name) values ('student-documents', '1/3/x.pdf')"), "and cannot upload documents");
+assert.ok(await fails("S", "insert into payments (school_id, enrollment_id, amount, method) values (1, 3, 500, 'Espèces')"), "and cannot record payments");
+await setPaid("null");                                   // never billed: not a subscription, not frozen
+assert.ok(await canWrite(), "a school with no subscription date is not frozen");
+
+// The demo stays frozen whatever its dates say, and paying dates are not writable from the app.
+const demoId = (await db.query("select id from schools where slug = 'demo'")).rows[0].id;
+await db.query(`update schools set paid_until = current_date + 365 where id = ${demoId}`);
+assert.equal((await as("X", "update students set full_name = 'X' returning id")).length, 0, "the demo ignores paid_until");
+assert.ok(await fails("D", "update schools set paid_until = current_date + 365 where id = 1"), "a director cannot extend his own subscription");
+
+// A paid order opens a school with its period already covered.
+await db.exec(`insert into auth.users (id, email, email_confirmed_at) values ('${U.Y}', 'annuel@ecole.dz', now());
+insert into orders (school_name, wilaya, director_name, email, phone, plan, billing, user_id)
+values ('École Annuelle', 'Oran', 'Directeur A', 'annuel@ecole.dz', '0555000003', 'pro', 'yearly', '${U.Y}');
+update orders set status = 'payé' where school_name = 'École Annuelle';`);
+const opened = (await db.query(`select billing, paid_until, paid_until = current_date + interval '1 year' as covers_a_year from schools where name = 'École Annuelle'`)).rows[0];
+assert.equal(opened.billing, "yearly");
+assert.ok(opened.covers_a_year, "a yearly order is paid up for a year");
 
 console.log("all access checks passed");

@@ -30,6 +30,20 @@ const PAGES: { key: PageKey; path: string; label: string; icon: IconName }[] = [
 const pathOf = (key: PageKey) => PAGES.find((page) => page.key === key)!.path;
 const pageAt = (path: string) => PAGES.find((page) => page.path === (path.replace(/\/+$/, "") || "/"))?.key;
 
+// Nothing before the last week of the subscription; then a warning, then the read-only notice.
+// The director is told what to do; a secretaire or a teacher only sees why saving stopped.
+function SubscriptionBanner() {
+  const { subscription, isDirector } = useData();
+  const renew = isDirector ? " Contactez Classtra pour renouveler." : " Prévenez votre directeur.";
+  if (subscription.state === "active" && subscription.daysLeft <= 7)
+    return <div className="demo-banner" role="note"><Icon name="calendar" size={15} /><span><strong>Abonnement à renouveler.</strong> Il reste {subscription.daysLeft === 0 ? "moins d'un jour" : `${subscription.daysLeft} jour${subscription.daysLeft > 1 ? "s" : ""}`}.{renew}</span></div>;
+  if (subscription.state === "grace")
+    return <div className="demo-banner" role="alert"><Icon name="warning" size={15} /><span><strong>Abonnement échu.</strong> La saisie reste possible {subscription.daysLeft === 0 ? "aujourd'hui seulement" : `${subscription.daysLeft} jour${subscription.daysLeft > 1 ? "s" : ""}`}, puis l'espace passe en lecture seule.{renew}</span></div>;
+  if (subscription.state === "frozen")
+    return <div className="demo-banner" role="alert"><Icon name="lock" size={15} /><span><strong>Abonnement expiré.</strong> La saisie est suspendue. Vos données restent consultables et exportables.{renew}</span></div>;
+  return null;
+}
+
 export default function App({ member, email, userId, onSignOut }: { member: Member; email: string; userId: string; onSignOut: () => void }) {
   const { school, students, groups, canEdit, readOnly, notice, clearNotice } = useData();
   const allowed = rolePages[member.role];
@@ -111,7 +125,9 @@ export default function App({ member, email, userId, onSignOut }: { member: Memb
           <button className="top-profile" onClick={onSignOut} title="Se déconnecter"><span className="user-avatar small">{initials(displayName)}</span><span>{displayName}</span><Icon name="logout" size={13} /></button>
         </div>
       </header>
-      {readOnly && <div className="demo-banner" role="note"><Icon name="lock" size={15} /><span><strong>Démonstration en lecture seule.</strong> Les données sont fictives ; vous pouvez tout parcourir, rien n'est enregistré.</span><button className="text-button" onClick={onSignOut}>Quitter la démo</button></div>}
+      {school.is_demo
+        ? <div className="demo-banner" role="note"><Icon name="lock" size={15} /><span><strong>Démonstration en lecture seule.</strong> Les données sont fictives ; vous pouvez tout parcourir, rien n'est enregistré.</span><button className="text-button" onClick={onSignOut}>Quitter la démo</button></div>
+        : <SubscriptionBanner />}
       <div className="content-wrap">{renderPage()}</div>
       <footer className="app-footer"><span>Classtra · {school.name}</span><span><span className="status-live" /> Données synchronisées avec le serveur</span></footer>
     </main>

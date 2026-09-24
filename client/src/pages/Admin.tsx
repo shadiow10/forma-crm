@@ -77,7 +77,7 @@ export function Settings({ userId }: { userId: string }) {
 }
 
 function SchoolSettings() {
-  const { school, save } = useData();
+  const { school, save, subscription } = useData();
   const [values, setValues] = useState({ name: school.name, phone: school.phone ?? "", email: school.email ?? "", address: school.address ?? "", currency: school.currency });
   const [busy, setBusy] = useState(false);
   const set = (key: keyof typeof values) => (event: { target: { value: string } }) => setValues({ ...values, [key]: event.target.value });
@@ -98,6 +98,7 @@ function SchoolSettings() {
         <label>Devise<select className="field" value={values.currency} onChange={set("currency")}><option value="DA">Dinar algérien (DA)</option><option value="€">Euro (€)</option><option value="MAD">Dirham marocain (MAD)</option><option value="TND">Dinar tunisien (TND)</option></select></label>
       </div>
       <p className="form-hint">Le nom et l'adresse apparaissent sur les certificats. Adresse web : {school.slug}</p>
+      {school.paid_until && <p className="form-hint"><Icon name="calendar" size={13} /> Abonnement {school.billing === "yearly" ? "annuel" : "mensuel"} — {subscription.state === "frozen" ? "expiré" : "valable"} jusqu'au {formatDate(school.paid_until)}. Le renouvellement est enregistré par Classtra.</p>}
       <Button type="submit" icon="check" disabled={busy}>{busy ? "Enregistrement…" : "Enregistrer"}</Button>
     </form>
   </Panel>;
