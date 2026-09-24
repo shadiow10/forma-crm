@@ -70,10 +70,9 @@ const avatarColors = ["#D9E9E6", "#FBE0D6", "#E2E4F2", "#F5E8C9", "#DCE8F8"];
 export const initials = (name: string) => name.split(/[\s@.]+/).filter(Boolean).map((part) => part[0]).slice(0, 2).join("").toUpperCase();
 export const initialsBadge = (name: string) => <span className="avatar" style={{ background: avatarColors[name.length % avatarColors.length] }}>{initials(name)}</span>;
 
-export const todayISO = () => {
-  const now = new Date();
-  return new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
-};
+// sv-SE formats as YYYY-MM-DD in local time — the same string the offset arithmetic this replaces
+// produced, checked against Algiers, UTC and both sides of the date line.
+export const todayISO = () => new Date().toLocaleDateString("sv-SE");
 export const formatDate = (iso: string | null | undefined, style: "short" | "long" = "short") =>
   iso ? new Date(`${iso.slice(0, 10)}T00:00:00`).toLocaleDateString("fr-FR", style === "long" ? { day: "numeric", month: "long", year: "numeric" } : { day: "2-digit", month: "short", year: "numeric" }) : "—";
 export const formatTime = (time: string | null) => (time ? time.slice(0, 5) : "");
