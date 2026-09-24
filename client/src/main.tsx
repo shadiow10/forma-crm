@@ -29,7 +29,7 @@ class Boundary extends Component<{ children: ReactNode }, { failed: boolean }> {
   state = { failed: false };
   static getDerivedStateFromError() { return { failed: true }; }
   componentDidCatch(error: unknown) {
-    console.error(error);
+    if (import.meta.env.DEV) console.error(error);
     // A page we deployed while this tab was open: its file is gone, so fetching it fails.
     // Reloading picks up the new version. Once only, so a real crash still shows the message.
     const message = error instanceof Error ? error.message : "";

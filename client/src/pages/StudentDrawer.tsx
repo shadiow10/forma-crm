@@ -11,6 +11,20 @@ const DOCUMENT_TYPES = ["Carte d'identité", "Photo d'identité", "Diplôme / ju
 const STATUSES: EnrollmentStatus[] = ["Inscrit", "En cours", "Terminé", "Abandonné"];
 const BUCKET = "student-documents";
 
+// Magic bytes for the three formats the bucket accepts. A file's real type is its first few bytes,
+// not the Content-Type its uploader chose. ponytail: signature check only, no full parse — enough to
+// stop a renamed executable; a genuinely malformed PDF is the PDF reader's problem, not ours.
+const SIGNATURES: Record<string, string[]> = {
+  "application/pdf": ["25504446"],              // %PDF
+  "image/jpeg": ["ffd8ff"],                     // SOI marker
+  "image/png": ["89504e470d0a1a0a"],            // PNG signature
+};
+async function looksLikeItsType(file: File) {
+  const head = new Uint8Array(await file.slice(0, 8).arrayBuffer());
+  const hex = [...head].map((byte) => byte.toString(16).padStart(2, "0")).join("");
+  return (SIGNATURES[file.type] ?? []).some((signature) => hex.startsWith(signature));
+}
+
 export function StudentDrawer({ studentId, onClose }: { studentId: number; onClose: () => void }) {
   const store = useData();
   const { studentById, summaryOf, courses, groupById, payments, money, save, notify, isDirector, school, balanceOf, attendanceRate, blocked, ask } = store;
@@ -43,6 +57,10 @@ export function StudentDrawer({ studentId, onClose }: { studentId: number; onClo
     if (!file || blocked()) return;
     if (file.size > 5 * 1024 * 1024) return notify("Fichier trop lourd : 5 Mo maximum.");
     if (!["application/pdf", "image/jpeg", "image/png"].includes(file.type)) return notify("Formats acceptés : PDF, JPG ou PNG.");
+    // file.type is the label the browser was told to send, and the bucket's allowed_mime_types
+    // checks that same label — so renaming an executable to .pdf passes both. Read the first bytes
+    // and require them to match what the file claims to be.
+    if (!(await looksLikeItsType(file))) return notify("Ce fichier ne correspond pas à un PDF, JPG ou PNG valide.");
     setUploading(true);
     const path = `${school.id}/${student.id}/${Date.now()}-${file.name.replace(/[^\w.-]+/g, "_")}`;
     const stored = await supabase.storage.from(BUCKET).upload(path, file);

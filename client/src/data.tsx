@@ -75,8 +75,9 @@ export function friendlyError(error: { code?: string; message: string }) {
   if (error.code === "23505") return "Cet élément existe déjà.";
   if (error.code === "23514") return "Valeur invalide : vérifiez les champs du formulaire.";
   if (/fetch|network/i.test(error.message)) return "Connexion au serveur impossible. Vérifiez votre connexion internet.";
-  // Raw Postgres messages name tables, columns and constraints: keep them for the console, not the screen.
-  console.error(error);
+  // Raw Postgres messages name tables, columns and constraints. Dev console only: in production the
+  // console belongs to whoever opened devtools, and a schema map should not be there for the taking.
+  if (import.meta.env.DEV) console.error(error);
   return "Opération impossible. Réessayez ; si cela persiste, contactez le support.";
 }
 
@@ -93,7 +94,7 @@ export function DataProvider({ member, children, fallback }: { member: AuthMembe
       console.info(`Données de l'école chargées en ${Math.round(performance.now() - started)} ms`);
       setError("");
     } catch (caught) {
-      console.error("Chargement des données :", caught); // exact table and reason, for us
+      if (import.meta.env.DEV) console.error("Chargement des données :", caught); // exact table and reason, dev only
       setError(friendlyError(caught as { code?: string; message: string }));
     }
   }, [member.school.id]);
