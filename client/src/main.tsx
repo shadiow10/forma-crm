@@ -3,8 +3,10 @@ import type { ReactNode } from "react";
 import { createRoot } from "react-dom/client";
 import { signOut, useAuth } from "./auth";
 import { supabase } from "./lib/supabase";
-import { Checkout, Landing } from "./Landing";
-import { Legal, isLegalPage } from "./Legal";
+const LEGAL_PATHS = new Set(["/mentions-legales", "/cgv", "/confidentialite"]);
+const Landing = lazy(() => import("./Landing").then((m) => ({ default: m.Landing })));
+const Checkout = lazy(() => import("./Landing").then((m) => ({ default: m.Checkout })));
+const Legal = lazy(() => import("./Legal").then((m) => ({ default: m.Legal })));
 import Login, { AuthShell, SetPassword } from "./Login";
 // The signed-in app is a separate download: visitors on the landing page never fetch it.
 const AppShell = lazy(() => import("./AppShell"));
@@ -26,7 +28,16 @@ const Message = ({ title, text, action }: { title: string; text: string; action?
 class Boundary extends Component<{ children: ReactNode }, { failed: boolean }> {
   state = { failed: false };
   static getDerivedStateFromError() { return { failed: true }; }
-  componentDidCatch(error: unknown) { console.error(error); }
+  componentDidCatch(error: unknown) {
+    console.error(error);
+    // A page we deployed while this tab was open: its file is gone, so fetching it fails.
+    // Reloading picks up the new version. Once only, so a real crash still shows the message.
+    const message = error instanceof Error ? error.message : "";
+    if (/dynamically imported module|Importing a module script failed/i.test(message) && !sessionStorage.getItem("reloaded-for-update")) {
+      sessionStorage.setItem("reloaded-for-update", "1");
+      window.location.reload();
+    }
+  }
   render() {
     if (!this.state.failed) return this.props.children;
     return <Message title="Une erreur est survenue" text="Cette page n'a pas pu s'afficher. Rechargez ; si cela se reproduit, prévenez-nous." action={{ label: "Recharger", run: () => window.location.reload() }} />;
@@ -60,7 +71,7 @@ const NotFound = () => <Message title="Page introuvable" text="Cette adresse n'e
 
 function Root() {
   const auth = useAuth();
-  if (isLegalPage(window.location.pathname)) return <Legal path={window.location.pathname} />;
+  if (LEGAL_PATHS.has(window.location.pathname)) return <Legal path={window.location.pathname} />;
   if (auth.status === "loading") return <AuthShell><p className="auth-muted">Chargement…</p></AuthShell>;
   if (auth.status === "signedOut") {
     // Public site for visitors; any app address (e.g. /etudiants) still leads to the login.
@@ -75,18 +86,16 @@ function Root() {
   if (auth.status === "setPassword") return <SetPassword email={auth.email} />;
   if (auth.status === "noAccess") return <Waiting email={auth.email} />;
   if (auth.status === "error") return <Message title="Erreur de chargement" text={`Impossible de charger votre profil (${auth.message}).`} action={{ label: "Réessayer", run: () => window.location.reload() }} />;
-  return (
-    <Suspense fallback={<AuthShell><p className="auth-muted">Chargement…</p></AuthShell>}>
-      <AppShell member={auth.member} email={auth.email} userId={auth.userId}
-        onError={(message, retry) => <Message title="Erreur de chargement" text={message} action={{ label: "Réessayer", run: retry }} />} />
-    </Suspense>
-  );
+  return <AppShell member={auth.member} email={auth.email} userId={auth.userId}
+    onError={(message, retry) => <Message title="Erreur de chargement" text={message} action={{ label: "Réessayer", run: retry }} />} />;
 }
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <Boundary>
-      <Root />
+      <Suspense fallback={<AuthShell><p className="auth-muted">Chargement…</p></AuthShell>}>
+        <Root />
+      </Suspense>
     </Boundary>
   </StrictMode>
 );
