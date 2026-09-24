@@ -93,7 +93,7 @@ export default function Login() {
 // Refuses passwords found in public leaks (Have I Been Pwned). Only the first 5 characters of the
 // password's SHA-1 hash are sent; the password itself never leaves the browser.
 // ponytail: fails open (offline, blocked API) — Supabase Pro has the same check server-side, switch to it there.
-async function isLeaked(password: string) {
+export async function isLeaked(password: string) {
   try {
     const digest = await crypto.subtle.digest("SHA-1", new TextEncoder().encode(password));
     const hash = [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, "0")).join("").toUpperCase();

@@ -60,7 +60,8 @@ export function useAuth(): AuthState {
       .select("role, full_name, teacher_id, school:schools(id, name, slug)")
       .eq("user_id", userId)
       .then(({ data, error }) => {
-        if (error) setError(error.message);
+        // The raw message names tables and columns: it belongs in the console, not on screen.
+        if (error) { console.error("Chargement du profil :", error); setError("profil illisible"); }
         else setMembers(data as unknown as Member[]);
       });
   }, [userId]);

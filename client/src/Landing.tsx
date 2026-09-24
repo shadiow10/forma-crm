@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "./lib/supabase";
+import { isLeaked } from "./Login";
 import type { FormEvent, ReactNode } from "react";
 import { BrandMark, Icon } from "./ui";
 import type { IconName } from "./ui";
@@ -371,6 +372,12 @@ export function Checkout() {
     setErrors(next);
     if (Object.keys(next).length) return;
     setStep("sending");
+    // A director's password opens their whole school: same leak check as the invitation screen.
+    if (!account && (await isLeaked(values.password))) {
+      setStep("form");
+      setErrors({ password: "Ce mot de passe figure dans une fuite de données connue. Choisissez-en un autre." });
+      return;
+    }
     // Already signed in (an account created earlier, order never sent): keep that login, skip signup.
     const signUp = account ? { error: null } : await supabase.auth.signUp({ email: values.email.trim().toLowerCase(), password: values.password });
     if (signUp.error) {
