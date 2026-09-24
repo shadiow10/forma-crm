@@ -38,7 +38,9 @@ function Waiting({ email }: { email: string }) {
     supabase.rpc("my_order_status").then(({ data }) => setOrder((data as Order[])?.[0] ?? null));
   }, []);
   if (order === undefined) return <AuthShell><p className="auth-muted">Chargement…</p></AuthShell>;
-  if (!order) return <Message title="Accès non configuré" text={`Le compte ${email} n'est rattaché à aucun établissement. Demandez à votre directeur de vous inviter.`} />;
+  if (!order) return <Message title="Accès non configuré"
+    text={`Le compte ${email} n'est rattaché à aucun établissement. Si vous êtes secrétaire ou formateur, demandez à votre directeur de vous inviter. Si vous ouvrez une école, envoyez votre demande.`}
+    action={{ label: "Envoyer ma demande", run: () => { window.location.href = "/commander"; } }} />;
   return <Message
     title={order.status === "annulé" ? "Demande annulée" : "Espace en préparation"}
     text={order.status === "annulé"
@@ -46,6 +48,12 @@ function Waiting({ email }: { email: string }) {
       : `Votre demande CMD-${String(order.id).padStart(5, "0")} pour « ${order.school_name} » est enregistrée. Votre espace s'ouvre dès que votre paiement est confirmé — reconnectez-vous ensuite avec ${email}.`}
     action={{ label: "Vérifier maintenant", run: () => window.location.reload() }} />;
 }
+
+// The app's own addresses; anything else typed by hand is a wrong address, not a login page.
+const PAGE_PATHS = new Set(["/", "/etudiants", "/inscriptions", "/formations", "/formateurs", "/groupes", "/planning", "/presences", "/paiements", "/certificats", "/parametres"]);
+
+const NotFound = () => <Message title="Page introuvable" text="Cette adresse n'existe pas. Revenez au site ou connectez-vous à votre espace."
+  action={{ label: "Retour au site", run: () => { window.location.href = "/"; } }} />;
 
 function Root() {
   const auth = useAuth();
@@ -55,8 +63,12 @@ function Root() {
     // Public site for visitors; any app address (e.g. /etudiants) still leads to the login.
     if (window.location.pathname === "/") return <Landing />;
     if (window.location.pathname === "/commander") return <Checkout />;
-    return <Login />;
+    // /connexion and the app addresses lead to the login; anything else is a wrong address.
+    if (window.location.pathname === "/connexion" || PAGE_PATHS.has(window.location.pathname)) return <Login />;
+    return <NotFound />;
   }
+  // Signed in with no school: he may still need to send (or resend) his order.
+  if (auth.status === "noAccess" && window.location.pathname === "/commander") return <Checkout />;
   if (auth.status === "setPassword") return <SetPassword email={auth.email} />;
   if (auth.status === "noAccess") return <Waiting email={auth.email} />;
   if (auth.status === "error") return <Message title="Erreur de chargement" text={`Impossible de charger votre profil (${auth.message}).`} action={{ label: "Réessayer", run: () => window.location.reload() }} />;

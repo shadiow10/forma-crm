@@ -351,6 +351,11 @@ export function Checkout() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [step, setStep] = useState<"form" | "sending" | "done">("form");
   const [reference, setReference] = useState("");
+  const [account, setAccount] = useState<string | null>(null); // email of the session, when already signed in
+  useEffect(() => { supabase.auth.getSession().then(({ data }) => {
+    const email = data.session?.user.email;
+    if (email) { setAccount(email); setValues((current) => ({ ...current, email })); }
+  }); }, []);
   const plan = PLANS.find((item) => item.id === planId)!;
   const set = (key: keyof typeof values) => (event: { target: { value: string } }) => { setValues({ ...values, [key]: event.target.value }); setErrors({ ...errors, [key]: "" }); };
 
@@ -362,19 +367,19 @@ export function Checkout() {
     if (!values.director.trim()) next.director = "Indiquez le nom du directeur.";
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(values.email.trim())) next.email = "Email invalide.";
     if (!/^0[5-7]\d{8}$/.test(values.phone.replace(/[\s.-]/g, ""))) next.phone = "Numéro mobile algérien : 05, 06 ou 07 suivi de 8 chiffres.";
-    if (!STRONG_PASSWORD.test(values.password)) next.password = "10 caractères minimum, avec une majuscule, une minuscule et un chiffre.";
+    if (!account && !STRONG_PASSWORD.test(values.password)) next.password = "10 caractères minimum, avec une majuscule, une minuscule et un chiffre.";
     setErrors(next);
     if (Object.keys(next).length) return;
     setStep("sending");
-    // His own login, created now; the school is attached to it once you confirm the payment.
-    const signUp = await supabase.auth.signUp({ email: values.email.trim().toLowerCase(), password: values.password });
+    // Already signed in (an account created earlier, order never sent): keep that login, skip signup.
+    const signUp = account ? { error: null } : await supabase.auth.signUp({ email: values.email.trim().toLowerCase(), password: values.password });
     if (signUp.error) {
       console.error(signUp.error); // the exact reason, for us; the visitor gets the message below
       setStep("form");
       const already = /already|registered|exists/i.test(signUp.error.message);
       const weak = signUp.error.code === "weak_password";
       setErrors({ [already ? "email" : weak ? "password" : "form"]: already
-        ? "Un compte existe déjà avec cet email. Connectez-vous, puis renvoyez votre demande."
+        ? "Un compte existe déjà avec cet email. Connectez-vous, puis revenez sur cette page pour envoyer votre demande."
         : weak ? "Mot de passe trop simple : 10 caractères minimum, avec une majuscule, une minuscule et un chiffre."
         : "Création du compte impossible. Vérifiez votre connexion et réessayez." });
       return;
@@ -425,10 +430,12 @@ export function Checkout() {
         <fieldset disabled={step === "sending"}>
           <legend>Votre compte de directeur</legend>
           {field("director", "Nom complet *", { autoComplete: "name" })}
-          {field("email", "Email *", { type: "email", autoComplete: "email", placeholder: "directeur@ecole.dz" })}
+          {field("email", "Email *", { type: "email", autoComplete: "email", placeholder: "directeur@ecole.dz", ...(account ? { readOnly: "true" } : {}) })}
           {field("phone", "Téléphone mobile *", { type: "tel", autoComplete: "tel", placeholder: "0555 00 00 00" })}
-          {field("password", "Mot de passe *", { type: "password", autoComplete: "new-password", placeholder: "10 caractères, 1 majuscule, 1 chiffre" })}
-          <p className="lp-terms">Ces identifiants sont les vôtres : votre espace s'ouvre avec eux dès que votre paiement est confirmé.</p>
+          {!account && field("password", "Mot de passe *", { type: "password", autoComplete: "new-password", placeholder: "10 caractères, 1 majuscule, 1 chiffre" })}
+          <p className="lp-terms">{account
+            ? `Vous êtes connecté avec ${account} : votre espace s'ouvrira sur ce compte dès que votre paiement sera confirmé.`
+            : "Ces identifiants sont les vôtres : votre espace s'ouvre avec eux dès que votre paiement est confirmé."}</p>
         </fieldset>
         <fieldset disabled={step === "sending"}>
           <legend>Comment allez-vous payer ?</legend>

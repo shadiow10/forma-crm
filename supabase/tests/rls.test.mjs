@@ -268,4 +268,9 @@ await assert.rejects(db.query(`update orders set status = 'payé' where school_n
 assert.equal(Number((await db.query(`select count(*)::int n from schools where name = 'École Non Confirmée'`)).rows[0].n), 0,
   "and no school was opened for it");
 
+// Orders are bounded: the sixth from one address in a day is refused.
+for (let i = 0; i < 4; i++) await as("N", order("0555 99 88 77"));   // 5 in total with the one above
+assert.ok(await fails("N", order("0555 99 88 77")), "the sixth order from one address is refused");
+assert.ok(!(await fails("N", "select place_order('École Test', null, 'Alger', 'Ahmed B', 'autre@ecole.dz', '0555998877', 'pro', 'monthly', null)")), "another address still gets through");
+
 console.log("all access checks passed");
