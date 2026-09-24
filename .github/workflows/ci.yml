@@ -1,0 +1,23 @@
+name: CI
+
+# Types, access rules and build on every push. The access-rule suite is the one that matters:
+# it runs the migrations in a real Postgres and fails if a role can see or change what it must not.
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm check
+      - run: pnpm test:db
+      - run: pnpm build

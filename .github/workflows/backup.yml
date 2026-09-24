@@ -1,0 +1,47 @@
+name: Backup
+
+# Weekly database dump, kept as an encrypted artifact for 90 days.
+#
+# This repository is public, and artifacts of a public repository can be downloaded by anyone,
+# so the dump NEVER leaves this job unencrypted: it holds every student, phone number, payment
+# and password hash. Decrypt with the same passphrase:
+#   gpg --decrypt backup-YYYY-MM-DD.sql.gpg > backup.sql
+#
+# Two repository secrets are required (Settings -> Secrets and variables -> Actions):
+#   SUPABASE_DB_URL     postgresql://postgres.<ref>:<password>@aws-N-<region>.pooler.supabase.com:5432/postgres
+#   BACKUP_PASSPHRASE   a long random passphrase, kept in your password manager
+#
+# Secrets are not exposed to pull requests from forks, and this workflow runs only on a schedule
+# or by hand, so a stranger's PR can never reach them.
+#
+# Storage files (the student documents bucket) are NOT included: they need their own copy.
+on:
+  schedule:
+    - cron: "0 2 * * 1" # Mondays, 02:00 UTC
+  workflow_dispatch:
+
+jobs:
+  dump:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Dump and encrypt
+        env:
+          DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+          PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
+        run: |
+          set -euo pipefail
+          test -n "$DB_URL" && test -n "$PASSPHRASE"   # fail loudly rather than upload an empty file
+          name="backup-$(date -u +%F)"
+          # pg_dump must be at least the server's version, so use the matching image rather than the runner's client.
+          docker run --rm postgres:17-alpine pg_dump "$DB_URL" --clean --if-exists --no-owner > "$name.sql"
+          test -s "$name.sql"                          # a zero-byte dump is a failed backup
+          grep -q "PostgreSQL database dump complete" "$name.sql"
+          gpg --batch --symmetric --cipher-algo AES256 --passphrase "$PASSPHRASE" -o "$name.sql.gpg" "$name.sql"
+          rm "$name.sql"
+          echo "BACKUP_NAME=$name" >> "$GITHUB_ENV"
+          ls -lh "$name.sql.gpg"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.BACKUP_NAME }}
+          path: ${{ env.BACKUP_NAME }}.sql.gpg
+          retention-days: 90
