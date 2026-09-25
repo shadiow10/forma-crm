@@ -381,7 +381,7 @@ export function Checkout() {
     // Already signed in (an account created earlier, order never sent): keep that login, skip signup.
     const signUp = account ? { error: null } : await supabase.auth.signUp({ email: values.email.trim().toLowerCase(), password: values.password });
     if (signUp.error) {
-      console.error(signUp.error); // the exact reason, for us; the visitor gets the message below
+      if (import.meta.env.DEV) console.error(signUp.error); // the exact reason, dev only; the visitor gets the message below
       setStep("form");
       const already = /already|registered|exists/i.test(signUp.error.message);
       const weak = signUp.error.code === "weak_password";
