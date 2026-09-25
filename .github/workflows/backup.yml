@@ -20,6 +20,9 @@ on:
     - cron: "0 2 * * 1" # Mondays, 02:00 UTC
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   dump:
     runs-on: ubuntu-latest
