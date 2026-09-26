@@ -4,8 +4,11 @@ import type { Member as AuthMember } from "./auth";
 import { supabase } from "./lib/supabase";
 import { loadSchoolData } from "./lib/queries";
 import type { Enrollment, EnrollmentStatus, Group, SchoolData, Student } from "./lib/queries";
-import { ConfirmDialog, percent } from "./ui";
-import type { Question } from "./ui";
+import { useAppT } from "./appCopy";
+import type { AppCopy } from "./appCopy";
+import { ConfirmDialog } from "./appUI";
+import type { Question } from "./appUI";
+import { percent } from "./ui";
 
 export type PaymentStatus = "Payé" | "Partiel" | "Non payé" | "—";
 export type StudentSummary = {
@@ -43,9 +46,6 @@ type Store = SchoolData & {
   attendanceRate: (studentId: number, groupId?: number) => number | null;
 };
 
-export const DEMO_NOTICE = "Démonstration : les modifications ne sont pas enregistrées.";
-export const FROZEN_NOTICE = "Abonnement expiré : la saisie est suspendue. Vos données restent consultables et exportables.";
-
 const GRACE_DAYS = 15; // must match private.is_frozen in the database
 const WARN_DAYS = 7;   // start warning this long before the due date
 
@@ -69,18 +69,19 @@ export function subscriptionOf(paidUntil: string | null): Subscription {
 
 const DataContext = createContext<Store | null>(null);
 
-export function friendlyError(error: { code?: string; message: string }) {
-  if (error.code === "42501") return "Action non autorisée pour votre rôle.";
-  if (error.code === "23503") return "Impossible : cet élément est utilisé ailleurs (inscriptions, paiements ou groupes).";
-  if (error.code === "23505") return "Cet élément existe déjà.";
-  if (error.code === "23514") return "Valeur invalide : vérifiez les champs du formulaire.";
-  if (/fetch|network/i.test(error.message)) return "Connexion au serveur impossible. Vérifiez votre connexion internet.";
+export function friendlyError(error: { code?: string; message: string }, e: AppCopy["errors"]) {
+  if (error.code === "42501") return e.role;
+  if (error.code === "23503") return e.inUse;
+  if (error.code === "23505") return e.duplicate;
+  if (error.code === "23514") return e.invalid;
+  if (/fetch|network/i.test(error.message)) return e.network;
   // Raw Postgres messages name tables, columns and constraints: keep them for the console, not the screen.
   console.error(error);
-  return "Opération impossible. Réessayez ; si cela persiste, contactez le support.";
+  return e.generic;
 }
 
 export function DataProvider({ member, children, fallback }: { member: AuthMember; children: ReactNode; fallback: (state: { error?: string; retry: () => void }) => ReactNode }) {
+  const t = useAppT();
   const [data, setData] = useState<SchoolData>();
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
@@ -94,9 +95,9 @@ export function DataProvider({ member, children, fallback }: { member: AuthMembe
       setError("");
     } catch (caught) {
       console.error("Chargement des données :", caught); // exact table and reason, for us
-      setError(friendlyError(caught as { code?: string; message: string }));
+      setError(friendlyError(caught as { code?: string; message: string }, t.errors));
     }
-  }, [member.school.id]);
+  }, [member.school.id, t]);
 
   useEffect(() => { void reload(); }, [reload]);
 
@@ -140,7 +141,7 @@ export function DataProvider({ member, children, fallback }: { member: AuthMembe
 
     const subscription = subscriptionOf(data.school.paid_until);
     const frozen = data.school.is_demo || subscription.state === "frozen";
-    const blocked = () => { if (frozen) setNotice(data.school.is_demo ? DEMO_NOTICE : FROZEN_NOTICE); return frozen; };
+    const blocked = () => { if (frozen) setNotice(data.school.is_demo ? t.errors.demo : t.errors.frozen); return frozen; };
     return {
       ...data,
       me: member,
@@ -149,7 +150,7 @@ export function DataProvider({ member, children, fallback }: { member: AuthMembe
       readOnly: frozen,
       blocked,
       isDirector: member.role === "director",
-      money: (value: number) => `${new Intl.NumberFormat("fr-FR").format(value)} ${currency}`,
+      money: (value: number) => `⁦${new Intl.NumberFormat("fr-FR").format(value).replace(/[\u202f\u00a0]/g, " ")} ${currency}⁩`,
       reload,
       notify: setNotice,
       ask: (next: Question) => new Promise<boolean>((resolve) => setQuestion({ ...next, answer: (yes) => { setQuestion(null); resolve(yes); } })),
@@ -158,7 +159,7 @@ export function DataProvider({ member, children, fallback }: { member: AuthMembe
       save: async (action, success) => {
         if (blocked()) return false;
         const { error } = await action();
-        if (error) { setNotice(friendlyError(error)); return false; }
+        if (error) { setNotice(friendlyError(error, t.errors)); return false; }
         await reload();
         setNotice(success);
         return true;
@@ -170,7 +171,7 @@ export function DataProvider({ member, children, fallback }: { member: AuthMembe
       groupStudentIds: (groupId: number) => studentsByGroup.get(groupId) ?? [],
       attendanceRate,
     };
-  }, [data, member, notice, reload]);
+  }, [data, member, notice, reload, t]);
 
   if (!store) return <>{fallback({ error: error || undefined, retry: reload })}</>;
   return <DataContext.Provider value={store}>

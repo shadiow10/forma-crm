@@ -1,23 +1,26 @@
-import { useState } from "react";
+import { useState, useSyncExternalStore } from "react";
+import { locale } from "./lang";
 import type { CSSProperties, ReactNode } from "react";
 
 // Shared building blocks for every page: colors, icons, badges, buttons, panels, forms and drawers.
 
+// Tokens, not fixed colours: an inline style written with var() follows the light/dark theme
+// exactly like a stylesheet rule does. The key names are kept, they are used across the pages.
 export const COLORS = {
-  ink: "#17202A",
-  navy: "#15163a",
+  ink: "var(--ink-2)",
+  navy: "var(--navy)",
   navy2: "#233B61",
-  teal: "#4338ca", // accent (kept under this key: used across the pages)
-  tealLight: "#ecebfb",
-  coral: "#F28F6B",
-  coralLight: "#FDEBE4",
-  sand: "#F7F5F0",
-  paper: "#FFFEFB",
-  border: "#E5E7EA",
-  muted: "#6F7B89",
-  green: "#3F9D71",
-  yellow: "#D5A13A",
-  red: "#D96C6C",
+  teal: "var(--accent)",
+  tealLight: "var(--accent-soft)",
+  coral: "var(--warn-fg)",
+  coralLight: "var(--warn-bg)",
+  sand: "var(--sand)",
+  paper: "var(--paper)",
+  border: "var(--border)",
+  muted: "var(--muted)",
+  green: "var(--ok-fg)",
+  yellow: "var(--warn-fg)",
+  red: "var(--bad-fg)",
 };
 
 export const ICONS = {
@@ -55,6 +58,9 @@ export const ICONS = {
   trash: "M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14M10 11v6M14 11v6",
   edit: "M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z",
   upload: "M12 21V9m0 0-4 4m4-4 4 4M4 3h16",
+  sun: "M12 17a5 5 0 1 0 0-10 5 5 0 0 0 0 10M12 1.8v2.1M12 20.1v2.1M4.4 4.4l1.5 1.5M18.1 18.1l1.5 1.5M1.8 12h2.1M20.1 12h2.1M4.4 19.6l1.5-1.5M18.1 5.9l1.5-1.5",
+  moon: "M21 12.9A9 9 0 1 1 11.1 3a7 7 0 0 0 9.9 9.9z",
+  globe: "M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18M3.5 9h17M3.5 15h17M12 3a14 14 0 0 1 0 18 14 14 0 0 1 0-18",
 } as const;
 
 export type IconName = keyof typeof ICONS;
@@ -64,7 +70,7 @@ export const Icon = ({ name, size = 18, stroke = "currentColor" }: { name: IconN
 );
 
 export const PALETTE = ["#5B8DEF", "#E4A853", "#B56FCE", "#2A9D8F", "#E57865", "#6A63B8"];
-export const DAYS = ["Dim", "Lun", "Mar", "Mer", "Jeu", "Ven", "Sam"];
+export const DAYS = ["Dim", "Lun", "Mar", "Mer", "Jeu", "Ven", "Sam"]; // stored values, never displayed raw
 const avatarColors = ["#D9E9E6", "#FBE0D6", "#E2E4F2", "#F5E8C9", "#DCE8F8"];
 
 export const initials = (name: string) => name.split(/[\s@.]+/).filter(Boolean).map((part) => part[0]).slice(0, 2).join("").toUpperCase();
@@ -75,7 +81,7 @@ export const todayISO = () => {
   return new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
 };
 export const formatDate = (iso: string | null | undefined, style: "short" | "long" = "short") =>
-  iso ? new Date(`${iso.slice(0, 10)}T00:00:00`).toLocaleDateString("fr-FR", style === "long" ? { day: "numeric", month: "long", year: "numeric" } : { day: "2-digit", month: "short", year: "numeric" }) : "—";
+  iso ? new Date(`${iso.slice(0, 10)}T00:00:00`).toLocaleDateString(locale(), style === "long" ? { day: "numeric", month: "long", year: "numeric" } : { day: "2-digit", month: "short", year: "numeric" }) : "—";
 export const formatTime = (time: string | null) => (time ? time.slice(0, 5) : "");
 export const percent = (part: number, total: number) => (total > 0 ? Math.round((part / total) * 100) : 0);
 export const clampPercent = (value: number) => Math.max(0, Math.min(100, value));
@@ -92,12 +98,12 @@ export const downloadCSV = (filename: string, rows: (string | number | null)[][]
 
 type Tone = "neutral" | "success" | "warning" | "danger" | "info" | "purple";
 const tones: Record<Tone, CSSProperties> = {
-  neutral: { background: "#F2F4F6", color: COLORS.muted },
-  success: { background: "#E6F5EE", color: "#2D805D" },
-  warning: { background: "#FFF4D9", color: "#9A711A" },
-  danger: { background: "#FDE8E8", color: "#B65353" },
-  info: { background: "#E8F0FC", color: "#4B6EAF" },
-  purple: { background: "#F0ECFB", color: "#6B5AA7" },
+  neutral: { background: "var(--surface-2)", color: "var(--muted)" },
+  success: { background: "var(--ok-bg)", color: "var(--ok-fg)" },
+  warning: { background: "var(--warn-bg)", color: "var(--warn-fg)" },
+  danger: { background: "var(--bad-bg)", color: "var(--bad-fg)" },
+  info: { background: "var(--info-bg)", color: "var(--info-fg)" },
+  purple: { background: "var(--accent-soft)", color: "var(--accent)" },
 };
 export const Badge = ({ children, tone = "neutral", dot = false }: { children: ReactNode; tone?: Tone; dot?: boolean }) => (
   <span className="badge" style={tones[tone]}>{dot && <span className="badge-dot" />} {children}</span>
@@ -111,11 +117,11 @@ export const statusTone = (status: string): Tone =>
 
 type Variant = "primary" | "ghost" | "outline" | "soft" | "danger";
 const variants: Record<Variant, CSSProperties> = {
-  primary: { background: COLORS.navy, color: "white", borderColor: COLORS.navy },
+  primary: { background: "var(--btn-primary)", color: "var(--btn-primary-text)", borderColor: "var(--btn-primary)" },
   ghost: { background: "transparent", color: COLORS.muted, borderColor: "transparent" },
-  outline: { background: "white", color: COLORS.navy, borderColor: COLORS.border },
+  outline: { background: "var(--paper)", color: "var(--ink-2)", borderColor: COLORS.border },
   soft: { background: COLORS.tealLight, color: COLORS.teal, borderColor: "transparent" },
-  danger: { background: COLORS.coralLight, color: "#C96549", borderColor: "transparent" },
+  danger: { background: "var(--bad-bg)", color: "var(--bad-fg)", borderColor: "transparent" },
 };
 // The logo: a graduation cap on a screen, drawn once and reused everywhere.
 export const BrandMark = ({ size = 32 }: { size?: number }) => (
@@ -168,77 +174,37 @@ export type FieldDef = {
   full?: boolean;
   min?: number;
 };
-const optionValue = (option: Option) => (typeof option === "string" ? option : option.value);
-const optionLabel = (option: Option) => (typeof option === "string" ? option : option.label);
 
-// Generic form in a modal. Values are strings; "days" fields hold comma-separated day names.
-// onSubmit returns true when saved, so the modal closes only on success.
-export type Question = { title: string; text?: string; confirmLabel?: string; danger?: boolean };
+// Light or dark, remembered per browser. The dark rules only cover the public site and the
+// login screen; the signed-in app stays light, so the attribute is harmless there.
+// ponytail: no "follow the system" third state — the OS preference is only the first default.
+type Theme = "light" | "dark";
+const storedTheme = (): Theme | null => {
+  try {
+    const value = localStorage.getItem("classtra-theme");
+    return value === "light" || value === "dark" ? value : null;
+  } catch { return null; }
+};
+let theme: Theme = storedTheme() ?? (window.matchMedia?.("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+const themeListeners = new Set<() => void>();
+const applyTheme = () => document.documentElement.setAttribute("data-theme", theme);
+applyTheme();
 
-export function ConfirmDialog({ question, onAnswer }: { question: Question; onAnswer: (yes: boolean) => void }) {
-  return <div className="drawer-layer confirm-layer" onClick={() => onAnswer(false)}>
-    <div className="confirm-box" role="alertdialog" aria-labelledby="confirm-title" onClick={(event) => event.stopPropagation()}>
-      <span className="confirm-icon" style={{ background: question.danger ? "#FDE8E8" : COLORS.tealLight, color: question.danger ? COLORS.red : COLORS.teal }}>
-        <Icon name={question.danger ? "trash" : "warning"} size={19} />
-      </span>
-      <h2 id="confirm-title">{question.title}</h2>
-      {question.text && <p>{question.text}</p>}
-      <div className="confirm-actions">
-        <Button variant="outline" onClick={() => onAnswer(false)}>Annuler</Button>
-        <Button variant={question.danger ? "danger" : "primary"} onClick={() => onAnswer(true)}>{question.confirmLabel ?? "Confirmer"}</Button>
-      </div>
-    </div>
-  </div>;
+export function setTheme(next: Theme) {
+  theme = next;
+  try { localStorage.setItem("classtra-theme", next); } catch { /* private window: the choice just doesn't stick */ }
+  applyTheme();
+  for (const listener of themeListeners) listener();
+}
+const themeSnapshot = () => theme;
+export const useTheme = () => useSyncExternalStore((listener: () => void) => { themeListeners.add(listener); return () => { themeListeners.delete(listener); }; }, themeSnapshot, themeSnapshot);
+
+export function ThemeToggle({ labels }: { labels: { dark: string; light: string } }) {
+  const current = useTheme();
+  const next = current === "dark" ? "light" : "dark";
+  return <button className="pref-button" type="button" title={labels[next]} aria-label={labels[next]} onClick={() => setTheme(next)}>
+    <Icon name={current === "dark" ? "sun" : "moon"} size={17} />
+  </button>;
 }
 
-export function FormModal({ title, subtitle, fields, initial, submitLabel, onClose, onSubmit, validate }: {
-  title: string; subtitle?: string; fields: FieldDef[] | ((values: Record<string, string>) => FieldDef[]); initial: Record<string, string>; submitLabel: string;
-  onClose: () => void; onSubmit: (values: Record<string, string>) => Promise<boolean> | boolean;
-  validate?: (values: Record<string, string>) => Record<string, string>;
-}) {
-  const [values, setValues] = useState<Record<string, string>>(initial);
-  const visibleFields = typeof fields === "function" ? fields(values) : fields;
-  const [errors, setErrors] = useState<Record<string, string>>({});
-  const [busy, setBusy] = useState(false);
-  const set = (key: string, value: string) => { setValues((prev) => ({ ...prev, [key]: value })); setErrors((prev) => ({ ...prev, [key]: "" })); };
-  const submit = async () => {
-    const next: Record<string, string> = {};
-    for (const field of visibleFields) {
-      const value = String(values[field.key] ?? "").trim();
-      if (field.required && !value) next[field.key] = "Requis";
-      else if (field.type === "number" && value && (!Number.isFinite(Number(value)) || Number(value) < (field.min ?? 0))) next[field.key] = `Nombre ≥ ${field.min ?? 0}`;
-      else if (field.type === "email" && value && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) next[field.key] = "Email invalide";
-    }
-    Object.assign(next, validate?.(values) ?? {});
-    if (Object.values(next).some(Boolean)) { setErrors(next); return; }
-    setBusy(true);
-    const ok = await onSubmit(values);
-    setBusy(false);
-    if (ok) onClose();
-  };
-  const input = (field: FieldDef) => {
-    const value = values[field.key] ?? "";
-    if (field.type === "select") return <select className="field" value={value} onChange={(event) => set(field.key, event.target.value)}>{(field.options ?? []).map((option) => <option key={optionValue(option)} value={optionValue(option)}>{optionLabel(option)}</option>)}</select>;
-    if (field.type === "textarea") return <textarea className="field textarea" value={value} onChange={(event) => set(field.key, event.target.value)} placeholder={field.placeholder} />;
-    if (field.type === "days") {
-      const selected = value ? value.split(",") : [];
-      const toggle = (day: string) => set(field.key, DAYS.filter((d) => (d === day ? !selected.includes(d) : selected.includes(d))).join(","));
-      return <div className="days-picker">{DAYS.map((day) => <button type="button" key={day} className={selected.includes(day) ? "active" : ""} aria-pressed={selected.includes(day)} onClick={() => toggle(day)}>{day}</button>)}</div>;
-    }
-    return <input className="field" type={field.type ?? "text"} min={field.type === "number" ? field.min ?? 0 : undefined} value={value} onChange={(event) => set(field.key, event.target.value)} placeholder={field.placeholder} />;
-  };
-  return <div className="drawer-layer" onClick={onClose}><div className="form-modal" role="dialog" aria-label={title} onClick={(event) => event.stopPropagation()}>
-    <div className="form-modal-head"><div><span className="eyebrow">{subtitle || "Formulaire"}</span><h2>{title}</h2></div><button className="close-button" onClick={onClose} aria-label="Fermer"><Icon name="close" size={20} /></button></div>
-    <div className="form-modal-body"><div className="form-modal-grid">{visibleFields.map((field) => <div className={`form-field ${field.full ? "full" : ""}`} key={field.key}>
-      <label>{field.label}{field.required && " *"}</label>
-      {input(field)}
-      {errors[field.key] && <span className="field-error">{errors[field.key]}</span>}
-    </div>)}</div></div>
-    <div className="form-modal-foot"><Button variant="outline" onClick={onClose}>Annuler</Button><Button icon="check" disabled={busy} onClick={submit}>{busy ? "Enregistrement…" : submitLabel}</Button></div>
-  </div></div>;
-}
-
-export function Drawer({ title, eyebrow = "FICHE DÉTAILLÉE", children, onClose }: { title: string; eyebrow?: string; children: ReactNode; onClose: () => void }) {
-  return <div className="drawer-layer" onClick={onClose}><aside className="drawer" role="dialog" aria-label={title} onClick={(event) => event.stopPropagation()}><div className="drawer-head"><div><span className="eyebrow">{eyebrow}</span><h2>{title}</h2></div><button className="close-button" onClick={onClose} aria-label="Fermer"><Icon name="close" size={20} /></button></div>{children}</aside></div>;
-}
-
+export const Spinner = () => <span className="spinner" aria-hidden="true" />;

@@ -1,25 +1,30 @@
+import { label as labelOf, useAppT } from "../appCopy";
 import { useData } from "../data";
 import type { Group, Student } from "../lib/queries";
 import { supabase } from "../lib/supabase";
-import { DAYS, Drawer, EmptyState, FormModal, PALETTE, formatTime, todayISO } from "../ui";
+import { Drawer, FormModal } from "../appUI";
+import { DAYS, EmptyState, PALETTE, formatTime, todayISO } from "../ui";
 
+// Stored values; their labels are translated where they are shown.
 export const SOURCES = ["Walk-in", "Facebook", "Instagram", "TikTok", "Parrainage", "Site web", "Autre"];
 export const METHODS = ["Espèces", "Virement", "Chèque"];
 const text = (value: string | undefined) => value?.trim() || null;
 
 // Create or edit a student. onSaved receives the student id.
 export function StudentForm({ student, onClose, onSaved }: { student?: Student; onClose: () => void; onSaved?: (id: number) => void }) {
+  const t = useAppT();
+  const f = t.student;
   const { school, save } = useData();
   return <FormModal
-    title={student ? "Modifier l'étudiant" : "Nouvel étudiant"} subtitle="Fiche étudiant" submitLabel={student ? "Enregistrer" : "Créer l'étudiant"} onClose={onClose}
+    title={student ? f.formEdit : f.formNew} subtitle={f.formSubject} submitLabel={student ? t.common.save : f.submitNew} onClose={onClose}
     initial={{ full_name: student?.full_name ?? "", phone: student?.phone ?? "", email: student?.email ?? "", dob: student?.dob ?? "", address: student?.address ?? "", source: student?.source ?? "Walk-in" }}
     fields={[
-      { key: "full_name", label: "Nom complet", required: true, full: true, placeholder: "Ex. Amine Khelifi" },
-      { key: "phone", label: "Téléphone", required: true, placeholder: "0555 00 00 00" },
-      { key: "email", label: "Email", type: "email", placeholder: "email@exemple.com" },
-      { key: "dob", label: "Date de naissance", type: "date" },
-      { key: "source", label: "Source", type: "select", options: SOURCES },
-      { key: "address", label: "Adresse", full: true },
+      { key: "full_name", label: f.fName, required: true, full: true, placeholder: f.fNamePlaceholder },
+      { key: "phone", label: t.common.phone, required: true, placeholder: f.fPhonePlaceholder },
+      { key: "email", label: t.common.email, type: "email", placeholder: f.fEmailPlaceholder },
+      { key: "dob", label: f.fDob, type: "date" },
+      { key: "source", label: f.fSource, type: "select", options: SOURCES.map((value) => ({ value, label: labelOf(t.v.source, value) })) },
+      { key: "address", label: t.common.address, full: true },
     ]}
     onSubmit={async (values) => {
       const row = { full_name: values.full_name.trim(), phone: values.phone.trim(), email: text(values.email), dob: values.dob || null, address: text(values.address), source: values.source };
@@ -29,7 +34,7 @@ export function StudentForm({ student, onClose, onSaved }: { student?: Student; 
         const result = await supabase.from("students").insert({ ...row, school_id: school.id }).select("id").single();
         id = result.data?.id;
         return result;
-      }, student ? "Fiche étudiant mise à jour." : `${row.full_name} a été ajouté(e).`);
+      }, student ? f.savedEdit : f.savedNew(row.full_name));
       if (ok && id) onSaved?.(id);
       return ok;
     }}
@@ -38,37 +43,39 @@ export function StudentForm({ student, onClose, onSaved }: { student?: Student; 
 
 // New enrollment: student (unless given), course, group of that course, price, first payment.
 export function EnrollmentForm({ studentId, onClose }: { studentId?: number; onClose: () => void }) {
+  const t = useAppT();
+  const e = t.enrollForm;
   const { school, courses, groups, students, save, money } = useData();
   if (!courses.length) {
-    return <Drawer title="Nouvelle inscription" eyebrow="INSCRIPTION" onClose={onClose}>
-      <EmptyState title="Aucune formation" text="Ajoutez d'abord une formation dans la page Formations." />
+    return <Drawer title={e.title} eyebrow={e.subject} onClose={onClose}>
+      <EmptyState title={e.noCourse} text={e.noCourseText} />
     </Drawer>;
   }
   const groupsOf = (courseId: string) => groups.filter((group) => String(group.course_id) === courseId && group.status !== "Annulé");
   const firstCourse = String(courses[0].id);
   return <FormModal
-    title="Nouvelle inscription" subtitle="Inscription" submitLabel="Confirmer l'inscription" onClose={onClose}
+    title={e.title} subtitle={e.subject} submitLabel={e.submit} onClose={onClose}
     initial={{ student: String(studentId ?? students[0]?.id ?? ""), course: firstCourse, group: String(groupsOf(firstCourse)[0]?.id ?? ""), enrolled_on: todayISO(), total: "", first_payment: "", method: "Espèces", notes: "" }}
     fields={(values) => {
       const course = courses.find((item) => String(item.id) === values.course);
       return [
-        ...(studentId ? [] : [{ key: "student", label: "Étudiant", type: "select" as const, required: true, full: true, options: students.map((student) => ({ value: String(student.id), label: `${student.full_name} · ${student.phone}` })) }]),
-        { key: "course", label: "Formation", type: "select", required: true, options: courses.map((item) => ({ value: String(item.id), label: `${item.name} · ${money(item.price)}` })) },
-        { key: "group", label: "Groupe", type: "select", options: [{ value: "", label: "Sans groupe pour l'instant" }, ...groupsOf(values.course).map((group) => ({ value: String(group.id), label: groupLabel(group) }))] },
-        { key: "enrolled_on", label: "Date d'inscription", type: "date", required: true },
-        { key: "total", label: "Prix convenu", type: "number", placeholder: course ? `${course.price} (prix de la formation)` : "" },
-        { key: "first_payment", label: "Premier versement", type: "number", placeholder: "0" },
-        { key: "method", label: "Mode de paiement", type: "select", options: METHODS },
-        { key: "notes", label: "Notes", type: "textarea", full: true, placeholder: "Informations utiles pour l'équipe…" },
+        ...(studentId ? [] : [{ key: "student", label: t.common.student, type: "select" as const, required: true, full: true, options: students.map((student) => ({ value: String(student.id), label: `${student.full_name} · ${student.phone}` })) }]),
+        { key: "course", label: t.common.course, type: "select", required: true, options: courses.map((item) => ({ value: String(item.id), label: `${item.name} · ${money(item.price)}` })) },
+        { key: "group", label: t.common.group, type: "select", options: [{ value: "", label: e.noGroupYet }, ...groupsOf(values.course).map((group) => ({ value: String(group.id), label: groupLabel(group, t.v.day) }))] },
+        { key: "enrolled_on", label: e.date, type: "date", required: true },
+        { key: "total", label: e.price, type: "number", placeholder: course ? e.pricePlaceholder(course.price) : "" },
+        { key: "first_payment", label: e.firstPayment, type: "number", placeholder: "0" },
+        { key: "method", label: t.payments.methodLabel, type: "select", options: METHODS.map((value) => ({ value, label: labelOf(t.v.method, value) })) },
+        { key: "notes", label: e.notes, type: "textarea", full: true, placeholder: e.notesPlaceholder },
       ];
     }}
     validate={(values) => {
       const course = courses.find((item) => String(item.id) === values.course);
       const total = values.total ? Number(values.total) : course?.price ?? 0;
       return {
-        student: values.student ? "" : "Créez d'abord l'étudiant.",
-        group: values.group && !groupsOf(values.course).some((group) => String(group.id) === values.group) ? "Choisissez un groupe de cette formation." : "",
-        first_payment: Number(values.first_payment || 0) > total ? "Le versement dépasse le prix." : "",
+        student: values.student ? "" : e.errStudent,
+        group: values.group && !groupsOf(values.course).some((group) => String(group.id) === values.group) ? e.errGroup : "",
+        first_payment: Number(values.first_payment || 0) > total ? e.errPayment : "",
       };
     }}
     onSubmit={(values) => {
@@ -78,66 +85,71 @@ export function EnrollmentForm({ studentId, onClose }: { studentId?: number; onC
         p_school_id: school.id, p_student_id: Number(studentId ?? values.student), p_course_id: course.id, p_group_id: values.group ? Number(values.group) : null,
         p_enrolled_on: values.enrolled_on, p_total: values.total ? Number(values.total) : course.price, p_notes: values.notes,
         p_first_payment: Number(values.first_payment || 0), p_method: values.method,
-      }), `${student?.full_name ?? "Étudiant"} inscrit(e) en ${course.name}.`);
+      }), e.saved(student?.full_name ?? e.someone, course.name));
     }}
   />;
 }
 
-export const groupLabel = (group: Group) => `${group.name}${group.days.length ? ` · ${group.days.join(" ")}` : ""}${group.start_time ? ` ${formatTime(group.start_time)}` : ""}`;
+export const groupLabel = (group: Group, day: Record<string, string>) =>
+  `${group.name}${group.days.length ? ` · ${group.days.map((item) => day[item] ?? item).join(" ")}` : ""}${group.start_time ? ` ${formatTime(group.start_time)}` : ""}`;
 
 // Record a payment on an enrollment that still has something to pay.
 export function PaymentForm({ enrollmentId, onClose }: { enrollmentId?: number; onClose: () => void }) {
+  const t = useAppT();
+  const p = t.payments;
   const { school, enrollments, studentById, courses, balanceOf, money, save } = useData();
   const open = enrollments.filter((enrollment) => enrollment.status !== "Abandonné" && balanceOf(enrollment.id).balance > 0);
   const label = (id: number) => {
     const enrollment = enrollments.find((item) => item.id === id)!;
-    return `${studentById.get(enrollment.student_id)?.full_name ?? "?"} · ${courses.find((course) => course.id === enrollment.course_id)?.name ?? "?"} (reste ${money(balanceOf(id).balance)})`;
+    return `${studentById.get(enrollment.student_id)?.full_name ?? "?"} · ${courses.find((course) => course.id === enrollment.course_id)?.name ?? "?"} ${p.left(money(balanceOf(id).balance))}`;
   };
   const first = enrollmentId ?? open[0]?.id;
   return <FormModal
-    title="Enregistrer un paiement" subtitle="Paiement" submitLabel="Enregistrer le paiement" onClose={onClose}
+    title={p.formTitle} subtitle={p.formSubject} submitLabel={p.formSubmit} onClose={onClose}
     initial={{ enrollment: first ? String(first) : "", amount: "", paid_on: todayISO(), method: "Espèces" }}
     fields={[
-      { key: "enrollment", label: "Inscription", type: "select", required: true, full: true, options: open.map((enrollment) => ({ value: String(enrollment.id), label: label(enrollment.id) })) },
-      { key: "amount", label: `Montant (${school.currency})`, type: "number", required: true, min: 1 },
-      { key: "paid_on", label: "Date du paiement", type: "date", required: true },
-      { key: "method", label: "Mode de paiement", type: "select", options: METHODS },
+      { key: "enrollment", label: p.fEnrollment, type: "select", required: true, full: true, options: open.map((enrollment) => ({ value: String(enrollment.id), label: label(enrollment.id) })) },
+      { key: "amount", label: p.fAmount(school.currency), type: "number", required: true, min: 1 },
+      { key: "paid_on", label: p.fDate, type: "date", required: true },
+      { key: "method", label: p.methodLabel, type: "select", options: METHODS.map((value) => ({ value, label: labelOf(t.v.method, value) })) },
     ]}
     validate={(values) => ({
-      enrollment: values.enrollment ? "" : "Aucune inscription avec un solde à payer.",
-      amount: values.enrollment && Number(values.amount) > balanceOf(Number(values.enrollment)).balance ? `Le reste à payer est de ${money(balanceOf(Number(values.enrollment)).balance)}.` : "",
+      enrollment: values.enrollment ? "" : p.errNoEnrollment,
+      amount: values.enrollment && Number(values.amount) > balanceOf(Number(values.enrollment)).balance ? p.errTooMuch(money(balanceOf(Number(values.enrollment)).balance)) : "",
     })}
     onSubmit={(values) => save(
       () => supabase.from("payments").insert({ school_id: school.id, enrollment_id: Number(values.enrollment), amount: Number(values.amount), paid_on: values.paid_on, method: values.method }),
-      `Paiement de ${money(Number(values.amount))} enregistré.`,
+      p.saved(money(Number(values.amount))),
     )}
   />;
 }
 
 // Create or edit a group.
 export function GroupForm({ group, onClose }: { group?: Group; onClose: () => void }) {
+  const t = useAppT();
+  const g = t.groups;
   const { school, courses, teachers, groups, save } = useData();
   return <FormModal
-    title={group ? "Modifier le groupe" : "Créer un groupe"} subtitle="Groupe" submitLabel={group ? "Enregistrer" : "Créer le groupe"} onClose={onClose}
+    title={group ? g.formEdit : g.formNew} subtitle={g.formSubject} submitLabel={group ? t.common.save : g.submitNew} onClose={onClose}
     initial={{
       name: group?.name ?? "", course: String(group?.course_id ?? courses[0]?.id ?? ""), teacher: String(group?.teacher_id ?? ""), room: group?.room ?? "",
       days: (group?.days ?? []).join(","), start_time: formatTime(group?.start_time ?? "09:00"), end_time: formatTime(group?.end_time ?? "11:00"),
       capacity: String(group?.capacity ?? 15), status: group?.status === "Annulé" ? "Annulé" : "Ouvert",
     }}
     fields={[
-      { key: "name", label: "Nom du groupe", required: true, full: true, placeholder: "Ex. Excel avancé — Matin" },
-      { key: "course", label: "Formation", type: "select", options: [{ value: "", label: "—" }, ...courses.map((course) => ({ value: String(course.id), label: course.name }))] },
-      { key: "teacher", label: "Formateur", type: "select", options: [{ value: "", label: "À affecter" }, ...teachers.map((teacher) => ({ value: String(teacher.id), label: teacher.full_name }))] },
-      { key: "days", label: "Jours de cours", type: "days", full: true },
-      { key: "start_time", label: "Début", type: "time", required: true },
-      { key: "end_time", label: "Fin", type: "time", required: true },
-      { key: "room", label: "Salle", placeholder: "Salle A1" },
-      { key: "capacity", label: "Capacité", type: "number", required: true, min: 1 },
-      { key: "status", label: "Statut", type: "select", options: ["Ouvert", "Annulé"] },
+      { key: "name", label: g.fName, required: true, full: true, placeholder: g.fNamePlaceholder },
+      { key: "course", label: t.common.course, type: "select", options: [{ value: "", label: "—" }, ...courses.map((course) => ({ value: String(course.id), label: course.name }))] },
+      { key: "teacher", label: t.common.teacher, type: "select", options: [{ value: "", label: t.students.toAssign }, ...teachers.map((teacher) => ({ value: String(teacher.id), label: teacher.full_name }))] },
+      { key: "days", label: g.fDays, type: "days", full: true },
+      { key: "start_time", label: g.fStart, type: "time", required: true },
+      { key: "end_time", label: g.fEnd, type: "time", required: true },
+      { key: "room", label: g.fRoom, placeholder: g.fRoomPlaceholder },
+      { key: "capacity", label: g.fCapacity, type: "number", required: true, min: 1 },
+      { key: "status", label: t.common.status, type: "select", options: ["Ouvert", "Annulé"].map((value) => ({ value, label: labelOf(t.v.status, value) })) },
     ]}
     validate={(values) => ({
-      days: values.days ? "" : "Choisissez au moins un jour.",
-      end_time: values.end_time && values.start_time && values.end_time <= values.start_time ? "La fin doit être après le début." : "",
+      days: values.days ? "" : g.errDays,
+      end_time: values.end_time && values.start_time && values.end_time <= values.start_time ? g.errEnd : "",
     })}
     onSubmit={(values) => {
       const row = {
@@ -147,7 +159,7 @@ export function GroupForm({ group, onClose }: { group?: Group; onClose: () => vo
       };
       return save(
         () => group ? supabase.from("groups").update(row).eq("id", group.id) : supabase.from("groups").insert({ ...row, school_id: school.id, color: PALETTE[groups.length % PALETTE.length] }),
-        group ? "Groupe mis à jour." : `Groupe « ${row.name} » créé.`,
+        group ? g.savedEdit : g.savedNew(row.name),
       );
     }}
   />;

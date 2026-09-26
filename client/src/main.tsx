@@ -2,6 +2,7 @@ import { Component, StrictMode, Suspense, lazy, useEffect, useState } from "reac
 import type { ReactNode } from "react";
 import { createRoot } from "react-dom/client";
 import { signOut, useAuth } from "./auth";
+import { useT } from "./i18n";
 import { supabase } from "./lib/supabase";
 const LEGAL_PATHS = new Set(["/mentions-legales", "/cgv", "/confidentialite"]);
 const Landing = lazy(() => import("./Landing").then((m) => ({ default: m.Landing })));
@@ -15,14 +16,23 @@ const AppShell = lazy(() => import("./AppShell"));
 if (Object.keys(localStorage).some((key) => key.startsWith("sb-") && key.endsWith("-auth-token"))) void import("./AppShell");
 import "./index.css";
 
-const Message = ({ title, text, action }: { title: string; text: string; action?: { label: string; run: () => void } }) => (
-  <AuthShell>
-    <h1>{title}</h1>
-    <p className="auth-muted">{text}</p>
-    {action && <button className="button auth-submit" onClick={action.run}>{action.label}</button>}
-    <p className="auth-muted auth-foot"><button className="text-button" onClick={signOut}>Se déconnecter</button></p>
-  </AuthShell>
-);
+const Message = ({ title, text, action }: { title: string; text: string; action?: { label: string; run: () => void } }) => {
+  const t = useT();
+  return (
+    <AuthShell>
+      <h1>{title}</h1>
+      <p className="auth-muted">{text}</p>
+      {action && <button className="button auth-submit" onClick={action.run}>{action.label}</button>}
+      <p className="auth-muted auth-foot"><button className="text-button" onClick={signOut}>{t.access.signOut}</button></p>
+    </AuthShell>
+  );
+};
+const Loading = () => <AuthShell><p className="auth-muted">{useT().access.loading}</p></AuthShell>;
+// The boundary catches render errors, so it cannot use a hook to translate its own message.
+const Crash = ({ onReload }: { onReload: () => void }) => {
+  const t = useT().access;
+  return <Message title={t.crashTitle} text={t.crashText} action={{ label: t.reload, run: onReload }} />;
+};
 
 // A crash anywhere in the app shows a message instead of a blank page.
 class Boundary extends Component<{ children: ReactNode }, { failed: boolean }> {
@@ -40,39 +50,42 @@ class Boundary extends Component<{ children: ReactNode }, { failed: boolean }> {
   }
   render() {
     if (!this.state.failed) return this.props.children;
-    return <Message title="Une erreur est survenue" text="Cette page n'a pas pu s'afficher. Rechargez ; si cela se reproduit, prévenez-nous." action={{ label: "Recharger", run: () => window.location.reload() }} />;
+    return <Crash onReload={() => window.location.reload()} />;
   }
 }
 
 type Order = { id: number; status: string; school_name: string };
 
 function Waiting({ email }: { email: string }) {
+  const t = useT().access;
   const [order, setOrder] = useState<Order | null | undefined>();
   useEffect(() => {
     supabase.rpc("my_order_status").then(({ data }) => setOrder((data as Order[])?.[0] ?? null));
   }, []);
-  if (order === undefined) return <AuthShell><p className="auth-muted">Chargement…</p></AuthShell>;
-  if (!order) return <Message title="Accès non configuré"
-    text={`Le compte ${email} n'est rattaché à aucun établissement. Si vous êtes secrétaire ou formateur, demandez à votre directeur de vous inviter. Si vous ouvrez une école, envoyez votre demande.`}
-    action={{ label: "Envoyer ma demande", run: () => { window.location.href = "/commander"; } }} />;
+  if (order === undefined) return <Loading />;
+  if (!order) return <Message title={t.noAccessTitle} text={t.noAccessText(email)}
+    action={{ label: t.sendOrder, run: () => { window.location.href = "/commander"; } }} />;
   return <Message
-    title={order.status === "annulé" ? "Demande annulée" : "Espace en préparation"}
+    title={order.status === "annulé" ? t.cancelledTitle : t.waitingTitle}
     text={order.status === "annulé"
-      ? `Votre demande pour « ${order.school_name} » a été annulée. Contactez-nous pour la reprendre.`
-      : `Votre demande CMD-${String(order.id).padStart(5, "0")} pour « ${order.school_name} » est enregistrée. Votre espace s'ouvre dès que votre paiement est confirmé — reconnectez-vous ensuite avec ${email}.`}
-    action={{ label: "Vérifier maintenant", run: () => window.location.reload() }} />;
+      ? t.cancelledText(order.school_name)
+      : t.waitingText(`CMD-${String(order.id).padStart(5, "0")}`, order.school_name, email)}
+    action={{ label: t.checkNow, run: () => window.location.reload() }} />;
 }
 
 // The app's own addresses; anything else typed by hand is a wrong address, not a login page.
 const PAGE_PATHS = new Set(["/", "/etudiants", "/inscriptions", "/formations", "/formateurs", "/groupes", "/planning", "/presences", "/paiements", "/certificats", "/parametres"]);
 
-const NotFound = () => <Message title="Page introuvable" text="Cette adresse n'existe pas. Revenez au site ou connectez-vous à votre espace."
-  action={{ label: "Retour au site", run: () => { window.location.href = "/"; } }} />;
+function NotFound() {
+  const t = useT().access;
+  return <Message title={t.notFoundTitle} text={t.notFoundText} action={{ label: t.backToSite, run: () => { window.location.href = "/"; } }} />;
+}
 
 function Root() {
   const auth = useAuth();
+  const t = useT().access;
   if (LEGAL_PATHS.has(window.location.pathname)) return <Legal path={window.location.pathname} />;
-  if (auth.status === "loading") return <AuthShell><p className="auth-muted">Chargement…</p></AuthShell>;
+  if (auth.status === "loading") return <Loading />;
   if (auth.status === "signedOut") {
     // Public site for visitors; any app address (e.g. /etudiants) still leads to the login.
     if (window.location.pathname === "/") return <Landing />;
@@ -85,15 +98,15 @@ function Root() {
   if (auth.status === "noAccess" && window.location.pathname === "/commander") return <Checkout />;
   if (auth.status === "setPassword") return <SetPassword email={auth.email} />;
   if (auth.status === "noAccess") return <Waiting email={auth.email} />;
-  if (auth.status === "error") return <Message title="Erreur de chargement" text={`Impossible de charger votre profil (${auth.message}).`} action={{ label: "Réessayer", run: () => window.location.reload() }} />;
+  if (auth.status === "error") return <Message title={t.loadError} text={t.profileError(auth.message)} action={{ label: t.retry, run: () => window.location.reload() }} />;
   return <AppShell member={auth.member} email={auth.email} userId={auth.userId}
-    onError={(message, retry) => <Message title="Erreur de chargement" text={message} action={{ label: "Réessayer", run: retry }} />} />;
+    onError={(message, retry) => <Message title={t.loadError} text={message} action={{ label: t.retry, run: retry }} />} />;
 }
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <Boundary>
-      <Suspense fallback={<AuthShell><p className="auth-muted">Chargement…</p></AuthShell>}>
+      <Suspense fallback={<Loading />}>
         <Root />
       </Suspense>
     </Boundary>

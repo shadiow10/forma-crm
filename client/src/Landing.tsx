@@ -1,63 +1,44 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { supabase } from "./lib/supabase";
 import { isLeaked } from "./Login";
 import type { FormEvent, ReactNode } from "react";
-import { BrandMark, Icon } from "./ui";
+import { LangPicker, money, usePage, useT } from "./i18n";
+import type { Copy } from "./i18n";
+import { BrandMark, Icon, Spinner, ThemeToggle } from "./ui";
 import type { IconName } from "./ui";
 
-// Public site: landing page and a DEMO checkout. Nothing here charges money or creates accounts.
+// Public site: landing page and a DEMO checkout. Nothing here charges money.
 // Real version: checkout → payment gateway (Chargily: Edahabia/CIB) → webhook creates the school
 // and invites the director with the existing invite-user flow.
 
 type Billing = "monthly" | "yearly";
-type Plan = { id: string; name: string; monthly: number; tagline: string; students: string; users: string; features: string[]; featured?: boolean };
+type PlanId = keyof Copy["plans"];
 
-// Monthly prices in DA. Yearly = 10 months (2 months free). `features` = what the plan adds on top of INCLUDED.
-export const PLANS: Plan[] = [
-  { id: "essentiel", name: "Essentiel", monthly: 7900, tagline: "Écoles de soutien et petits centres", students: "100 étudiants", users: "3 utilisateurs", features: ["Support par email"] },
-  { id: "pro", name: "Pro", monthly: 14900, tagline: "Écoles privées et centres de formation", students: "400 étudiants", users: "10 utilisateurs", featured: true, features: ["Import de vos listes Excel par notre équipe", "Formation de votre secrétariat (1 séance)", "Support prioritaire par téléphone"] },
-  { id: "etablissement", name: "Établissement", monthly: 24900, tagline: "Grands établissements et réseaux", students: "Étudiants illimités", users: "Utilisateurs illimités", features: ["Tout Pro, plus un interlocuteur dédié", "Formation de toute l'équipe sur site"] },
+// Monthly prices in DA; the names and what each plan adds live in i18n.tsx. Yearly = 10 months.
+export const PLANS: { id: PlanId; monthly: number; featured?: boolean }[] = [
+  { id: "essentiel", monthly: 7900 },
+  { id: "pro", monthly: 14900, featured: true },
+  { id: "etablissement", monthly: 24900 },
 ];
-const INCLUDED = ["Étudiants, inscriptions et documents", "Paiements, soldes et exports", "Présences et planning des groupes", "Certificats prêts à imprimer", "Accès par rôle : directeur, secrétaire, formateur", "Données séparées de chaque école"];
-const price = (value: number) => `${new Intl.NumberFormat("fr-FR").format(value)} DA`;
-const planTotal = (plan: Plan, billing: Billing) => (billing === "yearly" ? plan.monthly * 10 : plan.monthly);
+const planTotal = (monthly: number, billing: Billing) => (billing === "yearly" ? monthly * 10 : monthly);
 
-const AUDIENCES = ["Écoles privées", "Centres de formation", "Écoles de soutien", "Écoles de langues", "Préscolaire"];
-
-const FAQ = [
-  { q: "Combien de temps pour démarrer ?", a: "Le jour même. Vous ajoutez vos formations, vos groupes et vos étudiants, puis vous invitez votre équipe. Avec la formule Pro, notre équipe importe vos listes Excel pour vous." },
-  { q: "Faut-il former l'équipe ?", a: "Une courte prise en main suffit : les écrans reprennent les gestes du quotidien — inscrire, encaisser, faire l'appel. La formule Pro inclut une séance de formation pour votre secrétariat." },
-  { q: "Que deviennent nos données si nous partons ?", a: "Elles restent les vôtres. Les listes d'étudiants, les paiements, les présences et le catalogue s'exportent à tout moment en fichiers lisibles dans Excel." },
-  { q: "Comment payer ?", a: "Par carte Edahabia ou CIB en ligne, ou par virement / versement CCP. L'accès est ouvert dès la confirmation du paiement." },
-  { q: "Que se passe-t-il après le paiement ?", a: "Votre espace école est créé et le directeur reçoit un email pour choisir son mot de passe. Il invite ensuite son équipe depuis Paramètres." },
-  { q: "Mes données sont-elles séparées des autres écoles ?", a: "Oui. Chaque école a son propre espace ; les règles d'accès sont appliquées par la base de données elle-même, pas seulement par l'écran." },
-  { q: "Puis-je changer de formule ?", a: "Oui, à tout moment. Le changement s'applique à la période suivante." },
-  { q: "Faut-il installer quelque chose ?", a: "Non. Classtra fonctionne dans le navigateur, sur ordinateur comme sur téléphone." },
-];
-
-const PROBLEMS: { icon: IconName; title: string; text: string }[] = [
-  { icon: "clock", title: "Des heures perdues chaque semaine", text: "Recopier les listes d'appel, recompter les absences, refaire les totaux : du temps qui ne va pas aux étudiants." },
-  { icon: "wallet", title: "Des impayés découverts trop tard", text: "Un carnet de versements, un reçu introuvable : on ne sait plus qui a payé quoi, ni combien il reste." },
-  { icon: "warning", title: "Des données fragiles", text: "Un fichier Excel sur une clé USB, un cahier dans un tiroir. Une perte, et c'est une année de dossiers qui disparaît." },
-];
-
-const ROLES: { icon: IconName; role: string; text: string; can: string[] }[] = [
-  { icon: "building", role: "Directeur", text: "Voit toute l'école et la pilote.", can: ["Finances et soldes de chaque étudiant", "Équipe, accès et paramètres", "Modification et suppression des paiements"] },
-  { icon: "file", role: "Secrétaire", text: "Fait tourner le quotidien.", can: ["Inscriptions et dossiers étudiants", "Encaissements, sans pouvoir les modifier", "Groupes, planning et présences"] },
-  { icon: "teacher", role: "Formateur", text: "Se concentre sur ses groupes.", can: ["Son planning uniquement", "L'appel de ses propres groupes", "Les noms de ses étudiants, rien de plus"] },
-];
+const PROBLEM_ICONS: IconName[] = ["clock", "wallet", "warning"];
+const ROLE_ICONS: IconName[] = ["building", "file", "teacher"];
+const TILE_ICONS: IconName[] = ["check", "wallet", "graduation", "calendar", "print"];
 
 export function Footer() {
+  const t = useT();
   return <footer className="lp-footer">
     <Brand />
-    <nav aria-label="Informations légales"><a href="/mentions-legales">Mentions légales</a><a href="/cgv">CGV</a><a href="/confidentialite">Confidentialité</a></nav>
-    <a href="/connexion">Espace client</a>
+    <nav aria-label={t.footer.legalNav}><a href="/mentions-legales">{t.footer.legal}</a><a href="/cgv">{t.footer.cgv}</a><a href="/confidentialite">{t.footer.privacy}</a></nav>
+    <a href="/connexion">{t.footer.client}</a>
   </footer>;
 }
 
 // Public read-only demo school. Unset in .env = no demo button.
 const DEMO = { email: import.meta.env.VITE_DEMO_EMAIL as string | undefined, password: import.meta.env.VITE_DEMO_PASSWORD as string | undefined };
 function DemoButton({ className = "lp-btn" }: { className?: string }) {
+  const t = useT();
   const [state, setState] = useState<"idle" | "busy" | "error">("idle");
   if (!DEMO.email || !DEMO.password) return null;
   const start = async () => {
@@ -68,18 +49,25 @@ function DemoButton({ className = "lp-btn" }: { className?: string }) {
     window.scrollTo({ top: 0 });
   };
   return <span className="lp-demo">
-    <button className={className} type="button" onClick={start} disabled={state === "busy"}>{state === "busy" ? "Ouverture de la démo…" : "Essayer la démo"}</button>
-    {state === "error" && <small role="alert">La démo est indisponible pour le moment.</small>}
+    <button className={className} type="button" onClick={start} disabled={state === "busy"}>{state === "busy" && <Spinner />}{state === "busy" ? t.demo.busy : t.demo.start}</button>
+    {state === "error" && <small role="alert">{t.demo.error}</small>}
   </span>;
 }
 
 export function Brand({ light = false }: { light?: boolean }) {
-  return <a className={`lp-brand ${light ? "light" : ""}`} href="/"><BrandMark size={34} /><strong>CLASSTRA<span>.</span></strong></a>;
+  return <a className={`lp-brand ${light ? "light" : ""}`} href="/"><BrandMark size={34} /><strong dir="ltr">CLASSTRA<span>.</span></strong></a>;
+}
+
+// Language and theme, together, wherever the public site shows its header.
+function Prefs() {
+  const t = useT();
+  return <span className="lp-prefs"><LangPicker label={t.language} /><ThemeToggle labels={t.theme} /></span>;
 }
 
 // A still of the real app, drawn in HTML so it stays sharp and matches the product.
+// Its content is the French product UI on purpose: it is a screenshot, not page copy.
 function AppPreview() {
-  return <div className="lp-app" aria-hidden="true">
+  return <div className="lp-app" aria-hidden="true" dir="ltr">
     <div className="lp-app-side">
       <BrandMark size={30} />
       {(["grid", "graduation", "file", "users", "calendar", "check", "wallet"] as IconName[]).map((icon, index) => <i key={icon} className={index === 5 ? "on" : ""}><Icon name={icon} size={15} /></i>)}
@@ -104,76 +92,64 @@ function AppPreview() {
   </div>;
 }
 
-// Small stills of the other screens, looped right-to-left under the hero.
+// Small stills of the other screens, looped right-to-left under the hero. Same rule as
+// AppPreview: the inside is the real French app, only the window title is translated.
 const avatar = (name: string) => <i className="ms-avatar">{name.split(" ").map((part) => part[0]).join("")}</i>;
-const SCREENS: { title: string; icon: IconName; body: ReactNode }[] = [
-  { title: "Tableau de bord", icon: "grid", body: <>
+const SCREENS: { icon: IconName; body: ReactNode }[] = [
+  { icon: "grid", body: <>
     <div className="ms-metrics"><div><small>Étudiants actifs</small><b>186</b></div><div><small>Présence</small><b>91%</b></div><div><small>Encaissé</small><b>742k</b></div></div>
     <div className="ms-bars">{[42, 58, 50, 71, 64, 88, 76].map((height, index) => <i key={index} style={{ height: `${height}%` }} />)}</div>
   </> },
-  { title: "Étudiants", icon: "graduation", body: <>
+  { icon: "graduation", body: <>
     {[["Lina Haddad", "Excel avancé", "Actif"], ["Yacine Merabet", "Anglais B1", "Actif"], ["Sara Belkacem", "Comptabilité", "En attente"], ["Nour Saad", "Python", "Actif"]].map(([name, course, status]) =>
       <div className="ms-row" key={name}>{avatar(name)}<span><b>{name}</b><small>{course}</small></span><em className={status === "Actif" ? "ok" : "wait"}>{status}</em></div>)}
   </> },
-  { title: "Paiements", icon: "wallet", body: <>
+  { icon: "wallet", body: <>
     {[["Karim Ouali", "15 000 DA", "CCP"], ["Lina Haddad", "22 000 DA", "Espèces"], ["Amel Rahmani", "18 500 DA", "Edahabia"]].map(([name, amount, method]) =>
       <div className="ms-row" key={name}>{avatar(name)}<span><b>{name}</b><small>{method}</small></span><strong>{amount}</strong></div>)}
     <div className="ms-due"><span>Reste à recouvrer</span><b>186 500 DA</b></div>
   </> },
-  { title: "Planning", icon: "calendar", body:
+  { icon: "calendar", body:
     <div className="ms-week">{["Dim", "Lun", "Mar", "Mer", "Jeu"].map((day, index) => <div key={day}><small>{day}</small>
       {[["Excel", "t"], ["Anglais", "c"], ["Python", "n"]].filter((_, slot) => (index + slot) % 3 !== 2).map(([label, tone]) => <i key={label} className={tone}>{label}</i>)}
     </div>)}</div> },
-  { title: "Groupes", icon: "users", body: <>
+  { icon: "users", body: <>
     {[["Excel avancé — Matin", 16, 18], ["Anglais B1 — Soir", 11, 20], ["Python débutant", 19, 20]].map(([name, taken, seats]) =>
       <div className="ms-group" key={name}><span><b>{name}</b><small>{taken} / {seats} places</small></span><div><i style={{ width: `${(Number(taken) / Number(seats)) * 100}%` }} /></div></div>)}
   </> },
-  { title: "Certificats", icon: "print", body:
+  { icon: "print", body:
     <div className="ms-cert"><small>Certificat de formation</small><b>Lina Haddad</b><span>a suivi avec succès « Excel avancé »</span><div><i /><i /></div></div> },
 ];
 
 function ScreenStrip() {
+  const t = useT();
   return <div className="lp-marquee">
-    <div className="lp-marquee-track">
-      {[0, 1].map((copy) => SCREENS.map((screen) => <div className="lp-shot" key={`${copy}-${screen.title}`} aria-hidden={copy === 1 || undefined}>
-        <div className="lp-shot-bar"><Icon name={screen.icon} size={13} />{screen.title}</div>
+    <div className="lp-marquee-track" dir="ltr">
+      {[0, 1].map((copy) => SCREENS.map((screen, index) => <div className="lp-shot" key={`${copy}-${index}`} aria-hidden={copy === 1 || undefined}>
+        <div className="lp-shot-bar"><Icon name={screen.icon} size={13} />{t.shots.screens[index]}</div>
         <div className="lp-shot-body" aria-hidden="true">{screen.body}</div>
       </div>))}
     </div>
   </div>;
 }
 
-// Scroll reveal, marketing surface only: each block fades up once when it enters the viewport.
-const REVEAL = ".lp-section-head, .lp-marquee, .lp-problem article, .lp-role, .lp-tile, .lp-band h2, .lp-steps li, .lp-pricing-intro, .lp-plan, .lp-faq > div, .lp-cta";
-function useReveal() {
-  const root = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    const targets = [...(root.current?.querySelectorAll<HTMLElement>(REVEAL) ?? [])];
-    const observer = new IntersectionObserver((entries) => {
-      for (const entry of entries) if (entry.isIntersecting) { entry.target.setAttribute("data-visible", ""); observer.unobserve(entry.target); }
-    }, { rootMargin: "0px 0px -80px 0px" });
-    for (const target of targets) { target.setAttribute("data-reveal", ""); observer.observe(target); }
-    return () => observer.disconnect();
-  }, []);
-  return root;
-}
-
 // Nav underline follows the section in the middle of the screen.
-const NAV = [["fonctionnalites", "Fonctionnalités"], ["roles", "Pour qui"], ["tarifs", "Tarifs"], ["faq", "Questions"]];
+const NAV = ["fonctionnalites", "roles", "tarifs", "faq"] as const;
 function useActiveSection() {
   const [active, setActive] = useState("");
   useEffect(() => {
     const observer = new IntersectionObserver((entries) => {
       for (const entry of entries) { const id = entry.target.id; setActive((current) => entry.isIntersecting ? id : current === id ? "" : current); }
     }, { rootMargin: "-45% 0px -50% 0px" });
-    for (const [id] of NAV) { const section = document.getElementById(id); if (section) observer.observe(section); }
+    for (const id of NAV) { const section = document.getElementById(id); if (section) observer.observe(section); }
     return () => observer.disconnect();
   }, []);
   return active;
 }
 
 export function Landing() {
-  const root = useReveal();
+  const t = useT();
+  const page = usePage();
   const active = useActiveSection();
   const [menuOpen, setMenuOpen] = useState(false);
   useEffect(() => {
@@ -183,90 +159,72 @@ export function Landing() {
     return () => window.removeEventListener("keydown", close);
   }, [menuOpen]);
   const [billing, setBilling] = useState<Billing>("monthly");
+  const navLabels = [t.nav.features, t.nav.roles, t.nav.pricing, t.nav.faq];
   const featured = PLANS.find((plan) => plan.featured)!;
-  return <div className="lp" ref={root}>
+  return <div className="lp" {...page}>
     <header className="lp-header">
       <Brand />
-      <nav className="lp-nav" aria-label="Sections">{NAV.map(([id, label]) => <a key={id} href={`#${id}`} className={active === id ? "active" : ""}>{label}</a>)}</nav>
-      <a className="lp-login" href="/connexion">Se connecter</a>
-      <button className="lp-burger" type="button" aria-label="Menu" aria-expanded={menuOpen} aria-controls="lp-menu" onClick={() => setMenuOpen(!menuOpen)}><Icon name={menuOpen ? "close" : "menu"} size={20} /></button>
-      {menuOpen && <nav id="lp-menu" className="lp-menu" aria-label="Menu">{NAV.map(([id, label]) => <a key={id} href={`#${id}`} onClick={() => setMenuOpen(false)}>{label}</a>)}</nav>}
+      <nav className="lp-nav" aria-label={t.sections}>{NAV.map((id, index) => <a key={id} href={`#${id}`} className={active === id ? "active" : ""}>{navLabels[index]}</a>)}</nav>
+      <Prefs />
+      <a className="lp-login" href="/connexion">{t.signIn}</a>
+      <button className="lp-burger" type="button" aria-label={t.menu} aria-expanded={menuOpen} aria-controls="lp-menu" onClick={() => setMenuOpen(!menuOpen)}><Icon name={menuOpen ? "close" : "menu"} size={20} /></button>
+      {menuOpen && <nav id="lp-menu" className="lp-menu" aria-label={t.menu}>
+        {NAV.map((id, index) => <a key={id} href={`#${id}`} onClick={() => setMenuOpen(false)}>{navLabels[index]}</a>)}
+        <Prefs />
+      </nav>}
     </header>
 
     <main>
       <section className="lp-hero">
-        <p className="lp-eyebrow">Logiciel de gestion scolaire · Algérie</p>
-        <h1>L'école tourne.<br /><span>Les papiers, non.</span></h1>
-        <p className="lp-lead">Inscriptions, présences, paiements et certificats au même endroit — pour le directeur, le secrétariat et les formateurs.</p>
-        <div className="lp-actions"><a className="lp-btn primary" href="#tarifs">Voir les formules</a>{DEMO.email ? <DemoButton className="lp-btn outline" /> : <a className="lp-link" href="#fonctionnalites">Comment ça marche <Icon name="arrow" size={15} /></a>}</div>
-        {DEMO.email && <p className="lp-demo-hint">Démo en lecture seule, sans inscription, avec une école fictive.</p>}
+        <p className="lp-eyebrow">{t.hero.eyebrow}</p>
+        <h1>{t.hero.titleA}<br /><span>{t.hero.titleB}</span></h1>
+        <p className="lp-lead">{t.hero.lead}</p>
+        <div className="lp-actions"><a className="lp-btn primary" href="#tarifs">{t.hero.plans}</a>{DEMO.email ? <DemoButton className="lp-btn outline" /> : <a className="lp-link" href="#fonctionnalites">{t.hero.how} <Icon name="arrow" size={15} /></a>}</div>
         <AppPreview />
       </section>
 
-      <section className="lp-audience" aria-label="Pour qui">
-        <span>Conçu pour</span>
-        <ul>{AUDIENCES.map((audience) => <li key={audience}>{audience}</li>)}</ul>
+      <section className="lp-audience" aria-label={t.audience.label}>
+        <span>{t.audience.label}</span>
+        <ul>{t.audience.items.map((audience) => <li key={audience}>{audience}</li>)}</ul>
       </section>
 
       <section className="lp-section lp-problem">
         <div className="lp-section-head">
-          <p className="lp-eyebrow">Le problème</p>
-          <h2>La gestion de l'école se perd dans les cahiers.</h2>
-          <p>Un tableur pour les inscriptions, un cahier pour l'appel, un carnet pour les versements. Chaque information existe en trois versions, dont deux sont fausses.</p>
+          <h2>{t.problem.title}</h2>
+          <p>{t.problem.text}</p>
         </div>
-        <div className="lp-problem-grid">{PROBLEMS.map((item) => <article key={item.title}><span className="lp-icon"><Icon name={item.icon} size={20} /></span><h3>{item.title}</h3><p>{item.text}</p></article>)}</div>
+        <div className="lp-problem-grid">{t.problem.items.map((item, index) => <article key={item.title}><span className="lp-icon"><Icon name={PROBLEM_ICONS[index]} size={20} /></span><h3>{item.title}</h3><p>{item.text}</p></article>)}</div>
       </section>
 
-      <section className="lp-shots" aria-label="Les écrans de Classtra">
+      <section className="lp-shots" aria-label={t.shots.title}>
         <div className="lp-section-head">
-          <p className="lp-eyebrow">L&apos;application</p>
-          <h2>Tous les écrans de l&apos;école, au même endroit.</h2>
+          <h2>{t.shots.title}</h2>
         </div>
         <ScreenStrip />
       </section>
 
       <section id="fonctionnalites" className="lp-section">
         <div className="lp-section-head">
-          <p className="lp-eyebrow">Au quotidien</p>
-          <h2>Une journée d'école, sans double saisie.</h2>
+          <h2>{t.features.title}</h2>
         </div>
         <div className="lp-bento">
-          <article className="lp-tile dark big">
-            <span className="lp-icon"><Icon name="check" size={20} /></span>
-            <h3>La présence en un geste</h3>
-            <p>Le formateur marque présent, retard ou absent depuis son téléphone. Le taux de chaque étudiant se met à jour pour tout le monde.</p>
-            <div className="lp-tile-marks" aria-hidden="true"><b className="P on">✓</b><b className="L">~</b><b className="A">×</b></div>
-          </article>
-          <article className="lp-tile">
-            <span className="lp-icon"><Icon name="wallet" size={20} /></span>
-            <h3>Qui doit quoi, en temps réel</h3>
-            <p>Chaque versement est enregistré. Le reste à payer se calcule par inscription, sans tableur.</p>
-          </article>
-          <article className="lp-tile">
-            <span className="lp-icon"><Icon name="graduation" size={20} /></span>
-            <h3>Le dossier complet</h3>
-            <p>Coordonnées, inscriptions, CNI et diplômes scannés, notes de suivi.</p>
-          </article>
-          <article className="lp-tile wide">
-            <span className="lp-icon"><Icon name="calendar" size={20} /></span>
-            <div><h3>Groupes, salles et horaires</h3><p>Une grille hebdomadaire lisible, filtrée pour chaque formateur.</p></div>
-          </article>
-          <article className="lp-tile sand">
-            <span className="lp-icon"><Icon name="print" size={20} /></span>
-            <h3>Certificats</h3>
-            <p>Prêts à imprimer dès qu'une formation est terminée et réglée.</p>
-          </article>
+          {t.features.tiles.map((tile, index) => <article className={`lp-tile ${["dark big", "", "", "wide", "sand"][index]}`} key={tile.title}>
+            <span className="lp-icon"><Icon name={TILE_ICONS[index]} size={20} /></span>
+            {index === 3
+              ? <div><h3>{tile.title}</h3><p>{tile.text}</p></div>
+              : <><h3>{tile.title}</h3><p>{tile.text}</p></>}
+            {index === 0 && <div className="lp-tile-marks" aria-hidden="true"><b className="P on">✓</b><b className="L">~</b><b className="A">×</b></div>}
+          </article>)}
         </div>
       </section>
 
       <section id="roles" className="lp-section lp-roles">
         <div className="lp-section-head">
-          <p className="lp-eyebrow">Pour qui</p>
-          <h2>Chaque rôle a son espace.</h2>
-          <p>Chacun voit ce dont il a besoin, et rien d'autre. Les règles sont appliquées par la base de données, pas seulement par l'écran.</p>
+          <h2>{t.roles.title}</h2>
+          <p>{t.roles.text}</p>
         </div>
-        <div className="lp-role-grid">{ROLES.map((item) => <article className="lp-role" key={item.role}>
-          <span className="lp-icon"><Icon name={item.icon} size={20} /></span>
+        <div className="lp-role-grid">{t.roles.items.map((item, index) => <article className="lp-role" key={item.role}>
+          <span className="lp-icon"><Icon name={ROLE_ICONS[index]} size={20} /></span>
           <h3>{item.role}</h3>
           <p>{item.text}</p>
           <ul>{item.can.map((line) => <li key={line}><Icon name="check" size={14} />{line}</li>)}</ul>
@@ -275,61 +233,61 @@ export function Landing() {
 
       <section className="lp-band">
         <div className="lp-band-inner">
-          <h2>En ligne dès aujourd'hui.</h2>
+          <h2>{t.steps.title}</h2>
           <ol className="lp-steps">
-            <li><em>01</em><strong>Choisissez votre formule</strong><span>Selon le nombre d'étudiants.</span></li>
-            <li><em>02</em><strong>Payez en ligne</strong><span>Edahabia, CIB, ou virement / CCP.</span></li>
-            <li><em>03</em><strong>Recevez votre accès</strong><span>Le directeur invite son équipe.</span></li>
+            {t.steps.items.map((step, index) => <li key={step.title}><em>{String(index + 1).padStart(2, "0")}</em><strong>{step.title}</strong><span>{step.text}</span></li>)}
           </ol>
         </div>
       </section>
 
       <section id="tarifs" className="lp-section lp-pricing">
         <div className="lp-pricing-intro">
-          <p className="lp-eyebrow">Tarifs</p>
-          <h2>Un prix par taille d'école. Rien de caché.</h2>
-          <p>Toutes les fonctionnalités sont dans chaque formule. Seules la taille et l'accompagnement changent.</p>
-          <div className="lp-billing" role="group" aria-label="Période de facturation">
-            <button className={billing === "monthly" ? "active" : ""} aria-pressed={billing === "monthly"} onClick={() => setBilling("monthly")}>Mensuel</button>
-            <button className={billing === "yearly" ? "active" : ""} aria-pressed={billing === "yearly"} onClick={() => setBilling("yearly")}>Annuel · 2 mois offerts</button>
+          <p className="lp-eyebrow">{t.pricing.eyebrow}</p>
+          <h2>{t.pricing.title}</h2>
+          <p>{t.pricing.text}</p>
+          <div className="lp-billing" role="group" aria-label={t.pricing.period}>
+            <button className={billing === "monthly" ? "active" : ""} aria-pressed={billing === "monthly"} onClick={() => setBilling("monthly")}>{t.pricing.monthly}</button>
+            <button className={billing === "yearly" ? "active" : ""} aria-pressed={billing === "yearly"} onClick={() => setBilling("yearly")}>{t.pricing.yearly}</button>
           </div>
           <div className="lp-included">
-            <strong>Inclus partout</strong>
-            <ul>{INCLUDED.map((item) => <li key={item}><Icon name="check" size={14} />{item}</li>)}</ul>
+            <strong>{t.pricing.includedTitle}</strong>
+            <ul>{t.pricing.included.map((item) => <li key={item}><Icon name="check" size={14} />{item}</li>)}</ul>
           </div>
         </div>
 
         <div className="lp-ledger">
-          {PLANS.map((plan) => <article className={`lp-plan ${plan.featured ? "featured" : ""}`} key={plan.id}>
-            <div className="lp-plan-name">
-              <h3>{plan.name}{plan.featured && <span className="lp-badge">Recommandé</span>}</h3>
-              <p>{plan.tagline}</p>
-            </div>
-            <div className="lp-plan-size"><span>{plan.students}</span><span>{plan.users}</span></div>
-            <div className="lp-plan-price">
-              <strong key={billing} className="lp-swap">{price(planTotal(plan, billing))}</strong>
-              <span>{billing === "yearly" ? `par an · soit ${price(Math.round(plan.monthly * 10 / 12))}/mois` : "par mois"}</span>
-            </div>
-            <a className={`lp-plan-cta ${plan.featured ? "primary" : ""}`} href={`/commander?plan=${plan.id}&periode=${billing}`} aria-label={`Choisir ${plan.name}`}>
-              Choisir <Icon name="arrow" size={16} />
-            </a>
-            {plan.featured && <ul className="lp-plan-extras">{plan.features.map((feature) => <li key={feature}><Icon name="spark" size={14} />{feature}</li>)}</ul>}
-          </article>)}
-          <p className="lp-ledger-note">{featured.name} : {featured.features.length} services d'accompagnement en plus. Paiement Edahabia, CIB ou virement CCP. Sans engagement en mensuel.</p>
+          {PLANS.map((plan) => {
+            const copy = t.plans[plan.id];
+            return <article className={`lp-plan ${plan.featured ? "featured" : ""}`} key={plan.id}>
+              <div className="lp-plan-name">
+                <h3>{copy.name}{plan.featured && <span className="lp-badge">{t.pricing.recommended}</span>}</h3>
+                <p>{copy.tagline}</p>
+              </div>
+              <div className="lp-plan-size"><span>{copy.students}</span><span>{copy.users}</span></div>
+              <div className="lp-plan-price">
+                <strong key={billing} className="lp-swap">{money(planTotal(plan.monthly, billing), t)}</strong>
+                <span>{billing === "yearly" ? t.pricing.perYear(money(Math.round(plan.monthly * 10 / 12), t)) : t.pricing.perMonth}</span>
+              </div>
+              <a className={`lp-plan-cta ${plan.featured ? "primary" : ""}`} href={`/commander?plan=${plan.id}&periode=${billing}`} aria-label={t.pricing.chooseAria(copy.name)}>
+                {t.pricing.choose} <Icon name="arrow" size={16} />
+              </a>
+              {plan.featured && <ul className="lp-plan-extras">{copy.features.map((feature) => <li key={feature}><Icon name="spark" size={14} />{feature}</li>)}</ul>}
+            </article>;
+          })}
+          <p className="lp-ledger-note">{t.pricing.note(t.plans[featured.id].name, t.plans[featured.id].features.length)}</p>
         </div>
       </section>
 
       <section id="faq" className="lp-section lp-faq">
         <div>
-          <p className="lp-eyebrow">Questions</p>
-          <h2>Ce que les directeurs nous demandent.</h2>
+          <h2>{t.faq.title}</h2>
         </div>
-        <div>{FAQ.map((item) => <details key={item.q}><summary>{item.q}<Icon name="plus" size={18} /></summary><p>{item.a}</p></details>)}</div>
+        <div>{t.faq.items.map((item) => <details key={item.q}><summary>{item.q}<Icon name="plus" size={18} /></summary><p>{item.a}</p></details>)}</div>
       </section>
 
       <section className="lp-cta">
-        <h2>Prêt pour la rentrée ?</h2>
-        <div className="lp-actions"><a className="lp-btn primary" href="#tarifs">Choisir ma formule</a><DemoButton className="lp-btn outline" /></div>
+        <h2>{t.cta.title}</h2>
+        <div className="lp-actions"><a className="lp-btn primary" href="#tarifs">{t.hero.plans}</a><DemoButton className="lp-btn outline" /></div>
       </section>
     </main>
 
@@ -341,14 +299,20 @@ export function Landing() {
 
 // Supabase refuses anything weaker, so the form asks for the same thing.
 const STRONG_PASSWORD = /^(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9]).{10,}$/;
-
-const SCHOOL_TYPES = ["École privée", "Centre de formation", "École de soutien scolaire", "École de langues", "Crèche / préscolaire"];
+// What lands in the orders table, whatever language the visitor reads the site in.
+const TYPES_FR = ["École privée", "Centre de formation", "École de soutien scolaire", "École de langues", "Crèche / préscolaire"];
+const METHODS_FR = ["en main propre", "virement ou CCP"];
 
 export function Checkout() {
+  const t = useT();
+  const page = usePage();
   const params = new URLSearchParams(window.location.search);
-  const [planId, setPlanId] = useState(PLANS.some((plan) => plan.id === params.get("plan")) ? params.get("plan")! : "pro");
+  const requested = params.get("plan");
+  const [planId, setPlanId] = useState<PlanId>(PLANS.some((plan) => plan.id === requested) ? requested as PlanId : "pro");
   const [billing, setBilling] = useState<Billing>(params.get("periode") === "yearly" ? "yearly" : "monthly");
-  const [values, setValues] = useState({ school: "", type: SCHOOL_TYPES[0], wilaya: "", director: "", email: "", phone: "", password: "", method: "cash" });
+  const [type, setType] = useState(0);
+  const [method, setMethod] = useState(0);
+  const [values, setValues] = useState({ school: "", wilaya: "", director: "", email: "", phone: "", password: "" });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [step, setStep] = useState<"form" | "sending" | "done">("form");
   const [reference, setReference] = useState("");
@@ -358,24 +322,26 @@ export function Checkout() {
     if (email) { setAccount(email); setValues((current) => ({ ...current, email })); }
   }); }, []);
   const plan = PLANS.find((item) => item.id === planId)!;
+  const planCopy = t.plans[planId];
+  const total = money(planTotal(plan.monthly, billing), t);
   const set = (key: keyof typeof values) => (event: { target: { value: string } }) => { setValues({ ...values, [key]: event.target.value }); setErrors({ ...errors, [key]: "" }); };
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();
     const next: Record<string, string> = {};
-    if (!values.school.trim()) next.school = "Indiquez le nom de l'établissement.";
-    if (!values.wilaya.trim()) next.wilaya = "Indiquez la wilaya.";
-    if (!values.director.trim()) next.director = "Indiquez le nom du directeur.";
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(values.email.trim())) next.email = "Email invalide.";
-    if (!/^0[5-7]\d{8}$/.test(values.phone.replace(/[\s.-]/g, ""))) next.phone = "Numéro mobile algérien : 05, 06 ou 07 suivi de 8 chiffres.";
-    if (!account && !STRONG_PASSWORD.test(values.password)) next.password = "10 caractères minimum, avec une majuscule, une minuscule et un chiffre.";
+    if (!values.school.trim()) next.school = t.checkout.errors.school;
+    if (!values.wilaya.trim()) next.wilaya = t.checkout.errors.wilaya;
+    if (!values.director.trim()) next.director = t.checkout.errors.director;
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(values.email.trim())) next.email = t.checkout.errors.email;
+    if (!/^0[5-7]\d{8}$/.test(values.phone.replace(/[\s.-]/g, ""))) next.phone = t.checkout.errors.phone;
+    if (!account && !STRONG_PASSWORD.test(values.password)) next.password = t.checkout.errors.password;
     setErrors(next);
     if (Object.keys(next).length) return;
     setStep("sending");
     // A director's password opens their whole school: same leak check as the invitation screen.
     if (!account && (await isLeaked(values.password))) {
       setStep("form");
-      setErrors({ password: "Ce mot de passe figure dans une fuite de données connue. Choisissez-en un autre." });
+      setErrors({ password: t.checkout.errors.leaked });
       return;
     }
     // Already signed in (an account created earlier, order never sent): keep that login, skip signup.
@@ -385,20 +351,17 @@ export function Checkout() {
       setStep("form");
       const already = /already|registered|exists/i.test(signUp.error.message);
       const weak = signUp.error.code === "weak_password";
-      setErrors({ [already ? "email" : weak ? "password" : "form"]: already
-        ? "Un compte existe déjà avec cet email. Connectez-vous, puis revenez sur cette page pour envoyer votre demande."
-        : weak ? "Mot de passe trop simple : 10 caractères minimum, avec une majuscule, une minuscule et un chiffre."
-        : "Création du compte impossible. Vérifiez votre connexion et réessayez." });
+      setErrors({ [already ? "email" : weak ? "password" : "form"]: already ? t.checkout.errors.exists : weak ? t.checkout.errors.weak : t.checkout.errors.signup });
       return;
     }
     // place_order runs as owner: it can write the order and hand back its number without opening the table.
     const { data, error } = await supabase.rpc("place_order", {
-      p_school_name: values.school, p_school_type: values.type, p_wilaya: values.wilaya,
+      p_school_name: values.school, p_school_type: TYPES_FR[type], p_wilaya: values.wilaya,
       p_director_name: values.director, p_email: values.email, p_phone: values.phone,
       p_plan: planId, p_billing: billing,
-      p_notes: `Paiement souhaité : ${values.method === "cash" ? "en main propre" : "virement ou CCP"}`,
+      p_notes: `Paiement souhaité : ${METHODS_FR[method]}`,
     });
-    if (error || !data) { setStep("form"); setErrors({ form: "Envoi impossible. Vérifiez votre connexion et réessayez." }); return; }
+    if (error || !data) { setStep("form"); setErrors({ form: t.checkout.errors.send }); return; }
     setReference(`CMD-${String(data).padStart(5, "0")}`);
     setStep("done");
     window.scrollTo({ top: 0 });
@@ -410,62 +373,61 @@ export function Checkout() {
     {errors[key] && <span className="field-error">{errors[key]}</span>}
   </label>;
 
-  return <div className="lp lp-checkout-page">
-    <header className="lp-header"><Brand /><a className="lp-login" href="/#tarifs">← Retour aux tarifs</a></header>
-    <p className="lp-demo-banner" role="note"><Icon name="phone" size={15} /> Le paiement en ligne arrive bientôt. Envoyez votre demande : nous vous rappelons sous 24 h pour finaliser.</p>
+  const doneValues = [values.email.trim(), values.phone.trim(), values.school.trim()];
+
+  return <div className="lp lp-checkout-page" {...page}>
+    <header className="lp-header"><Brand /><a className="lp-login" href="/#tarifs">{t.checkout.back}</a></header>
+    <p className="lp-demo-banner" role="note"><Icon name="phone" size={15} /> {t.checkout.banner}</p>
 
     {step === "done" ? <section className="lp-done">
       <span className="lp-done-icon"><Icon name="checkCircle" size={34} /></span>
-      <h1>Compte créé</h1>
-      <p>Merci, {values.director.trim()}. Demande <strong>{reference}</strong> · {plan.name} · {price(planTotal(plan, billing))}{billing === "yearly" ? "/an" : "/mois"}</p>
+      <h1>{t.checkout.done.title}</h1>
+      <p>{t.checkout.done.thanks(values.director.trim())} <strong>{reference}</strong>.</p>
+      <p className="lp-price-note">{planCopy.name} · {total} {billing === "yearly" ? t.pricing.perYear(money(Math.round(plan.monthly * 10 / 12), t)) : t.pricing.perMonth}</p>
       <ol className="lp-next">
-        <li><strong>Confirmez votre email</strong><span>Nous venons d'envoyer un lien à {values.email.trim()} : ouvrez-le pour activer votre compte.</span></li>
-        <li><strong>Nous vous appelons</strong><span>Sous 24 h ouvrées au {values.phone.trim()}, pour convenir du règlement — en main propre, par virement ou par CCP.</span></li>
-        <li><strong>Votre espace s'ouvre</strong><span>« {values.school.trim()} » devient accessible avec {values.email.trim()} et le mot de passe que vous venez de choisir.</span></li>
+        {t.checkout.done.steps.map((item, index) => <li key={item.title}><strong>{item.title}</strong><span>{item.text(doneValues[index])}</span></li>)}
       </ol>
-      <p className="lp-price-note">Aucun montant n'a été débité. Rien n'est dû avant notre appel.</p>
-      <a className="lp-btn primary" href="/connexion">Aller à la connexion</a>
+      <p className="lp-price-note">{t.checkout.done.nothingCharged}</p>
+      <a className="lp-btn primary" href="/connexion">{t.checkout.done.goToLogin}</a>
     </section> : <div className="lp-checkout">
       <form className="lp-checkout-form" onSubmit={submit} noValidate>
-        <h1>Demander Classtra</h1>
+        <h1>{t.checkout.title}</h1>
         <fieldset disabled={step === "sending"}>
-          <legend>Votre établissement</legend>
-          {field("school", "Nom de l'établissement *", { placeholder: "Ex. École Ibn Sina", autoComplete: "organization" })}
-          <label>Type d'établissement<select className="field" value={values.type} onChange={set("type")}>{SCHOOL_TYPES.map((type) => <option key={type}>{type}</option>)}</select></label>
-          {field("wilaya", "Wilaya *", { placeholder: "Ex. Alger" })}
+          <legend>{t.checkout.schoolLegend}</legend>
+          {field("school", t.checkout.schoolName, { placeholder: t.checkout.schoolPlaceholder, autoComplete: "organization" })}
+          <label>{t.checkout.schoolType}<select className="field" value={type} onChange={(event) => setType(Number(event.target.value))}>{t.checkout.types.map((label, index) => <option key={label} value={index}>{label}</option>)}</select></label>
+          {field("wilaya", t.checkout.wilaya, { placeholder: t.checkout.wilayaPlaceholder })}
         </fieldset>
         <fieldset disabled={step === "sending"}>
-          <legend>Votre compte de directeur</legend>
-          {field("director", "Nom complet *", { autoComplete: "name" })}
-          {field("email", "Email *", { type: "email", autoComplete: "email", placeholder: "directeur@ecole.dz", ...(account ? { readOnly: "true" } : {}) })}
-          {field("phone", "Téléphone mobile *", { type: "tel", autoComplete: "tel", placeholder: "0555 00 00 00" })}
-          {!account && field("password", "Mot de passe *", { type: "password", autoComplete: "new-password", placeholder: "10 caractères, 1 majuscule, 1 chiffre" })}
-          <p className="lp-terms">{account
-            ? `Vous êtes connecté avec ${account} : votre espace s'ouvrira sur ce compte dès que votre paiement sera confirmé.`
-            : "Ces identifiants sont les vôtres : votre espace s'ouvre avec eux dès que votre paiement est confirmé."}</p>
+          <legend>{t.checkout.accountLegend}</legend>
+          {field("director", t.checkout.director, { autoComplete: "name" })}
+          {field("email", t.checkout.email, { type: "email", autoComplete: "email", placeholder: "directeur@ecole.dz", ...(account ? { readOnly: "true" } : {}) })}
+          {field("phone", t.checkout.phone, { type: "tel", autoComplete: "tel", placeholder: "0555 00 00 00" })}
+          {!account && field("password", t.checkout.password, { type: "password", autoComplete: "new-password", placeholder: t.checkout.passwordPlaceholder })}
+          <p className="lp-terms">{account ? t.checkout.signedIn(account) : t.checkout.ownCredentials}</p>
         </fieldset>
         <fieldset disabled={step === "sending"}>
-          <legend>Comment allez-vous payer ?</legend>
+          <legend>{t.checkout.payLegend}</legend>
           <div className="lp-methods">
-            {[["cash", "En main propre", "Nous passons, ou vous passez nous voir"], ["transfer", "Virement ou versement CCP", "Nous vous transmettons nos coordonnées"]].map(([id, title, text]) =>
-              <label key={id} className={`lp-method ${values.method === id ? "active" : ""}`}><input type="radio" name="method" value={id} checked={values.method === id} onChange={set("method")} /><div><strong>{title}</strong><span>{text}</span></div></label>)}
+            {t.checkout.methods.map((item, index) =>
+              <label key={item.title} className={`lp-method ${method === index ? "active" : ""}`}><input type="radio" name="method" value={index} checked={method === index} onChange={() => setMethod(index)} /><div><strong>{item.title}</strong><span>{item.text}</span></div></label>)}
           </div>
         </fieldset>
-        <p className="lp-terms">En commandant, vous acceptez les <a href="/cgv" target="_blank">conditions générales de vente</a> et la <a href="/confidentialite" target="_blank">politique de confidentialité</a>.</p>
+        <p className="lp-terms">{t.checkout.terms} <a href="/cgv" target="_blank">{t.checkout.termsCgv}</a> {t.checkout.termsAnd} <a href="/confidentialite" target="_blank">{t.checkout.termsPrivacy}</a>.</p>
         {errors.form && <p className="field-error" role="alert">{errors.form}</p>}
-        <button className="lp-btn primary lp-pay" type="submit" disabled={step === "sending"}>{step === "sending" ? "Envoi…" : "Envoyer ma demande"}</button>
+        <button className="lp-btn primary lp-pay" type="submit" disabled={step === "sending"}>{step === "sending" && <Spinner />}{step === "sending" ? t.checkout.sending : t.checkout.send}</button>
       </form>
 
       <aside className="lp-summary">
-        <h2>Récapitulatif</h2>
-        <label>Formule<select className="field" value={planId} onChange={(event) => setPlanId(event.target.value)} disabled={step === "sending"}>{PLANS.map((item) => <option key={item.id} value={item.id}>{item.name} · {price(item.monthly)}/mois</option>)}</select></label>
-        <div className="lp-billing small" role="group" aria-label="Période de facturation">
-          <button type="button" className={billing === "monthly" ? "active" : ""} aria-pressed={billing === "monthly"} onClick={() => setBilling("monthly")}>Mensuel</button>
-          <button type="button" className={billing === "yearly" ? "active" : ""} aria-pressed={billing === "yearly"} onClick={() => setBilling("yearly")}>Annuel</button>
+        <h2>{t.checkout.summary}</h2>
+        <label>{t.checkout.plan}<select className="field" value={planId} onChange={(event) => setPlanId(event.target.value as PlanId)} disabled={step === "sending"}>{PLANS.map((item) => <option key={item.id} value={item.id}>{t.plans[item.id].name} · {money(item.monthly, t)}</option>)}</select></label>
+        <div className="lp-billing small" role="group" aria-label={t.pricing.period}>
+          <button type="button" className={billing === "monthly" ? "active" : ""} aria-pressed={billing === "monthly"} onClick={() => setBilling("monthly")}>{t.pricing.monthly}</button>
+          <button type="button" className={billing === "yearly" ? "active" : ""} aria-pressed={billing === "yearly"} onClick={() => setBilling("yearly")}>{t.pricing.yearlyShort}</button>
         </div>
-        <ul>{[plan.students, plan.users, ...plan.features].map((feature) => <li key={feature}><Icon name="check" size={14} />{feature}</li>)}</ul>
-        <div className="lp-total"><span>Total {billing === "yearly" ? "annuel" : "mensuel"}</span><strong key={billing + planId} className="lp-swap">{price(planTotal(plan, billing))}</strong></div>
-        {billing === "yearly" && <p className="lp-price-note">Vous économisez {price(plan.monthly * 2)} par an.</p>}
+        <ul>{[planCopy.students, planCopy.users, ...planCopy.features].map((feature) => <li key={feature}><Icon name="check" size={14} />{feature}</li>)}</ul>
+        <div className="lp-total"><span>{t.checkout.total(billing === "yearly" ? t.checkout.totalYearly : t.checkout.totalMonthly)}</span><strong key={billing + planId} className="lp-swap">{total}</strong></div>
+        {billing === "yearly" && <p className="lp-price-note">{t.checkout.saving(money(plan.monthly * 2, t))}</p>}
       </aside>
     </div>}
   </div>;

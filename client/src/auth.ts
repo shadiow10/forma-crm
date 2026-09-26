@@ -12,7 +12,7 @@ export type Member = {
   school: { id: number; name: string; slug: string };
 };
 
-export const roleLabels: Record<Role, string> = { director: "Directeur", secretaire: "Secrétaire", teacher: "Formateur" };
+export const ROLES: Role[] = ["director", "secretaire", "teacher"];
 
 // Menu access per role. The database enforces the same rules; this only hides pages a role cannot use.
 export const rolePages: Record<Role, PageKey[]> = {

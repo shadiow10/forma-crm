@@ -68,7 +68,7 @@ export const isLegalPage = (path: string) => path in PAGES;
 
 export function Legal({ path }: { path: string }) {
   const page = PAGES[path];
-  return <div className="lp">
+  return <div className="lp" lang="fr" dir="ltr">
     <header className="lp-header"><Brand /><a className="lp-login" href="/">← Retour au site</a></header>
     <main className="lp-legal">
       <p className="lp-eyebrow">Informations légales</p>

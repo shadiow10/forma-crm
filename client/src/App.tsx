@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
-import { roleLabels, rolePages } from "./auth";
+import { rolePages } from "./auth";
 import type { Member, PageKey } from "./auth";
+import { useAppT } from "./appCopy";
 import { useData } from "./data";
+import { LangPicker, usePage, useT } from "./i18n";
 import { Certificates, Settings } from "./pages/Admin";
 import { Attendance } from "./pages/Attendance";
 import { Courses, Teachers } from "./pages/Catalog";
@@ -10,22 +12,22 @@ import { GroupDrawer, Groups, Planning } from "./pages/Groups";
 import { Payments } from "./pages/Payments";
 import { StudentDrawer } from "./pages/StudentDrawer";
 import { Enrollments, Students } from "./pages/Students";
-import { BrandMark, Icon, initials } from "./ui";
+import { BrandMark, Icon, ThemeToggle, initials } from "./ui";
 import type { IconName } from "./ui";
 
 // Each page has its own address so refresh, back/forward and shared links work.
-const PAGES: { key: PageKey; path: string; label: string; icon: IconName }[] = [
-  { key: "dashboard", path: "/", label: "Tableau de bord", icon: "grid" },
-  { key: "students", path: "/etudiants", label: "Étudiants", icon: "graduation" },
-  { key: "enrollments", path: "/inscriptions", label: "Inscriptions", icon: "file" },
-  { key: "formations", path: "/formations", label: "Formations", icon: "checklist" },
-  { key: "teachers", path: "/formateurs", label: "Formateurs", icon: "teacher" },
-  { key: "groups", path: "/groupes", label: "Groupes", icon: "users" },
-  { key: "planning", path: "/planning", label: "Planning", icon: "calendar" },
-  { key: "attendance", path: "/presences", label: "Présences", icon: "check" },
-  { key: "payments", path: "/paiements", label: "Paiements", icon: "wallet" },
-  { key: "certificates", path: "/certificats", label: "Certificats", icon: "print" },
-  { key: "settings", path: "/parametres", label: "Paramètres", icon: "settings" },
+const PAGES: { key: PageKey; path: string; icon: IconName }[] = [
+  { key: "dashboard", path: "/", icon: "grid" },
+  { key: "students", path: "/etudiants", icon: "graduation" },
+  { key: "enrollments", path: "/inscriptions", icon: "file" },
+  { key: "formations", path: "/formations", icon: "checklist" },
+  { key: "teachers", path: "/formateurs", icon: "teacher" },
+  { key: "groups", path: "/groupes", icon: "users" },
+  { key: "planning", path: "/planning", icon: "calendar" },
+  { key: "attendance", path: "/presences", icon: "check" },
+  { key: "payments", path: "/paiements", icon: "wallet" },
+  { key: "certificates", path: "/certificats", icon: "print" },
+  { key: "settings", path: "/parametres", icon: "settings" },
 ];
 const pathOf = (key: PageKey) => PAGES.find((page) => page.key === key)!.path;
 const pageAt = (path: string) => PAGES.find((page) => page.path === (path.replace(/\/+$/, "") || "/"))?.key;
@@ -34,18 +36,23 @@ const pageAt = (path: string) => PAGES.find((page) => page.path === (path.replac
 // The director is told what to do; a secretaire or a teacher only sees why saving stopped.
 function SubscriptionBanner() {
   const { subscription, isDirector } = useData();
-  const renew = isDirector ? " Contactez Classtra pour renouveler." : " Prévenez votre directeur.";
+  const t = useAppT().banner;
+  const renew = isDirector ? t.renewDirector : t.renewTeam;
+  const left = (days: number, zero: string) => (days === 0 ? zero : t.days(days));
   if (subscription.state === "active" && subscription.daysLeft <= 7)
-    return <div className="demo-banner" role="note"><Icon name="calendar" size={15} /><span><strong>Abonnement à renouveler.</strong> Il reste {subscription.daysLeft === 0 ? "moins d'un jour" : `${subscription.daysLeft} jour${subscription.daysLeft > 1 ? "s" : ""}`}.{renew}</span></div>;
+    return <div className="demo-banner" role="note"><Icon name="calendar" size={15} /><span><strong>{t.dueTitle}</strong> {t.dueText(left(subscription.daysLeft, t.lessThanDay))}{renew}</span></div>;
   if (subscription.state === "grace")
-    return <div className="demo-banner" role="alert"><Icon name="warning" size={15} /><span><strong>Abonnement échu.</strong> La saisie reste possible {subscription.daysLeft === 0 ? "aujourd'hui seulement" : `${subscription.daysLeft} jour${subscription.daysLeft > 1 ? "s" : ""}`}, puis l'espace passe en lecture seule.{renew}</span></div>;
+    return <div className="demo-banner" role="alert"><Icon name="warning" size={15} /><span><strong>{t.graceTitle}</strong> {t.graceText(left(subscription.daysLeft, t.today))}{renew}</span></div>;
   if (subscription.state === "frozen")
-    return <div className="demo-banner" role="alert"><Icon name="lock" size={15} /><span><strong>Abonnement expiré.</strong> La saisie est suspendue. Vos données restent consultables et exportables.{renew}</span></div>;
+    return <div className="demo-banner" role="alert"><Icon name="lock" size={15} /><span><strong>{t.frozenTitle}</strong> {t.frozenText}{renew}</span></div>;
   return null;
 }
 
 export default function App({ member, email, userId, onSignOut }: { member: Member; email: string; userId: string; onSignOut: () => void }) {
   const { school, students, groups, canEdit, readOnly, notice, clearNotice } = useData();
+  const t = useAppT();
+  const site = useT();
+  const page_ = usePage();
   const allowed = rolePages[member.role];
   const resolve = (key: PageKey | undefined) => (key && allowed.includes(key) ? key : allowed[0]);
   const [page, setPage] = useState<PageKey>(() => resolve(pageAt(window.location.pathname)));
@@ -64,7 +71,7 @@ export default function App({ member, email, userId, onSignOut }: { member: Memb
     return () => window.removeEventListener("popstate", onPop);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-  useEffect(() => { document.title = `${PAGES.find((item) => item.key === page)!.label} · ${school.name}`; }, [page, school.name]);
+  useEffect(() => { document.title = `${t.nav[page]} · ${school.name}`; }, [page, school.name, t]);
 
   const goTo = (key: PageKey, forGroup?: number) => {
     if (!allowed.includes(key)) return;
@@ -99,40 +106,42 @@ export default function App({ member, email, userId, onSignOut }: { member: Memb
     }
   };
 
-  return <div className="app-shell">
+  return <div className="app-shell" {...page_}>
     <aside className={`sidebar ${sidebarOpen ? "open" : ""}`}>
-      <div className="brand"><BrandMark /><div><strong>CLASSTRA<span>.</span></strong><small>Gestion de centre</small></div><button className="mobile-close" onClick={() => setSidebarOpen(false)} aria-label="Fermer le menu"><Icon name="close" size={18} /></button></div>
-      <div className="school-switcher"><span className="school-avatar">{initials(school.name)}</span><div><strong>{school.name}</strong><span>{roleLabels[member.role]}</span></div></div>
-      <nav className="nav-groups" aria-label="Navigation principale"><div className="nav-group"><span className="nav-label">GESTION DU CENTRE</span>
+      <div className="brand"><BrandMark /><div><strong dir="ltr">CLASSTRA<span>.</span></strong><small>{t.tagline}</small></div><button className="mobile-close" onClick={() => setSidebarOpen(false)} aria-label={t.common.closeMenu}><Icon name="close" size={18} /></button></div>
+      <div className="school-switcher"><span className="school-avatar">{initials(school.name)}</span><div><strong>{school.name}</strong><span>{t.roles[member.role]}</span></div></div>
+      <nav className="nav-groups" aria-label={t.navGroup}><div className="nav-group"><span className="nav-label">{t.navGroup}</span>
         {PAGES.filter((item) => allowed.includes(item.key)).map((item) => <a key={item.key} href={item.path} className={`nav-item ${page === item.key ? "active" : ""}`} aria-current={page === item.key ? "page" : undefined}
           onClick={(event) => { if (event.ctrlKey || event.metaKey || event.shiftKey) return; event.preventDefault(); goTo(item.key); }}>
-          <Icon name={item.icon} size={17} /><span>{item.label}</span>
+          <Icon name={item.icon} size={17} /><span>{t.nav[item.key]}</span>
         </a>)}
       </div></nav>
-      <div className="sidebar-user"><span className="user-avatar">{initials(displayName)}</span><div><strong>{displayName}</strong><span>{roleLabels[member.role]}</span></div><button className="icon-button" onClick={onSignOut} title="Se déconnecter" aria-label="Se déconnecter"><Icon name="logout" size={17} /></button></div>
+      <div className="sidebar-user"><span className="user-avatar">{initials(displayName)}</span><div><strong>{displayName}</strong><span>{t.roles[member.role]}</span></div><button className="icon-button" onClick={onSignOut} title={t.common.signOut} aria-label={t.common.signOut}><Icon name="logout" size={17} /></button></div>
     </aside>
     {sidebarOpen && <div className="sidebar-overlay" onClick={() => setSidebarOpen(false)} />}
     <main className="main-area">
       <header className="topbar">
-        <div className="topbar-left"><button className="mobile-menu" onClick={() => setSidebarOpen(true)} aria-label="Ouvrir le menu"><Icon name="menu" size={20} /></button><span className="breadcrumb">{school.name} <Icon name="chevron" size={13} /> {PAGES.find((item) => item.key === page)!.label}</span></div>
+        <div className="topbar-left"><button className="mobile-menu" onClick={() => setSidebarOpen(true)} aria-label={t.common.openMenu}><Icon name="menu" size={20} /></button><span className="breadcrumb">{school.name} <Icon name="chevron" size={13} /> {t.nav[page]}</span></div>
         <div className="topbar-right">
           {canEdit && <div className="global-search">
             <Icon name="search" size={16} />
-            <input aria-label="Rechercher un étudiant ou un groupe" placeholder="Rechercher un étudiant, un groupe…" value={search} onChange={(event) => setSearch(event.target.value)} onKeyDown={(event) => { if (event.key === "Escape") setSearch(""); if (event.key === "Enter" && results[0]) { results[0].open(); setSearch(""); } }} />
-            {query.length >= 2 && <div className="search-results" role="listbox">{results.length ? results.map((result) => <button key={result.key} role="option" aria-selected={false} onClick={() => { result.open(); setSearch(""); }}><strong>{result.label}</strong><span>{result.hint}</span></button>) : <span className="search-empty">Aucun résultat</span>}</div>}
+            <input aria-label={t.common.searchLabel} placeholder={t.common.searchPlaceholder} value={search} onChange={(event) => setSearch(event.target.value)} onKeyDown={(event) => { if (event.key === "Escape") setSearch(""); if (event.key === "Enter" && results[0]) { results[0].open(); setSearch(""); } }} />
+            {query.length >= 2 && <div className="search-results" role="listbox">{results.length ? results.map((result) => <button key={result.key} role="option" aria-selected={false} onClick={() => { result.open(); setSearch(""); }}><strong>{result.label}</strong><span>{result.hint}</span></button>) : <span className="search-empty">{t.common.noResult}</span>}</div>}
           </div>}
+          <LangPicker label={site.language} />
+          <ThemeToggle labels={site.theme} />
           <span className="top-divider" />
-          <button className="top-profile" onClick={onSignOut} title="Se déconnecter"><span className="user-avatar small">{initials(displayName)}</span><span>{displayName}</span><Icon name="logout" size={13} /></button>
+          <button className="top-profile" onClick={onSignOut} title={t.common.signOut}><span className="user-avatar small">{initials(displayName)}</span><span>{displayName}</span><Icon name="logout" size={13} /></button>
         </div>
       </header>
       {school.is_demo
-        ? <div className="demo-banner" role="note"><Icon name="lock" size={15} /><span><strong>Démonstration en lecture seule.</strong> Les données sont fictives ; vous pouvez tout parcourir, rien n'est enregistré.</span><button className="text-button" onClick={onSignOut}>Quitter la démo</button></div>
+        ? <div className="demo-banner" role="note"><Icon name="lock" size={15} /><span><strong>{t.banner.demo}</strong> {t.banner.demoText}</span><button className="text-button" onClick={onSignOut}>{t.banner.demoLeave}</button></div>
         : <SubscriptionBanner />}
       <div className="content-wrap">{renderPage()}</div>
-      <footer className="app-footer"><span>Classtra · {school.name}</span><span><span className="status-live" /> Données synchronisées avec le serveur</span></footer>
+      <footer className="app-footer"><span>Classtra · {school.name}</span><span><span className="status-live" /> {t.common.synced}</span></footer>
     </main>
     {studentId !== null && <StudentDrawer key={studentId} studentId={studentId} onClose={() => setStudentId(null)} />}
     {groupId !== null && <GroupDrawer key={groupId} groupId={groupId} onClose={() => setGroupId(null)} goTo={goTo} />}
-    {notice && <div className="toast" role="status"><span className="toast-check"><Icon name="check" size={14} /></span><span>{notice}</span><button onClick={clearNotice} aria-label="Fermer"><Icon name="close" size={14} /></button></div>}
+    {notice && <div className="toast" role="status"><span className="toast-check"><Icon name="check" size={14} /></span><span>{notice}</span><button onClick={clearNotice} aria-label={t.common.close}><Icon name="close" size={14} /></button></div>}
   </div>;
 }

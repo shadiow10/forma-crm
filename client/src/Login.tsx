@@ -1,21 +1,26 @@
 import { useState } from "react";
 import type { FormEvent, ReactNode } from "react";
 import { passwordChosen, signOut } from "./auth";
+import { LangPicker, usePage, useT } from "./i18n";
+import type { Copy } from "./i18n";
+import { BrandMark, Icon, Spinner, ThemeToggle } from "./ui";
 import { supabase } from "./lib/supabase";
-import { BrandMark } from "./ui";
 
-export function AuthShell({ children }: { children: ReactNode }) {
+export function AuthShell({ children, controls = false }: { children: ReactNode; controls?: boolean }) {
+  const t = useT();
+  const page = usePage();
   return (
-    <div className="auth-page">
+    <div className="auth-page" {...page}>
       <div className="auth-card">
         <div className="auth-brand">
           <BrandMark size={36} />
           <div>
-            <strong>
+            <strong dir="ltr">
               CLASSTRA<span>.</span>
             </strong>
-            <small>Gestion de centre</small>
+            <small>{t.auth.tagline}</small>
           </div>
+          {controls && <span className="lp-prefs"><LangPicker label={t.language} /><ThemeToggle labels={t.theme} /></span>}
         </div>
         {children}
       </div>
@@ -23,16 +28,22 @@ export function AuthShell({ children }: { children: ReactNode }) {
   );
 }
 
-const errorMessage = (error: { code?: string; status?: number; message?: string }) => {
-  if (error.code === "invalid_credentials") return "Email ou mot de passe incorrect.";
-  if (error.code === "email_not_confirmed") return "Ce compte n'est pas encore confirmé. Contactez votre directeur.";
-  if (error.code === "weak_password") return "Mot de passe trop faible : 10 caractères minimum, avec une majuscule, une minuscule et un chiffre.";
-  if (error.code === "same_password") return "Choisissez un mot de passe différent de l'ancien.";
-  if (error.status === 429) return "Trop de tentatives. Réessayez dans quelques minutes.";
-  return "Opération impossible. Vérifiez votre connexion internet et réessayez.";
+// Supabase answers a failed sign-in with a code; anything without one is a network or server
+// problem, never "wrong password" — saying so plainly is the difference between a user who
+// retries and a user who gives up.
+const errorMessage = (error: { code?: string; status?: number; message?: string }, t: Copy) => {
+  if (error.code === "validation_failed") return t.auth.errors.missing;
+  if (error.code === "email_address_invalid") return t.auth.errors.badEmail;
+  if (error.code === "email_not_confirmed") return t.auth.errors.notConfirmed;
+  if (error.code === "weak_password") return t.auth.errors.weak;
+  if (error.code === "same_password") return t.auth.errors.same;
+  if (error.code === "over_request_rate_limit" || error.code === "over_email_send_rate_limit" || error.status === 429) return t.auth.errors.tooMany;
+  if (error.code === "invalid_credentials" || error.status === 400) return t.auth.errors.invalid;
+  return t.auth.errors.offline;
 };
 
 export default function Login() {
+  const t = useT();
   const [mode, setMode] = useState<"login" | "reset">("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -42,50 +53,62 @@ export default function Login() {
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();
+    if (busy) return;
+    // Caught before the round trip, so the answer is instant and names the real problem.
+    if (!email.trim() || (mode === "login" && !password)) return setError(t.auth.errors.missing);
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) return setError(t.auth.errors.badEmail);
     setBusy(true);
     setError("");
-    if (mode === "login") {
-      const { error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
-      if (error) setError(errorMessage(error));
-    } else {
-      const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), { redirectTo: window.location.origin });
-      if (error) setError(errorMessage(error));
-      else setSent(true);
+    try {
+      if (mode === "login") {
+        const { error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
+        if (error) setError(errorMessage(error, t));
+      } else {
+        const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), { redirectTo: window.location.origin });
+        if (error) setError(errorMessage(error, t));
+        else setSent(true);
+      }
+    } catch (failure) {
+      // A rejected promise means the request never reached Supabase (offline, DNS, blocked).
+      console.error(failure);
+      setError(t.auth.errors.offline);
     }
     setBusy(false);
   };
   const switchMode = (next: "login" | "reset") => { setMode(next); setError(""); setSent(false); };
+  const wrong = Boolean(error) && !sent;
 
   return (
-    <AuthShell>
-      <h1>{mode === "login" ? "Connexion" : "Mot de passe oublié"}</h1>
-      <p className="auth-muted">{mode === "login" ? "Accédez à l'espace de gestion de votre établissement." : "Recevez un lien par email pour choisir un nouveau mot de passe."}</p>
+    <AuthShell controls>
+      <h1>{mode === "login" ? t.auth.title : t.auth.resetTitle}</h1>
+      <p className="auth-muted">{mode === "login" ? t.auth.lead : t.auth.resetLead}</p>
       {sent ? (
-        <p className="auth-success" role="status">Si un compte existe pour {email.trim()}, un email avec un lien vient d'être envoyé. Pensez à vérifier les courriers indésirables.</p>
+        <p className="auth-success" role="status">{t.auth.sent(email.trim())}</p>
       ) : (
-        <form className="auth-form" onSubmit={submit}>
+        <form className="auth-form" onSubmit={submit} noValidate>
           <label>
-            Email
-            <input className="field" type="email" autoComplete="email" required autoFocus value={email} onChange={(event) => setEmail(event.target.value)} placeholder="prenom@ecole.dz" />
+            {t.auth.email}
+            <input className="field" type="email" autoComplete="email" autoFocus value={email} aria-invalid={wrong} onChange={(event) => { setEmail(event.target.value); setError(""); }} placeholder="prenom@ecole.dz" />
           </label>
           {mode === "login" && (
             <label>
-              Mot de passe
-              <input className="field" type="password" autoComplete="current-password" required value={password} onChange={(event) => setPassword(event.target.value)} />
+              {t.auth.password}
+              <input className="field" type="password" autoComplete="current-password" value={password} aria-invalid={wrong} onChange={(event) => { setPassword(event.target.value); setError(""); }} />
             </label>
           )}
-          {error && <p className="auth-error" role="alert">{error}</p>}
+          {error && <p className="auth-error" role="alert"><Icon name="warning" size={16} />{error}</p>}
           <button className="button auth-submit" type="submit" disabled={busy}>
-            {busy ? "Patientez…" : mode === "login" ? "Se connecter" : "Envoyer le lien"}
+            {busy && <Spinner />}
+            {busy ? (mode === "login" ? t.auth.busy : t.auth.sending) : mode === "login" ? t.auth.submit : t.auth.sendLink}
           </button>
         </form>
       )}
       <p className="auth-muted auth-foot">
         {mode === "login"
-          ? <button className="text-button" type="button" onClick={() => switchMode("reset")}>Mot de passe oublié ?</button>
-          : <button className="text-button" type="button" onClick={() => switchMode("login")}>Retour à la connexion</button>}
+          ? <button className="text-button" type="button" onClick={() => switchMode("reset")}>{t.auth.forgot}</button>
+          : <button className="text-button" type="button" onClick={() => switchMode("login")}>{t.auth.backToLogin}</button>}
       </p>
-      <p className="auth-muted auth-foot"><a className="text-button" href="/">← Découvrir Classtra</a></p>
+      <p className="auth-muted auth-foot"><a className="text-button" href="/">{t.auth.discover}</a></p>
     </AuthShell>
   );
 }
@@ -106,6 +129,7 @@ export async function isLeaked(password: string) {
 
 // Shown after an invitation or password-reset link: the user is signed in and must choose a password.
 export function SetPassword({ email }: { email: string }) {
+  const t = useT();
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [error, setError] = useState("");
@@ -113,37 +137,37 @@ export function SetPassword({ email }: { email: string }) {
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();
-    if (!/^(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9]).{10,}$/.test(password)) return setError("10 caractères minimum, avec une majuscule, une minuscule et un chiffre.");
-    if (password !== confirm) return setError("Les deux mots de passe ne correspondent pas.");
+    if (!/^(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9]).{10,}$/.test(password)) return setError(t.auth.errors.weak);
+    if (password !== confirm) return setError(t.auth.set.mismatch);
     setBusy(true);
     if (await isLeaked(password)) {
       setBusy(false);
-      return setError("Ce mot de passe figure dans une fuite de données connue. Choisissez-en un autre.");
+      return setError(t.checkout.errors.leaked);
     }
     const { error } = await supabase.auth.updateUser({ password });
     setBusy(false);
-    if (error) return setError(errorMessage(error));
+    if (error) return setError(errorMessage(error, t));
     window.history.replaceState(null, "", window.location.pathname);
     passwordChosen();
   };
 
   return (
     <AuthShell>
-      <h1>Choisissez votre mot de passe</h1>
-      <p className="auth-muted">Compte : {email}</p>
+      <h1>{t.auth.set.title}</h1>
+      <p className="auth-muted">{t.auth.set.account(email)}</p>
       <form className="auth-form" onSubmit={submit}>
         <label>
-          Nouveau mot de passe
+          {t.auth.set.newPassword}
           <input className="field" type="password" autoComplete="new-password" required autoFocus minLength={10} value={password} onChange={(event) => setPassword(event.target.value)} />
         </label>
         <label>
-          Confirmer le mot de passe
+          {t.auth.set.confirm}
           <input className="field" type="password" autoComplete="new-password" required value={confirm} onChange={(event) => setConfirm(event.target.value)} />
         </label>
-        {error && <p className="auth-error" role="alert">{error}</p>}
-        <button className="button auth-submit" type="submit" disabled={busy}>{busy ? "Enregistrement…" : "Enregistrer et continuer"}</button>
+        {error && <p className="auth-error" role="alert"><Icon name="warning" size={16} />{error}</p>}
+        <button className="button auth-submit" type="submit" disabled={busy}>{busy && <Spinner />}{busy ? t.auth.set.saving : t.auth.set.submit}</button>
       </form>
-      <p className="auth-muted auth-foot"><button className="text-button" type="button" onClick={signOut}>Annuler et se déconnecter</button></p>
+      <p className="auth-muted auth-foot"><button className="text-button" type="button" onClick={signOut}>{t.auth.set.cancel}</button></p>
     </AuthShell>
   );
 }
