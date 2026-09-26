@@ -75,8 +75,9 @@ export function friendlyError(error: { code?: string; message: string }, e: AppC
   if (error.code === "23505") return e.duplicate;
   if (error.code === "23514") return e.invalid;
   if (/fetch|network/i.test(error.message)) return e.network;
-  // Raw Postgres messages name tables, columns and constraints: keep them for the console, not the screen.
-  console.error(error);
+  // Raw Postgres messages name tables, columns and constraints. Dev console only: in production the
+  // console belongs to whoever opened devtools, and a schema map should not be there for the taking.
+  if (import.meta.env.DEV) console.error(error);
   return e.generic;
 }
 
@@ -94,7 +95,7 @@ export function DataProvider({ member, children, fallback }: { member: AuthMembe
       console.info(`Données de l'école chargées en ${Math.round(performance.now() - started)} ms`);
       setError("");
     } catch (caught) {
-      console.error("Chargement des données :", caught); // exact table and reason, for us
+      if (import.meta.env.DEV) console.error("Chargement des données :", caught); // exact table and reason, dev only
       setError(friendlyError(caught as { code?: string; message: string }, t.errors));
     }
   }, [member.school.id, t]);

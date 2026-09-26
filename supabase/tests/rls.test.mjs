@@ -77,6 +77,19 @@ assert.ok(!(await fails("S", "insert into storage.objects (bucket_id, name) valu
 assert.ok(await fails("D2", "insert into storage.objects (bucket_id, name) values ('student-documents', '1/3/x.pdf')"), "other school cannot upload into school 1");
 assert.ok(await fails("T", "insert into storage.objects (bucket_id, name) values ('student-documents', '1/3/x.pdf')"), "teacher cannot upload documents");
 assert.ok(await fails("S", "insert into storage.objects (bucket_id, name) values ('student-documents', 'abc/x.pdf')"), "malformed path rejected");
+// The whole shape is checked now, not just the first segment: '1/../2/x.pdf' used to answer
+// "school 1" and be accepted, storing a key that claims to sit under another school (0018).
+for (const bad of ["1/../2/evil.pdf", "1/2", "1/2/sub/deep.pdf", "1//x.pdf", "1/2/"])
+  assert.ok(await fails("S", `insert into storage.objects (bucket_id, name) values ('student-documents', '${bad}')`), `malformed path rejected: ${bad}`);
+assert.ok(!(await fails("S", "insert into storage.objects (bucket_id, name) values ('student-documents', '1/7/1700000000-carte.pdf')")), "a real upload path still works");
+
+// Every new table in public gets row security automatically, so one forgotten line cannot leave a
+// table open to the internet. The guard is in a migration now, not only on the live project (0018).
+await db.exec("reset role; create table public.audit_probe (id bigint primary key, school_id bigint)");
+assert.equal((await db.query(`select relrowsecurity from pg_class where oid = 'public.audit_probe'::regclass`)).rows[0].relrowsecurity, true,
+  "a newly created table must have row security switched on by the ensure_rls trigger");
+await db.exec("drop table public.audit_probe");
+
 assert.equal(await count("D2", "storage.objects"), 0, "other school cannot list documents");
 assert.ok(await fails("D", "update groups set end_time = '08:00' where id = 1"), "end time must be after start");
 
