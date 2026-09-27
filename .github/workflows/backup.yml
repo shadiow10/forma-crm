@@ -44,7 +44,11 @@ jobs:
           PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
         run: |
           set -euo pipefail
-          test -n "$DB_URL" && test -n "$PASSPHRASE"   # fail loudly rather than upload an empty file
+          # `test -n "$A" && test -n "$B"` does NOT stop a script under set -e: a failure on the left
+          # of && is ignored, so the old guard passed straight through with an empty DB_URL and
+          # pg_dump quietly tried to reach a database on the runner itself. ${VAR:?} does stop it.
+          : "${DB_URL:?SUPABASE_DB_URL secret is not set — add it in Settings > Secrets and variables > Actions}"
+          : "${PASSPHRASE:?BACKUP_PASSPHRASE secret is not set}"
           name="backup-$(date -u +%F)"
           # pg_dump must be at least the server's version, so use the matching image rather than the runner's client.
           docker run --rm postgres:17-alpine pg_dump "$DB_URL" --clean --if-exists --no-owner > "$name.sql"
@@ -68,7 +72,10 @@ jobs:
           PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
         run: |
           set -euo pipefail
-          test -n "$SUPABASE_URL" && test -n "$SERVICE_KEY"
+          : "${DB_URL:?SUPABASE_DB_URL secret is not set}"
+          : "${SUPABASE_URL:?SUPABASE_URL secret is not set}"
+          : "${SERVICE_KEY:?SUPABASE_SERVICE_ROLE_KEY secret is not set}"
+          : "${PASSPHRASE:?BACKUP_PASSPHRASE secret is not set}"
           name="documents-$(date -u +%F)"
 
           # The storage catalogue is the authoritative list, and we already hold a database
