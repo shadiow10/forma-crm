@@ -300,7 +300,7 @@ export function Landing() {
 // Supabase refuses anything weaker, so the form asks for the same thing.
 const STRONG_PASSWORD = /^(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9]).{10,}$/;
 // What lands in the orders table, whatever language the visitor reads the site in.
-const TYPES_FR = ["École privée", "Centre de formation", "École de soutien scolaire", "École de langues", "Crèche / préscolaire"];
+const TYPES_FR = ["Centre de formation", "École de soutien scolaire", "École de langues"]; // "soutien" opens an école de soutien (0019)
 const METHODS_FR = ["en main propre", "virement ou CCP"];
 
 export function Checkout() {

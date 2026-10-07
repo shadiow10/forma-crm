@@ -4,7 +4,7 @@ import { useData } from "../data";
 import { readSheet, studentsFromSheet } from "../lib/sheet";
 import { supabase } from "../lib/supabase";
 import { Badge, Button, COLORS, Icon, MetricCard, PageHeader, Panel, clampPercent, downloadCSV, formatDate, initialsBadge, statusTone } from "../ui";
-import { EnrollmentForm, StudentForm } from "./forms";
+import { EnrollmentForm, StudentForm, levelOptions } from "./forms";
 
 // Stored values: the filter compares them, the label is translated when shown.
 const STATUS_FILTERS = ["Tous", "Inscrit", "En cours", "Terminé", "Abandonné", "Sans inscription"];
@@ -13,10 +13,11 @@ const matches = (query: string, ...values: (string | null | undefined)[]) => val
 export function Students({ openStudent }: { openStudent: (id: number) => void }) {
   const t = useAppT();
   const s = t.students;
-  const { students, courses, summaryOf, money, groupById, teachers, school, save, ask, notify, blocked } = useData();
+  const { students, courses, summaryOf, money, groupById, teachers, school, save, ask, notify, blocked, isSoutien } = useData();
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState("Tous");
   const [course, setCourse] = useState("Toutes");
+  const [level, setLevel] = useState("");
   const [creating, setCreating] = useState(false);
   const fileInput = useRef<HTMLInputElement>(null);
 
@@ -25,7 +26,7 @@ export function Students({ openStudent }: { openStudent: (id: number) => void })
     if (!file || blocked()) return;
     const sheet = await readSheet(file).catch(() => null);
     if (!sheet) { notify(s.importUnreadable); return; }
-    const found = studentsFromSheet(sheet, students.map((student) => student.phone));
+    const found = studentsFromSheet(sheet, students);
     if (!found.students.length) { notify(s.importNothing); return; }
     if (!(await ask({ title: s.importTitle(found.students.length), text: s.importText(found.incomplete, found.duplicates), confirmLabel: s.importConfirm }))) return;
     // ponytail: one insert for the whole file; split it into batches if schools import tens of thousands of rows.
@@ -41,7 +42,8 @@ export function Students({ openStudent }: { openStudent: (id: number) => void })
   const filtered = rows.filter(({ student, summary }) =>
     matches(query, student.full_name, student.email, student.phone, courseName(summary.latest?.course_id))
     && (status === "Tous" || summary.status === status)
-    && (course === "Toutes" || summary.enrollments.some((enrollment) => String(enrollment.course_id) === course)));
+    && (course === "Toutes" || summary.enrollments.some((enrollment) => String(enrollment.course_id) === course))
+    && (!level || student.level === level));
   const exportList = () => downloadCSV("etudiants.csv", [
     s.csv,
     ...filtered.map(({ student, summary }) => [student.full_name, student.phone, student.email, labelOf(t.v.status, summary.status), courseName(summary.latest?.course_id), summary.attendance === null ? "" : `${summary.attendance}%`, summary.paid, summary.balance]),
@@ -66,6 +68,7 @@ export function Students({ openStudent }: { openStudent: (id: number) => void })
           <div className="search-box"><Icon name="search" size={16} /><input aria-label={s.searchPlaceholder} placeholder={s.searchPlaceholder} value={query} onChange={(event) => setQuery(event.target.value)} /></div>
           <select className="select" aria-label={t.common.status} value={status} onChange={(event) => setStatus(event.target.value)}>{STATUS_FILTERS.map((item) => <option key={item} value={item}>{item === "Tous" ? t.common.all : labelOf(t.v.status, item)}</option>)}</select>
           <select className="select" aria-label={t.common.course} value={course} onChange={(event) => setCourse(event.target.value)}><option value="Toutes">{s.allCourses}</option>{courses.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select>
+          {isSoutien && <select className="select" aria-label={t.so.fLevel} value={level} onChange={(event) => setLevel(event.target.value)}>{levelOptions(t.so.noLevel).map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}</select>}
         </div>
         <button className="text-button" onClick={exportList}><Icon name="download" size={14} /> {t.common.export}</button>
       </div>
@@ -74,7 +77,7 @@ export function Students({ openStudent }: { openStudent: (id: number) => void })
         <tbody>{filtered.map(({ student, summary }) => {
           const low = summary.attendance !== null && summary.attendance < 75;
           return <tr key={student.id} onClick={() => openStudent(student.id)} tabIndex={0} onKeyDown={(event) => event.key === "Enter" && openStudent(student.id)}>
-            <td><div className="person-cell">{initialsBadge(student.full_name)}<div><strong>{student.full_name}</strong><span>{student.phone}{student.email ? ` · ${student.email}` : ""}</span></div></div></td>
+            <td><div className="person-cell">{initialsBadge(student.full_name)}<div><strong>{student.full_name}</strong><span>{[student.level, student.phone, student.email].filter(Boolean).join(" · ")}</span></div></div></td>
             <td><Badge tone={statusTone(summary.status)} dot>{labelOf(t.v.status, summary.status)}</Badge></td>
             <td>{courseName(summary.latest?.course_id)}</td>
             <td><div className="inline-progress"><span className={low ? "low" : ""}>{summary.attendance === null ? "—" : `${summary.attendance}%`}</span><div><i style={{ width: `${clampPercent(summary.attendance ?? 0)}%`, background: low ? COLORS.red : COLORS.teal }} /></div></div></td>

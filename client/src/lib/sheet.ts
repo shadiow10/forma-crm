@@ -86,17 +86,20 @@ export async function readSheet(file: File): Promise<string[][]> {
 
 // ---------------------------------------------------------------- Students from a sheet
 
-export type ImportedStudent = { full_name: string; phone: string; email: string | null; address: string | null; dob: string | null };
+export type ImportedStudent = { full_name: string; phone: string; email: string | null; address: string | null; dob: string | null; level: string | null; parent_phone: string | null };
 
 const normalize = (text: string) => text.toLowerCase().normalize("NFD").replace(/[^a-z0-9\u0621-\u064A]/g, "");
 const HEADERS = {
-  full: ["nomcomplet", "nometprenom", "nomprenom", "prenomnom", "fullname", "name", "etudiant", "student", "الاسمالكامل", "الاسمواللقب", "اللقبوالاسم"],
+  full: ["nomcomplet", "nometprenom", "nomprenom", "prenomnom", "fullname", "name", "etudiant", "eleve", "student", "pupil", "الاسمالكامل", "الاسمواللقب", "اللقبوالاسم"],
   first: ["prenom", "firstname", "الاسم"],
   last: ["nom", "lastname", "surname", "اللقب"],
+  // Matched before phone, so "Téléphone parent" is not read as the pupil's own number.
+  parent_phone: ["telephoneparent", "telparent", "telephonedesparents", "telephonedupere", "telephonedelamere", "telephonetuteur", "parentphone", "phoneparent", "هاتفالولي", "رقمالولي"],
   phone: ["telephone", "tel", "phone", "mobile", "portable", "numero", "الهاتف", "رقمالهاتف"],
   email: ["email", "mail", "courriel", "adressemail", "البريدالالكتروني", "البريد"],
   address: ["adresse", "address", "العنوان"],
   dob: ["datedenaissance", "naissance", "dob", "birthdate", "dateofbirth", "تاريخالميلاد"],
+  level: ["niveau", "classe", "level", "annee", "المستوى", "القسم"],
 };
 type Column = keyof typeof HEADERS;
 
@@ -110,27 +113,36 @@ function toISODate(value: string) {
 }
 // Excel drops the leading 0 of a mobile number typed as a number: 555123456 → 0555123456.
 const toPhone = (value: string) => (/^[567]\d{8}$/.test(value) ? `0${value}` : value);
-const phoneKey = (phone: string) => phone.replace(/\D/g, "");
+// "3 AS", "3as", "3ème AS" → "3AS"; anything that is not a school year is left out.
+const toLevel = (value: string) => { const match = value.toUpperCase().replace(/\s|ÈME|EME/g, "").match(/^([1-5])A([PMS])$/); return match ? `${match[1]}A${match[2]}` : null; };
+// Brothers and sisters share a parent's number: a duplicate is the same name on the same number.
+const personKey = (name: string, phone: string) => `${normalize(name)}|${phone.replace(/\D/g, "")}`;
 
 // Maps the header row to columns. Without a recognisable header, the columns are read as name, phone, email.
-export function studentsFromSheet(rows: string[][], existingPhones: string[]) {
+export function studentsFromSheet(rows: string[][], existing: { full_name: string; phone: string }[]) {
   const header = (rows[0] ?? []).map(normalize);
-  const find = (column: Column) => header.findIndex((cell) => HEADERS[column].some((alias) => cell === alias || (alias.length >= 5 && cell.startsWith(alias))));
+  const taken = new Set<number>();
+  const find = (column: Column) => {
+    const index = header.findIndex((cell, i) => !taken.has(i) && HEADERS[column].some((alias) => cell === alias || (alias.length >= 5 && cell.startsWith(alias))));
+    if (index >= 0) taken.add(index);
+    return index;
+  };
   const at = Object.fromEntries((Object.keys(HEADERS) as Column[]).map((column) => [column, find(column)])) as Record<Column, number>;
-  const hasHeader = at.full >= 0 || at.last >= 0 || at.phone >= 0;
-  if (!hasHeader) Object.assign(at, { full: 0, first: -1, last: -1, phone: 1, email: 2, address: -1, dob: -1 });
+  const hasHeader = at.full >= 0 || at.last >= 0 || at.phone >= 0 || at.parent_phone >= 0;
+  if (!hasHeader) Object.assign(at, { full: 0, first: -1, last: -1, parent_phone: -1, phone: 1, email: 2, address: -1, dob: -1, level: -1 });
   const cell = (row: string[], column: Column) => (at[column] >= 0 ? row[at[column]] ?? "" : "");
 
-  const seen = new Set(existingPhones.map(phoneKey));
+  const seen = new Set(existing.map((student) => personKey(student.full_name, student.phone)));
   const students: ImportedStudent[] = [];
   let incomplete = 0, duplicates = 0;
   for (const row of hasHeader ? rows.slice(1) : rows) {
     const full_name = (cell(row, "full") || [cell(row, "first"), cell(row, "last")].filter(Boolean).join(" ")).replace(/\s+/g, " ").trim();
-    const phone = toPhone(cell(row, "phone"));
+    const parent_phone = toPhone(cell(row, "parent_phone")) || null;
+    const phone = toPhone(cell(row, "phone")) || parent_phone || ""; // a pupil without a phone is reached through the parent
     if (!full_name || !phone) { incomplete++; continue; }
-    if (seen.has(phoneKey(phone))) { duplicates++; continue; }
-    seen.add(phoneKey(phone));
-    students.push({ full_name, phone, email: cell(row, "email") || null, address: cell(row, "address") || null, dob: toISODate(cell(row, "dob")) });
+    if (seen.has(personKey(full_name, phone))) { duplicates++; continue; }
+    seen.add(personKey(full_name, phone));
+    students.push({ full_name, phone, email: cell(row, "email") || null, address: cell(row, "address") || null, dob: toISODate(cell(row, "dob")), level: toLevel(cell(row, "level")), parent_phone });
   }
   return { students, incomplete, duplicates };
 }

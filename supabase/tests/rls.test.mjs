@@ -319,4 +319,38 @@ const opened = (await db.query(`select billing, paid_until, paid_until = current
 assert.equal(opened.billing, "yearly");
 assert.ok(opened.covers_a_year, "a yearly order is paid up for a year");
 
+// Écoles de soutien (0019): monthly billing counted in 4-session months, from the pupil's first session.
+await db.exec(`insert into courses (school_id, name, short_name, duration, price, billing, level) values (2, 'Maths', 'Maths', '', 3000, 'monthly', '3AS');
+insert into groups (school_id, name, course_id, days, start_time, end_time) select 2, 'Maths 3AS — A', id, '{Sam,Mar}', '17:00', '18:30' from courses where school_id = 2 and name = 'Maths';
+insert into students (school_id, full_name, phone) values (2, 'Élève Maths', '0661000000');`);
+const ids = (await db.query(`select (select id from courses where school_id = 2 and name = 'Maths') course, (select id from groups where school_id = 2 and name = 'Maths 3AS — A') grp, (select id from students where school_id = 2 and full_name = 'Élève Maths') pupil, (select id from students where school_id = 2 and full_name = 'Élève Autre') other`)).rows[0];
+const monthly = Number((await as("D2", `select public.create_enrollment(2, ${ids.pupil}, ${ids.course}, ${ids.grp}, '2026-09-01', 0, '', 3000, 'Espèces', 3000) id`))[0].id);
+const balanceOf = async () => (await as("D2", `select total, paid, balance, months_due from enrollment_balances where enrollment_id = ${monthly}`))[0];
+assert.deepEqual(await balanceOf(), { total: 3000, paid: 3000, balance: 0, months_due: 1 }, "month 1 is owed and paid at enrollment");
+assert.equal((await as("D2", `select month_no from payments where enrollment_id = ${monthly}`))[0].month_no, 1, "the first payment settles month 1");
+// Six sessions held; the pupil is first present at the second, so five count: months 1 and 2.
+await db.exec(`insert into attendance (school_id, group_id, student_id, session_date, status) values
+ (2, ${ids.grp}, ${ids.other}, '2026-09-05', 'P'),
+ (2, ${ids.grp}, ${ids.pupil}, '2026-09-08', 'P'), (2, ${ids.grp}, ${ids.pupil}, '2026-09-12', 'A'),
+ (2, ${ids.grp}, ${ids.pupil}, '2026-09-15', 'L'), (2, ${ids.grp}, ${ids.pupil}, '2026-09-19', 'P'),
+ (2, ${ids.grp}, ${ids.pupil}, '2026-09-22', 'P');`);
+assert.deepEqual(await balanceOf(), { total: 6000, paid: 3000, balance: 3000, months_due: 2 }, "the fifth session opens month 2");
+await as("D2", `update enrollments set status = 'Abandonné' where id = ${monthly}`);
+await db.exec(`insert into attendance (school_id, group_id, student_id, session_date, status) values (2, ${ids.grp}, ${ids.other}, current_date + 30, 'P'), (2, ${ids.grp}, ${ids.other}, current_date + 31, 'P'), (2, ${ids.grp}, ${ids.other}, current_date + 32, 'P'), (2, ${ids.grp}, ${ids.other}, current_date + 33, 'P')`);
+assert.equal((await balanceOf()).months_due, 2, "a dropped pupil stops owing new months");
+await db.exec("set test.uid = ''; update enrollments set monthly_fee = 2500 where id = 3");
+assert.ok(await fails("S", "update enrollments set monthly_fee = 1 where id = 3"), "secretaire cannot lower a monthly fee");
+assert.ok(await fails("S", "select monthly_salary from teachers"), "secretaire cannot read teacher salaries");
+assert.equal(await count("S", "teacher_pay"), 0, "secretaire sees no pay at all");
+assert.ok(!(await fails("D", "update teachers set monthly_salary = 40000 where id = 1")), "director sets a monthly salary");
+assert.ok(await fails("D", "update schools set kind = 'soutien' where id = 1"), "the kind of school comes from the order, not the director");
+assert.equal(Number(await count("D", "enrollment_balances where months_due is not null")), 1, "formation enrollments keep their total");
+
+await db.exec(`insert into auth.users (id, email, email_confirmed_at) values ('00000000-0000-0000-0000-0000000000a5', 'cours@ecole.dz', now());
+insert into orders (school_name, school_type, wilaya, director_name, email, phone, plan, billing, user_id)
+values ('Cours El Nadjah', 'École de soutien scolaire', 'Blida', 'Directeur C', 'cours@ecole.dz', '0555000004', 'pro', 'monthly', '00000000-0000-0000-0000-0000000000a5');
+update orders set status = 'payé' where school_name = 'Cours El Nadjah';`);
+assert.equal((await db.query("select kind from schools where name = 'Cours El Nadjah'")).rows[0].kind, "soutien", "a soutien order opens a soutien school");
+assert.equal((await db.query("select kind from schools where name = 'École Annuelle'")).rows[0].kind, "formation");
+
 console.log("all access checks passed");

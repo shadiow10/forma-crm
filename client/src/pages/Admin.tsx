@@ -108,15 +108,19 @@ function Preferences() {
 function SchoolSettings() {
   const t = useAppT();
   const s = t.settings;
-  const { school, save, subscription } = useData();
-  const [values, setValues] = useState({ name: school.name, phone: school.phone ?? "", email: school.email ?? "", address: school.address ?? "", currency: school.currency });
+  const { school, save, subscription, isSoutien } = useData();
+  const [values, setValues] = useState({ name: school.name, phone: school.phone ?? "", email: school.email ?? "", address: school.address ?? "", currency: school.currency, sessions: String(school.sessions_per_month ?? 4) });
   const [busy, setBusy] = useState(false);
   const set = (key: keyof typeof values) => (event: { target: { value: string } }) => setValues({ ...values, [key]: event.target.value });
   const submit = async (event: FormEvent) => {
     event.preventDefault();
     if (!values.name.trim()) return;
     setBusy(true);
-    await save(() => supabase.from("schools").update({ name: values.name.trim(), phone: values.phone.trim() || null, email: values.email.trim() || null, address: values.address.trim() || null, currency: values.currency }).eq("id", school.id), s.saved);
+    const sessions = Math.min(31, Math.max(1, Math.round(Number(values.sessions)) || 4));
+    await save(() => supabase.from("schools").update({
+      name: values.name.trim(), phone: values.phone.trim() || null, email: values.email.trim() || null, address: values.address.trim() || null, currency: values.currency,
+      ...(isSoutien ? { sessions_per_month: sessions } : {}),
+    }).eq("id", school.id), s.saved);
     setBusy(false);
   };
   return <Panel title={s.profile}>
@@ -127,7 +131,9 @@ function SchoolSettings() {
         <label>{s.fEmail}<input className="field" type="email" value={values.email} onChange={set("email")} /></label>
         <label>{s.fAddress}<input className="field" value={values.address} onChange={set("address")} /></label>
         <label>{s.fCurrency}<select className="field" value={values.currency} onChange={set("currency")}>{Object.keys(t.v.currency).map((code) => <option key={code} value={code}>{t.v.currency[code]}</option>)}</select></label>
+        {isSoutien && <label>{t.so.fSessions}<input className="field" type="number" min={1} max={31} value={values.sessions} onChange={set("sessions")} /></label>}
       </div>
+      {isSoutien && <p className="form-hint">{t.so.sessionsHint}</p>}
       <p className="form-hint">{s.hint(school.slug)}</p>
       {school.paid_until && <p className="form-hint"><Icon name="calendar" size={13} /> {s.subscription(school.billing === "yearly" ? s.yearly : s.monthly, subscription.state === "frozen" ? s.expired : s.valid, formatDate(school.paid_until))}</p>}
       <Button type="submit" icon="check" disabled={busy}>{busy ? t.common.saving : t.common.save}</Button>

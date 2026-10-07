@@ -5,16 +5,17 @@ export type Role = "director" | "secretaire" | "teacher";
 export type EnrollmentStatus = "Inscrit" | "En cours" | "Terminé" | "Abandonné";
 export type AttendanceStatus = "P" | "A" | "L";
 
-export type School = { id: number; name: string; slug: string; currency: string; phone: string | null; email: string | null; address: string | null; is_demo: boolean; paid_until: string | null; billing: "monthly" | "yearly" | null };
-export type Course = { id: number; name: string; short_name: string; duration: string; price: number; color: string };
+export type School = { id: number; name: string; slug: string; currency: string; phone: string | null; email: string | null; address: string | null; is_demo: boolean; paid_until: string | null; billing: "monthly" | "yearly" | null; kind: "formation" | "soutien"; sessions_per_month: number };
+export type Course = { id: number; name: string; short_name: string; duration: string; price: number; color: string; billing: "total" | "monthly"; level: string | null };
 // hourly_rate comes from the teacher_pay view: null for a secretaire, who cannot read it.
-export type Teacher = { id: number; full_name: string; subject: string | null; phone: string | null; email: string | null; hourly_rate: number | null; contract: string; color: string };
-export type Group = { id: number; name: string; course_id: number | null; teacher_id: number | null; room: string | null; days: string[]; start_time: string | null; end_time: string | null; capacity: number; status: "Ouvert" | "Complet" | "Annulé"; color: string };
-export type Student = { id: number; full_name: string; phone: string; email: string | null; address: string | null; dob: string | null; source: string | null; created_at: string };
+export type Teacher = { id: number; full_name: string; subject: string | null; phone: string | null; email: string | null; hourly_rate: number | null; monthly_salary: number | null; contract: string; color: string };
+export type Group = { id: number; name: string; course_id: number | null; teacher_id: number | null; room: string | null; days: string[]; start_time: string | null; end_time: string | null; capacity: number; status: "Ouvert" | "Complet" | "Annulé"; color: string; level: string | null };
+export type Student = { id: number; full_name: string; phone: string; email: string | null; address: string | null; dob: string | null; source: string | null; created_at: string; level: string | null; filiere: string | null; parent_name: string | null; parent_phone: string | null };
 export type GroupStudent = { group_id: number; student_id: number };
-export type Enrollment = { id: number; student_id: number; course_id: number; group_id: number | null; enrolled_on: string; status: EnrollmentStatus; total: number; notes: string | null };
-export type Balance = { enrollment_id: number; paid: number; balance: number };
-export type Payment = { id: number; enrollment_id: number; amount: number; paid_on: string; method: string; created_at: string };
+export type Enrollment = { id: number; student_id: number; course_id: number; group_id: number | null; enrolled_on: string; status: EnrollmentStatus; total: number; notes: string | null; monthly_fee: number | null; ends_on: string | null };
+// total: for a monthly enrollment, what is owed so far (monthly_fee × months_due).
+export type Balance = { enrollment_id: number; total: number; paid: number; balance: number; months_due: number | null };
+export type Payment = { id: number; enrollment_id: number; amount: number; paid_on: string; method: string; created_at: string; month_no: number | null };
 export type AttendanceStat = { group_id: number; student_id: number; sessions: number; present: number; late: number; absent: number };
 export type MemberRow = { user_id: string; role: Role; full_name: string | null; email: string | null; teacher_id: number | null };
 
@@ -53,25 +54,29 @@ export async function fetchAll<T>(build: () => any, order: string[]): Promise<T[
 export async function loadSchoolData(client: SupabaseClient, schoolId: number): Promise<SchoolData> {
   const from = (table: string, columns: string) => () => client.from(table).select(columns).eq("school_id", schoolId);
   const [school, courses, teachers, pay, groups, students, groupStudents, enrollments, balances, payments, attendanceStats, members] = await Promise.all([
-    client.from("schools").select("id, name, slug, currency, phone, email, address, is_demo, paid_until, billing").eq("id", schoolId).single().then(({ data, error }) => {
+    client.from("schools").select("id, name, slug, currency, phone, email, address, is_demo, paid_until, billing, kind, sessions_per_month").eq("id", schoolId).single().then(({ data, error }) => {
       if (error) throw error;
       return data as School;
     }),
-    fetchAll<Course>(from("courses", "id, name, short_name, duration, price, color"), ["name", "id"]),
-    fetchAll<Omit<Teacher, "hourly_rate">>(from("teachers", "id, full_name, subject, phone, email, contract, color"), ["full_name", "id"]),
-    fetchAll<{ teacher_id: number; hourly_rate: number }>(from("teacher_pay", "teacher_id, hourly_rate"), ["teacher_id"]),
-    fetchAll<Group>(from("groups", "id, name, course_id, teacher_id, room, days, start_time, end_time, capacity, status, color"), ["name", "id"]),
-    fetchAll<Student>(from("students", "id, full_name, phone, email, address, dob, source, created_at"), ["full_name", "id"]),
+    fetchAll<Course>(from("courses", "id, name, short_name, duration, price, color, billing, level"), ["name", "id"]),
+    fetchAll<Omit<Teacher, "hourly_rate" | "monthly_salary">>(from("teachers", "id, full_name, subject, phone, email, contract, color"), ["full_name", "id"]),
+    fetchAll<{ teacher_id: number; hourly_rate: number; monthly_salary: number | null }>(from("teacher_pay", "teacher_id, hourly_rate, monthly_salary"), ["teacher_id"]),
+    fetchAll<Group>(from("groups", "id, name, course_id, teacher_id, room, days, start_time, end_time, capacity, status, color, level"), ["name", "id"]),
+    fetchAll<Student>(from("students", "id, full_name, phone, email, address, dob, source, created_at, level, filiere, parent_name, parent_phone"), ["full_name", "id"]),
     fetchAll<GroupStudent>(from("group_students", "group_id, student_id"), ["group_id", "student_id"]),
-    fetchAll<Enrollment>(from("enrollments", "id, student_id, course_id, group_id, enrolled_on, status, total, notes"), ["enrolled_on", "id"]),
-    fetchAll<Balance>(from("enrollment_balances", "enrollment_id, paid, balance"), ["enrollment_id"]),
-    fetchAll<Payment>(from("payments", "id, enrollment_id, amount, paid_on, method, created_at"), ["paid_on", "id"]),
+    fetchAll<Enrollment>(from("enrollments", "id, student_id, course_id, group_id, enrolled_on, status, total, notes, monthly_fee, ends_on"), ["enrolled_on", "id"]),
+    fetchAll<Balance>(from("enrollment_balances", "enrollment_id, total, paid, balance, months_due"), ["enrollment_id"]),
+    fetchAll<Payment>(from("payments", "id, enrollment_id, amount, paid_on, method, created_at, month_no"), ["paid_on", "id"]),
     fetchAll<AttendanceStat>(from("attendance_stats", "group_id, student_id, sessions, present, late, absent"), ["group_id", "student_id"]),
     fetchAll<MemberRow>(from("school_members", "user_id, role, full_name, email, teacher_id"), ["created_at", "user_id"]),
   ]);
-  const rates = new Map(pay.map((row) => [row.teacher_id, row.hourly_rate]));
+  const rates = new Map(pay.map((row) => [row.teacher_id, row]));
+  // A monthly enrollment stores no total: what it owes so far comes from the balance view, and
+  // every page that shows "Total" reads it from here.
+  const owed = new Map(balances.map((row) => [row.enrollment_id, row.total]));
   return {
-    school, courses, groups, students, groupStudents, enrollments, balances, payments, attendanceStats, members,
-    teachers: teachers.map((teacher) => ({ ...teacher, hourly_rate: rates.get(teacher.id) ?? null })),
+    school, courses, groups, students, groupStudents, balances, payments, attendanceStats, members,
+    enrollments: enrollments.map((enrollment) => (enrollment.monthly_fee === null ? enrollment : { ...enrollment, total: owed.get(enrollment.id) ?? enrollment.monthly_fee })),
+    teachers: teachers.map((teacher) => ({ ...teacher, hourly_rate: rates.get(teacher.id)?.hourly_rate ?? null, monthly_salary: rates.get(teacher.id)?.monthly_salary ?? null })),
   };
 }

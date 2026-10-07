@@ -1,21 +1,23 @@
 import { useEffect, useState } from "react";
 import { label as labelOf, useAppT } from "../appCopy";
 import { useData } from "../data";
-import { courseMonths, monthNumber, monthlyFee, teacherPay, totalPay } from "../lib/finance";
+import { courseMonths, monthNumber, monthStatus, monthlyFee, teacherPay, totalPay } from "../lib/finance";
 import type { Payment } from "../lib/queries";
 import { supabase } from "../lib/supabase";
 import { Badge, Button, COLORS, EmptyState, Icon, MetricCard, PageHeader, Panel, downloadCSV, formatDate, todayISO } from "../ui";
-import { METHODS, PaymentForm } from "./forms";
+import { METHODS, MultiPaymentForm, PaymentForm } from "./forms";
 
 export const receiptNumber = (payment: Payment) => `R-${payment.paid_on.slice(0, 4)}-${String(payment.id).padStart(6, "0")}`;
 
 export function Payments({ openStudent }: { openStudent: (id: number) => void }) {
   const t = useAppT();
   const p = t.payments;
-  const { payments, enrollments, studentById, courses, groups, teachers, balanceOf, money, isDirector, save, ask } = useData();
-  const [tab, setTab] = useState<"history" | "unpaid" | "monthly" | "teachers">("history");
+  const { payments, enrollments, studentById, courses, groups, teachers, balanceOf, money, isDirector, isSoutien, save, ask } = useData();
+  // An école de soutien opens on this month's fees: that is the question at the desk.
+  const [tab, setTab] = useState<"history" | "unpaid" | "monthly" | "teachers">(isSoutien ? "monthly" : "history");
   const [recording, setRecording] = useState<{ enrollmentId?: number } | null>(null);
-  const [receipt, setReceipt] = useState<Payment | null>(null);
+  const [receipt, setReceipt] = useState<number[] | null>(null); // payment ids printed on one sheet
+  const [multi, setMulti] = useState(false);
   const [method, setMethod] = useState("Tous");
   const [sort, setSort] = useState<"balance" | "last">("balance");
   const [query, setQuery] = useState("");
@@ -55,12 +57,14 @@ export function Payments({ openStudent }: { openStudent: (id: number) => void })
     .filter((enrollment) => enrollment.status === "Inscrit" || enrollment.status === "En cours")
     .map((enrollment) => {
       const course = courses.find((item) => item.id === enrollment.course_id);
-      const months = courseMonths(course);
-      const current = monthNumber(enrollment, month);
       const fee = monthlyFee(enrollment, course);
-      const due = current >= months ? enrollment.total : Math.min(enrollment.total, fee * current); // last month absorbs the rounding
-      const { paid } = balanceOf(enrollment.id);
-      return { enrollment, student: studentById.get(enrollment.student_id), fee, months, current, due, paid, behind: Math.max(0, due - paid) };
+      const { paid, monthsDue } = balanceOf(enrollment.id);
+      // Monthly (soutien): open-ended, the current month is the last one started; total is what is owed so far.
+      const months = monthsDue ?? courseMonths(course);
+      const current = monthsDue ?? monthNumber(enrollment, month);
+      const due = monthsDue !== null || current >= months ? enrollment.total : Math.min(enrollment.total, fee * current); // last month absorbs the rounding
+      const state = monthStatus(fee, paid, Math.max(1, Math.min(current, months)));
+      return { enrollment, student: studentById.get(enrollment.student_id), fee, months, current, due, paid, behind: Math.max(0, due - paid), monthly: monthsDue !== null, state };
     })
     .filter((row) => (row.student?.full_name ?? "").toLowerCase().includes(search))
     .sort((a, b) => b.behind - a.behind);
@@ -94,7 +98,10 @@ export function Payments({ openStudent }: { openStudent: (id: number) => void })
 
   return <>
     <PageHeader eyebrow={p.eyebrow} title={p.title} description={p.description} actionLabel={p.action} onAction={() => setRecording({})}
-      extra={<Button variant="outline" icon="download" onClick={exportReport}>{t.common.export}</Button>} />
+      extra={<>
+        <Button variant="outline" icon="download" onClick={exportReport}>{t.common.export}</Button>
+        {isSoutien && <Button variant="soft" icon="wallet" onClick={() => setMulti(true)}>{t.so.multiAction}</Button>}
+      </>} />
     <div className={`metrics-grid finance-metrics ${isDirector ? "five" : ""}`}>
       <MetricCard label={p.collected} value={money(thisMonth)} note={p.collectedNote(money(total))} icon="wallet" accent={COLORS.teal} />
       {isDirector && <MetricCard label={p.teacherPay} value={money(payTotal)} note={p.teacherPayNote(pay.size)} icon="teacher" accent="#6A63B8" />}
@@ -107,7 +114,7 @@ export function Payments({ openStudent }: { openStudent: (id: number) => void })
         <div className="tabs" role="tablist">
           <button role="tab" aria-selected={tab === "history"} className={tab === "history" ? "active" : ""} onClick={() => setTab("history")}>{p.tabHistory} <span className="count-chip">{filtered.length}</span></button>
           <button role="tab" aria-selected={tab === "unpaid"} className={tab === "unpaid" ? "active" : ""} onClick={() => setTab("unpaid")}>{p.tabUnpaid} <span className="count-chip">{owing.length}</span></button>
-          <button role="tab" aria-selected={tab === "monthly"} className={tab === "monthly" ? "active" : ""} onClick={() => setTab("monthly")}>{p.tabMonthly} <span className="count-chip">{monthly.filter((row) => row.behind > 0).length}</span></button>
+          <button role="tab" aria-selected={tab === "monthly"} className={tab === "monthly" ? "active" : ""} onClick={() => setTab("monthly")}>{isSoutien ? t.so.tabThisMonth : p.tabMonthly} <span className="count-chip">{monthly.filter((row) => row.behind > 0).length}</span></button>
           {isDirector && <button role="tab" aria-selected={tab === "teachers"} className={tab === "teachers" ? "active" : ""} onClick={() => setTab("teachers")}>{p.tabTeachers} <span className="count-chip">{pay.size}</span></button>}
         </div>
         <div className="toolbar-right">
@@ -126,28 +133,31 @@ export function Payments({ openStudent }: { openStudent: (id: number) => void })
             <td className="muted-cell">{receiptNumber(payment)}</td>
             <td>{formatDate(payment.paid_on)}</td>
             <td><strong>{student?.full_name ?? "—"}</strong></td>
-            <td>{courseName(enrollment?.course_id)}</td>
+            <td>{payment.month_no ? t.so.monthOf(payment.month_no, courseName(enrollment?.course_id)) : courseName(enrollment?.course_id)}</td>
             <td className="money-ok">{money(payment.amount)}</td>
             <td><Badge>{labelOf(t.v.method, payment.method)}</Badge></td>
             <td><span className="card-actions">
-              <button className="row-menu" aria-label={p.printReceipt} title={p.printReceipt} onClick={(event) => { stop(event); setReceipt(payment); }}><Icon name="print" size={15} /></button>
+              <button className="row-menu" aria-label={p.printReceipt} title={p.printReceipt} onClick={(event) => { stop(event); setReceipt([payment.id]); }}><Icon name="print" size={15} /></button>
               {isDirector && <button className="row-menu" aria-label={p.deletePayment} onClick={(event) => { stop(event); remove(payment.id, payment.amount); }}><Icon name="trash" size={15} /></button>}
             </span></td>
           </tr>)}</tbody>
         </table></div>
         {!filtered.length && <p className="table-empty">{p.emptyHistory}</p>}
       </> : tab === "monthly" ? monthly.length ? <>
-        <p className="muted-copy table-note">{p.monthlyNote}</p>
+        <p className="muted-copy table-note">{isSoutien ? t.so.sessionsHint : p.monthlyNote}</p>
         <div className="table-scroll"><table>
-          <thead><tr><th>{t.common.student}</th><th>{t.common.course}</th><th>{p.colMonthly}</th><th>{p.colMonth}</th><th>{p.colDue}</th><th>{t.common.paid}</th><th>{p.colBehind}</th></tr></thead>
+          <thead><tr><th>{t.common.student}</th><th>{t.common.course}</th><th>{p.colMonthly}</th><th>{isSoutien ? t.so.colCurrent : p.colMonth}</th><th>{p.colDue}</th><th>{t.common.paid}</th><th>{p.colBehind}</th><th /></tr></thead>
           <tbody>{monthly.map((row) => <tr key={row.enrollment.id} onClick={() => row.student && openStudent(row.student.id)}>
-            <td><strong>{row.student?.full_name ?? "—"}</strong><span className="cell-sub">{row.student?.phone}</span></td>
+            <td><strong>{row.student?.full_name ?? "—"}</strong><span className="cell-sub">{[row.student?.level, row.student?.parent_phone ?? row.student?.phone].filter(Boolean).join(" · ")}</span></td>
             <td>{courseName(row.enrollment.course_id)}</td>
             <td><strong>{money(row.fee)}</strong></td>
-            <td>{p.monthOf(row.current, row.months)}</td>
+            <td>{row.monthly
+              ? <><span>{t.so.month(row.current)}</span> <Badge tone={row.state === "paid" ? "success" : row.state === "partly" ? "warning" : "danger"}>{row.state === "paid" ? t.so.paidOk : row.state === "partly" ? t.so.partly : t.so.notPaid}</Badge></>
+              : p.monthOf(row.current, row.months)}</td>
             <td>{money(row.due)}</td>
             <td>{money(row.paid)}</td>
             <td>{row.behind ? <span className="money-due">{money(row.behind)}</span> : <Badge tone="success">{p.upToDate}</Badge>}</td>
+            <td onClick={stop}>{row.behind > 0 && <Button variant="soft" onClick={() => setRecording({ enrollmentId: row.enrollment.id })}>{p.collect}</Button>}</td>
           </tr>)}</tbody>
         </table></div>
       </> : <EmptyState title={search ? p.emptySearch : p.emptyMonthly} text={search ? "" : p.emptyMonthlyText} />
@@ -158,7 +168,7 @@ export function Payments({ openStudent }: { openStudent: (id: number) => void })
             <td><strong>{row.teacher.full_name}</strong><span className="cell-sub">{labelOf(t.v.contract, row.teacher.contract)}</span></td>
             <td>{row.groups.map((group) => group.name).join(", ")}</td>
             <td>{row.hours} h</td>
-            <td>{money(row.teacher.hourly_rate ?? 0)}</td>
+            <td>{row.fixed ? `${money(row.teacher.monthly_salary ?? 0)} ${t.so.perMonth}` : money(row.teacher.hourly_rate ?? 0)}</td>
             <td><strong>{money(row.amount)}</strong></td>
           </tr>)}</tbody>
         </table></div>
@@ -179,31 +189,42 @@ export function Payments({ openStudent }: { openStudent: (id: number) => void })
       <p className="form-hint table-note"><Icon name="lock" size={13} /> {isDirector ? p.hintDirector : p.hintOther}</p>
     </Panel>
     {recording && <PaymentForm enrollmentId={recording.enrollmentId} onClose={() => setRecording(null)} />}
-    {receipt && <Receipt payment={receipt} />}
+    {multi && <MultiPaymentForm onClose={() => setMulti(false)} onPaid={(ids) => setReceipt(ids)} />}
+    {receipt && <Receipt paymentIds={receipt} />}
   </>;
 }
 
-// Printed on the top half of an A4 sheet; hidden on screen.
-function Receipt({ payment }: { payment: Payment }) {
+// Printed on the top half of an A4 sheet; hidden on screen. Several payments (one desk visit,
+// several subjects) share one sheet: one line each, the total underneath.
+function Receipt({ paymentIds }: { paymentIds: number[] }) {
   const t = useAppT();
   const r = t.payments.receipt;
-  const { school, enrollments, studentById, courses, balanceOf, money, me } = useData();
-  const enrollment = enrollments.find((item) => item.id === payment.enrollment_id);
+  const { school, payments, enrollments, studentById, courses, balanceOf, money, me } = useData();
+  const lines = payments.filter((payment) => paymentIds.includes(payment.id));
+  if (!lines.length) return null;
+  const payment = lines[0];
+  const enrollmentOf = (item: Payment) => enrollments.find((enrollment) => enrollment.id === item.enrollment_id);
+  const lineLabel = (item: Payment) => {
+    const name = courses.find((course) => course.id === enrollmentOf(item)?.course_id)?.name ?? "—";
+    return item.month_no ? t.so.monthOf(item.month_no, name) : name;
+  };
+  const enrollment = enrollmentOf(payment);
   const student = enrollment ? studentById.get(enrollment.student_id) : undefined;
-  const course = courses.find((item) => item.id === enrollment?.course_id);
   const { paid, balance } = enrollment ? balanceOf(enrollment.id) : { paid: 0, balance: 0 };
   return <div className="print-receipt">
     <header>
       <div><strong>{school.name}</strong><span>{[school.address, school.phone, school.email].filter(Boolean).join(" · ")}</span></div>
-      <div className="receipt-number"><small>{r.title}</small><strong>{r.number} {receiptNumber(payment)}</strong><span>{r.on(formatDate(payment.paid_on, "long"))}</span></div>
+      <div className="receipt-number"><small>{r.title}</small><strong>{r.number} {lines.map(receiptNumber).join(", ")}</strong><span>{r.on(formatDate(payment.paid_on, "long"))}</span></div>
     </header>
     <dl>
       <div><dt>{r.from}</dt><dd>{student?.full_name ?? "—"}</dd></div>
-      <div><dt>{r.course}</dt><dd>{course?.name ?? "—"}</dd></div>
+      {lines.length === 1
+        ? <div><dt>{r.course}</dt><dd>{lineLabel(payment)}</dd></div>
+        : lines.map((item) => <div key={item.id}><dt>{lineLabel(item)}</dt><dd>{money(item.amount)}</dd></div>)}
       <div><dt>{r.method}</dt><dd>{labelOf(t.v.method, payment.method)}</dd></div>
     </dl>
-    <p className="receipt-amount"><span>{r.amount}</span><strong>{money(payment.amount)}</strong></p>
-    {enrollment && <table>
+    <p className="receipt-amount"><span>{r.amount}</span><strong>{money(lines.reduce((sum, item) => sum + item.amount, 0))}</strong></p>
+    {enrollment && lines.length === 1 && <table>
       <tbody>
         <tr><th>{r.price}</th><td>{money(enrollment.total)}</td></tr>
         <tr><th>{r.paidToDate}</th><td>{money(paid)}</td></tr>

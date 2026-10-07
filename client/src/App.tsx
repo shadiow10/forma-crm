@@ -51,10 +51,11 @@ function SubscriptionBanner() {
 }
 
 export default function App({ member, email, userId, onSignOut }: { member: Member; email: string; userId: string; onSignOut: () => void }) {
-  const { school, students, groups, canEdit, readOnly, notice, clearNotice } = useData();
+  const { school, students, groups, canEdit, readOnly, notice, clearNotice, isSoutien } = useData();
   const t = useAppT();
   const page_ = usePage();
-  const allowed = rolePages[member.role];
+  // An école de soutien hands out no certificates.
+  const allowed = rolePages[member.role].filter((key) => !(isSoutien && key === "certificates"));
   const resolve = (key: PageKey | undefined) => (key && allowed.includes(key) ? key : allowed[0]);
   const [page, setPage] = useState<PageKey>(() => resolve(pageAt(window.location.pathname)));
   const [attendanceGroup, setAttendanceGroup] = useState<number>();

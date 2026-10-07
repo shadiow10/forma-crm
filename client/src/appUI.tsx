@@ -63,6 +63,13 @@ export function FormModal({ title, subtitle, fields, initial, submitLabel, onClo
       const toggle = (day: string) => set(field.key, DAYS.filter((d) => (d === day ? !selected.includes(d) : selected.includes(d))).join(","));
       return <div className="days-picker">{DAYS.map((day) => <button type="button" key={day} className={selected.includes(day) ? "active" : ""} aria-pressed={selected.includes(day)} onClick={() => toggle(day)}>{t.v.day[day]}</button>)}</div>;
     }
+    if (field.type === "checks") {
+      const selected = value ? value.split(",") : [];
+      const toggle = (item: string) => set(field.key, selected.includes(item) ? selected.filter((other) => other !== item).join(",") : [...selected, item].join(","));
+      return <div className="check-list">{(field.options ?? []).map((option) => <label key={optionValue(option)}>
+        <input type="checkbox" checked={selected.includes(optionValue(option))} onChange={() => toggle(optionValue(option))} />{optionLabel(option)}
+      </label>)}</div>;
+    }
     return <input className="field" type={field.type ?? "text"} min={field.type === "number" ? field.min ?? 0 : undefined} value={value} onChange={(event) => set(field.key, event.target.value)} placeholder={field.placeholder} />;
   };
   return <div className="drawer-layer" onClick={onClose}><div className="form-modal" role="dialog" aria-label={title} onClick={(event) => event.stopPropagation()}>

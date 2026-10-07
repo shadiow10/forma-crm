@@ -4,7 +4,12 @@ import type { Course, Enrollment, Group, Teacher } from "./queries";
 // the weekly timetable and each teacher's hourly rate. Months are "YYYY-MM" strings.
 
 export const courseMonths = (course: Course | undefined) => Math.max(1, parseInt(course?.duration ?? "", 10) || 1); // "6 mois" → 6
-export const monthlyFee = (enrollment: Enrollment, course: Course | undefined) => Math.round(enrollment.total / courseMonths(course));
+// A monthly enrollment (école de soutien) carries its fee; a formation spreads its price over its months.
+export const monthlyFee = (enrollment: Enrollment, course: Course | undefined) => enrollment.monthly_fee ?? Math.round(enrollment.total / courseMonths(course));
+
+// Payments settle months in order: month n is paid once everything paid covers n fees.
+export const monthStatus = (fee: number, paid: number, n: number): "paid" | "partly" | "unpaid" =>
+  paid >= fee * n ? "paid" : paid > fee * (n - 1) ? "partly" : "unpaid";
 
 export const addMonths = (month: string, count: number) => {
   const date = new Date(Number(month.slice(0, 4)), Number(month.slice(5, 7)) - 1 + count, 1);
@@ -15,9 +20,10 @@ export const monthNumber = (enrollment: Enrollment, month: string) => {
   const diff = (Number(month.slice(0, 4)) - Number(enrollment.enrolled_on.slice(0, 4))) * 12 + Number(month.slice(5, 7)) - Number(enrollment.enrolled_on.slice(5, 7));
   return diff < 0 ? 0 : diff + 1;
 };
-// A course runs from the month of enrollment for its duration.
+// A course runs from the month of enrollment for its duration; a monthly enrollment until it ends.
 const runsIn = (enrollment: Enrollment, course: Course | undefined, month: string) => {
   const n = monthNumber(enrollment, month);
+  if (enrollment.monthly_fee != null) return n >= 1 && (!enrollment.ends_on || enrollment.ends_on.slice(0, 7) >= month);
   return n >= 1 && n <= courseMonths(course);
 };
 
@@ -25,19 +31,22 @@ const hours = (time: string) => Number(time.slice(0, 2)) + Number(time.slice(3, 
 export const weeklyHours = (group: Group) => (group.start_time && group.end_time ? Math.max(0, hours(group.end_time) - hours(group.start_time)) * group.days.length : 0);
 
 // What each teacher earns in a month: the hours on the timetable (weeks × 52/12) for every group of
-// theirs that has students running the course that month, at their hourly rate.
+// theirs that has students running the course that month, at their hourly rate. A teacher on a fixed
+// monthly salary earns that salary, once, in every month they have at least one such group.
 // ponytail: planned hours, not sessions held; count attendance dates per group if pay must follow cancellations.
 export function teacherPay(month: string, data: { groups: Group[]; teachers: Teacher[]; enrollments: Enrollment[]; courses: Course[] }) {
   const courseById = new Map(data.courses.map((course) => [course.id, course]));
-  const pay = new Map<number, { hours: number; amount: number; groups: Group[] }>();
+  const pay = new Map<number, { hours: number; amount: number; groups: Group[]; fixed: boolean }>();
   for (const group of data.groups) {
     const teacher = data.teachers.find((item) => item.id === group.teacher_id);
     if (!teacher || group.status === "Annulé") continue;
-    const running = data.enrollments.some((enrollment) => enrollment.group_id === group.id && enrollment.status !== "Abandonné" && runsIn(enrollment, courseById.get(enrollment.course_id), month));
+    // A dropped monthly enrollment still ran until its ends_on; a dropped formation never counts.
+    const running = data.enrollments.some((enrollment) => enrollment.group_id === group.id && (enrollment.monthly_fee != null || enrollment.status !== "Abandonné") && runsIn(enrollment, courseById.get(enrollment.course_id), month));
     if (!running) continue;
     const monthHours = Math.round(weeklyHours(group) * 52 / 12);
-    const row = pay.get(teacher.id) ?? { hours: 0, amount: 0, groups: [] };
-    pay.set(teacher.id, { hours: row.hours + monthHours, amount: row.amount + monthHours * (teacher.hourly_rate ?? 0), groups: [...row.groups, group] });
+    const row = pay.get(teacher.id) ?? { hours: 0, amount: 0, groups: [], fixed: teacher.monthly_salary != null };
+    const hoursNow = row.hours + monthHours;
+    pay.set(teacher.id, { ...row, hours: hoursNow, amount: row.fixed ? teacher.monthly_salary! : hoursNow * (teacher.hourly_rate ?? 0), groups: [...row.groups, group] });
   }
   return pay;
 }

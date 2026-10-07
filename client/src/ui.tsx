@@ -167,7 +167,7 @@ export type Option = string | { value: string; label: string };
 export type FieldDef = {
   key: string;
   label: string;
-  type?: "text" | "number" | "email" | "date" | "time" | "select" | "textarea" | "days";
+  type?: "text" | "number" | "email" | "date" | "time" | "select" | "textarea" | "days" | "checks"; // checks: several options, stored "a,b,c"
   options?: Option[];
   placeholder?: string;
   required?: boolean;

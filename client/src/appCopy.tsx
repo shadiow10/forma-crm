@@ -366,6 +366,34 @@ const fr = {
     errPayment: "Le versement dépasse le prix.",
     saved: (name: string, course: string) => `${name} inscrit(e) en ${course}.`, someone: "Étudiant",
   },
+  // École de soutien: the wording that changes, and the screens only these schools have.
+  so: {
+    nav: "Matières", subject: "Matière", subjects: "Matières",
+    coursesEyebrow: "Matières et niveaux", coursesDescription: "Les matières enseignées, leur niveau et leur prix mensuel.",
+    coursesAction: "Nouvelle matière", coursesEmpty: "Aucune matière", coursesEmptyText: "Ajoutez la première matière, par exemple « Maths 3AS ».",
+    fBilling: "Facturation", billingTotal: "Prix total", billingMonthly: "Mensuelle",
+    fMonthlyPrice: (currency: string) => `Prix par mois (${currency})`, perMonth: "/ mois",
+    fLevel: "Niveau", noLevel: "Tous niveaux", fFiliere: "Filière",
+    fParentName: "Nom du parent", fParentPhone: "Téléphone du parent", parent: "Parent",
+    fMonthlyFee: (currency: string) => `Mensualité convenue (${currency})`, monthlyFeePlaceholder: (price: number) => `${price} (prix de la matière)`,
+    firstMonth: "Premier mois payé maintenant",
+    fMonthNo: "Mois réglé", month: (n: number) => `Mois ${n}`, monthOf: (n: number, subject: string) => `${subject} — mois ${n}`,
+    fSalary: (currency: string) => `Salaire mensuel fixe (${currency})`, salaryHint: "Vide : payé à l'heure.",
+    fSessions: "Séances par mois", sessionsHint: "Un « mois » compte ce nombre de séances, à partir de la première séance de l'élève. Le mois 1 est dû à l'inscription.",
+    tabThisMonth: "Ce mois-ci", colCurrent: "Mois en cours", paidOk: "Réglé", notPaid: "Non réglé", partly: "Partiel",
+    monthEmpty: "Aucun élève inscrit au mois", monthEmptyText: "Les inscriptions mensuelles en cours apparaissent ici.",
+    multiAction: "Encaisser plusieurs matières", multiStudent: "Élève",
+    multiPick: "Cochez les mois à encaisser", multiTotal: (amount: string) => `Total : ${amount}`,
+    multiNone: "Cet élève n'a aucun mois à régler.", multiSubmit: "Encaisser",
+    multiSaved: (n: number, amount: string) => `${n} mois encaissé${n > 1 ? "s" : ""} : ${amount}.`,
+    nextMonth: "(à l'avance)",
+    conflictRoom: (room: string, group: string) => `La salle ${room} est déjà prise par « ${group} » à ce moment.`,
+    conflictTeacher: (group: string) => `Ce formateur a déjà « ${group} » à ce moment.`,
+    dashUnpaid: "Non réglés ce mois-ci", dashUnpaidNote: (amount: string) => `${amount} à encaisser`,
+    dashPupils: "Élèves actifs", dashPupilsNote: (n: number) => `${n} inscription${n > 1 ? "s" : ""} mensuelle${n > 1 ? "s" : ""}`,
+    dashByLevel: "Élèves par niveau", dashUnpaidList: "À relancer ce mois-ci", dashAllPaid: "Tout le monde est à jour",
+    dashAllPaidText: "Aucun mois en cours n'est en attente de paiement.",
+  },
   errors: {
     demo: "Démonstration : les modifications ne sont pas enregistrées.",
     frozen: "Abonnement expiré : la saisie est suspendue. Vos données restent consultables et exportables.",
@@ -739,6 +767,33 @@ const en: AppCopy = {
     errPayment: "The payment is more than the price.",
     saved: (name: string, course: string) => `${name} enrolled in ${course}.`, someone: "Student",
   },
+  so: {
+    nav: "Subjects", subject: "Subject", subjects: "Subjects",
+    coursesEyebrow: "Subjects and levels", coursesDescription: "The subjects you teach, their level and their monthly price.",
+    coursesAction: "New subject", coursesEmpty: "No subject", coursesEmptyText: "Add the first subject, for example \"Maths 3AS\".",
+    fBilling: "Billing", billingTotal: "Total price", billingMonthly: "Monthly",
+    fMonthlyPrice: (currency: string) => `Price per month (${currency})`, perMonth: "/ month",
+    fLevel: "Level", noLevel: "All levels", fFiliere: "Stream",
+    fParentName: "Parent's name", fParentPhone: "Parent's phone", parent: "Parent",
+    fMonthlyFee: (currency: string) => `Agreed monthly fee (${currency})`, monthlyFeePlaceholder: (price: number) => `${price} (price of the subject)`,
+    firstMonth: "First month paid now",
+    fMonthNo: "Month settled", month: (n: number) => `Month ${n}`, monthOf: (n: number, subject: string) => `${subject} — month ${n}`,
+    fSalary: (currency: string) => `Fixed monthly salary (${currency})`, salaryHint: "Empty: paid by the hour.",
+    fSessions: "Sessions per month", sessionsHint: "A \"month\" counts this many sessions, from the pupil's first session. Month 1 is due at enrolment.",
+    tabThisMonth: "This month", colCurrent: "Current month", paidOk: "Paid", notPaid: "Unpaid", partly: "Partly",
+    monthEmpty: "No monthly pupil", monthEmptyText: "Running monthly enrolments show here.",
+    multiAction: "Collect several subjects", multiStudent: "Pupil",
+    multiPick: "Tick the months to collect", multiTotal: (amount: string) => `Total: ${amount}`,
+    multiNone: "This pupil has no month to settle.", multiSubmit: "Collect",
+    multiSaved: (n: number, amount: string) => `${n} month${n > 1 ? "s" : ""} collected: ${amount}.`,
+    nextMonth: "(in advance)",
+    conflictRoom: (room: string, group: string) => `Room ${room} is already taken by "${group}" at that time.`,
+    conflictTeacher: (group: string) => `This teacher already has "${group}" at that time.`,
+    dashUnpaid: "Unpaid this month", dashUnpaidNote: (amount: string) => `${amount} to collect`,
+    dashPupils: "Active pupils", dashPupilsNote: (n: number) => `${n} monthly enrolment${n > 1 ? "s" : ""}`,
+    dashByLevel: "Pupils by level", dashUnpaidList: "To chase this month", dashAllPaid: "Everyone is up to date",
+    dashAllPaidText: "No current month is waiting for payment.",
+  },
   errors: {
     demo: "Demonstration: changes are not saved.",
     frozen: "Subscription expired: recording is suspended. Your data stays readable and exportable.",
@@ -1110,6 +1165,33 @@ const ar: AppCopy = {
     errPayment: "الدفعة تتجاوز السعر.",
     saved: (name: string, course: string) => `سُجّل ${name} في ${course}.`, someone: "طالب",
   },
+  so: {
+    nav: "المواد", subject: "المادة", subjects: "المواد",
+    coursesEyebrow: "المواد والمستويات", coursesDescription: "المواد المدرَّسة ومستواها وسعرها الشهري.",
+    coursesAction: "مادة جديدة", coursesEmpty: "لا مواد", coursesEmptyText: "أضف أول مادة، مثلًا « رياضيات 3 ثانوي ».",
+    fBilling: "طريقة الدفع", billingTotal: "سعر إجمالي", billingMonthly: "شهري",
+    fMonthlyPrice: (currency: string) => `السعر الشهري (${currency})`, perMonth: "/ شهر",
+    fLevel: "المستوى", noLevel: "كل المستويات", fFiliere: "الشعبة",
+    fParentName: "اسم الولي", fParentPhone: "هاتف الولي", parent: "الولي",
+    fMonthlyFee: (currency: string) => `القسط الشهري المتفق عليه (${currency})`, monthlyFeePlaceholder: (price: number) => `${price} (سعر المادة)`,
+    firstMonth: "الشهر الأول مدفوع الآن",
+    fMonthNo: "الشهر المدفوع", month: (n: number) => `الشهر ${n}`, monthOf: (n: number, subject: string) => `${subject} — الشهر ${n}`,
+    fSalary: (currency: string) => `أجر شهري ثابت (${currency})`, salaryHint: "فارغ: أجر بالساعة.",
+    fSessions: "عدد الحصص في الشهر", sessionsHint: "« الشهر » يحسب هذا العدد من الحصص، ابتداءً من أول حصة للتلميذ. الشهر الأول مستحق عند التسجيل.",
+    tabThisMonth: "هذا الشهر", colCurrent: "الشهر الحالي", paidOk: "مدفوع", notPaid: "غير مدفوع", partly: "جزئي",
+    monthEmpty: "لا تلاميذ بالشهر", monthEmptyText: "تظهر هنا التسجيلات الشهرية الجارية.",
+    multiAction: "تحصيل عدة مواد", multiStudent: "التلميذ",
+    multiPick: "اختر الأشهر المراد تحصيلها", multiTotal: (amount: string) => `المجموع: ${amount}`,
+    multiNone: "لا يوجد شهر مستحق لهذا التلميذ.", multiSubmit: "تحصيل",
+    multiSaved: (n: number, amount: string) => `تم تحصيل ${n} شهر: ${amount}.`,
+    nextMonth: "(مسبقًا)",
+    conflictRoom: (room: string, group: string) => `القاعة ${room} محجوزة لـ « ${group} » في هذا الوقت.`,
+    conflictTeacher: (group: string) => `لدى هذا المكوّن « ${group} » في هذا الوقت.`,
+    dashUnpaid: "غير مدفوع هذا الشهر", dashUnpaidNote: (amount: string) => `${amount} للتحصيل`,
+    dashPupils: "التلاميذ النشطون", dashPupilsNote: (n: number) => `${n} تسجيل شهري`,
+    dashByLevel: "التلاميذ حسب المستوى", dashUnpaidList: "للتذكير هذا الشهر", dashAllPaid: "الجميع مسدِّد",
+    dashAllPaidText: "لا يوجد شهر جارٍ ينتظر الدفع.",
+  },
   errors: {
     demo: "نسخة تجريبية: التعديلات لا تُحفظ.",
     frozen: "الاشتراك منتهٍ: الإدخال موقوف. تبقى بياناتكم قابلة للاطّلاع والتصدير.",
@@ -1123,7 +1205,23 @@ const ar: AppCopy = {
 };
 
 const COPY: Record<Lang, AppCopy> = { fr, en, ar };
-export const useAppT = () => COPY[useLang()];
+
+// An école de soutien reads "Matières" where a centre de formation reads "Formations".
+// The kind is set by DataProvider while it computes the school data, before any page renders,
+// and a school's kind never changes while it is open, so no subscription is needed.
+let schoolKind: "formation" | "soutien" = "formation";
+export const setSchoolKind = (kind: "formation" | "soutien") => { schoolKind = kind; };
+const soutienOf = (c: AppCopy): AppCopy => ({
+  ...c,
+  nav: { ...c.nav, formations: c.so.nav },
+  common: { ...c.common, course: c.so.subject },
+  courses: {
+    ...c.courses, eyebrow: c.so.coursesEyebrow, title: c.so.subjects, description: c.so.coursesDescription,
+    action: c.so.coursesAction, formNew: c.so.coursesAction, submitNew: c.so.coursesAction, empty: c.so.coursesEmpty, emptyText: c.so.coursesEmptyText,
+  },
+});
+const SOUTIEN: Record<Lang, AppCopy> = { fr: soutienOf(fr), en: soutienOf(en), ar: soutienOf(ar) };
+export const useAppT = () => (schoolKind === "soutien" ? SOUTIEN : COPY)[useLang()];
 
 // A stored value rendered in the reader's language; unknown values show as they are stored.
 export const label = (map: Record<string, string>, value: string | null | undefined) =>

@@ -4,7 +4,7 @@ import type { Member as AuthMember } from "./auth";
 import { supabase } from "./lib/supabase";
 import { loadSchoolData } from "./lib/queries";
 import type { Enrollment, EnrollmentStatus, Group, SchoolData, Student } from "./lib/queries";
-import { useAppT } from "./appCopy";
+import { setSchoolKind, useAppT } from "./appCopy";
 import type { AppCopy } from "./appCopy";
 import { ConfirmDialog } from "./appUI";
 import type { Question } from "./appUI";
@@ -29,6 +29,7 @@ type Store = SchoolData & {
   readOnly: boolean; // demo school, or subscription past its grace period: the database refuses every change
   blocked: () => boolean; // true (and explains why) when a change is not possible in the demo
   isDirector: boolean;
+  isSoutien: boolean; // école de soutien: subjects billed by the month (migration 0019)
   money: (value: number) => string;
   reload: () => Promise<void>;
   notify: (message: string) => void;
@@ -41,7 +42,7 @@ type Store = SchoolData & {
   studentById: Map<number, Student>;
   groupById: Map<number, Group>;
   summaryOf: (studentId: number) => StudentSummary;
-  balanceOf: (enrollmentId: number) => { paid: number; balance: number };
+  balanceOf: (enrollmentId: number) => { paid: number; balance: number; monthsDue: number | null };
   groupStudentIds: (groupId: number) => number[];
   attendanceRate: (studentId: number, groupId?: number) => number | null;
 };
@@ -111,6 +112,7 @@ export function DataProvider({ member, children, fallback }: { member: AuthMembe
 
   const store = useMemo<Store | null>(() => {
     if (!data) return null;
+    setSchoolKind(data.school.kind ?? "formation");
     const currency = data.school.currency || "DA";
     const balances = new Map(data.balances.map((row) => [row.enrollment_id, row]));
     const enrollmentsByStudent = new Map<number, Enrollment[]>();
@@ -122,7 +124,7 @@ export function DataProvider({ member, children, fallback }: { member: AuthMembe
 
     const balanceOf = (enrollmentId: number) => {
       const row = balances.get(enrollmentId);
-      return { paid: row?.paid ?? 0, balance: row?.balance ?? 0 };
+      return { paid: row?.paid ?? 0, balance: row?.balance ?? 0, monthsDue: row?.months_due ?? null };
     };
     const attendanceRate = (studentId: number, groupId?: number) => {
       const stats = (statsByStudent.get(studentId) ?? []).filter((stat) => groupId === undefined || stat.group_id === groupId);
@@ -151,6 +153,7 @@ export function DataProvider({ member, children, fallback }: { member: AuthMembe
       readOnly: frozen,
       blocked,
       isDirector: member.role === "director",
+      isSoutien: data.school.kind === "soutien",
       money: (value: number) => `⁦${new Intl.NumberFormat("fr-FR").format(value).replace(/[\u202f\u00a0]/g, " ")} ${currency}⁩`,
       reload,
       notify: setNotice,
