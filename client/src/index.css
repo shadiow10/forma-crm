@@ -153,6 +153,7 @@ tbody tr:hover { background: var(--info-bg); }
 .money-ok { color: var(--green); font-weight: 700; }
 .two-column-layout { display: grid; grid-template-columns: 1.5fr .55fr; gap: 16px; align-items: start; }
 .finance-metrics { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.finance-metrics.five { grid-template-columns: repeat(5, minmax(0, 1fr)); }
 .muted-copy { color: var(--muted-2); font-size: 9px; margin: 5px 0 0; }
 .inline-title { display: flex; align-items: center; gap: 8px; }
 .inline-title .count-chip { font-family: "DM Sans", sans-serif; }
@@ -183,8 +184,9 @@ tbody tr:hover { background: var(--info-bg); }
 .day-head small { color: var(--muted-2); font-weight: 500; }
 .day-slots { position: relative; height: 288px; }
 .calendar-slot { height: 48px; border-top: 1px solid var(--line); }
-.calendar-event { position: absolute; inset-inline: 4px; min-height: 45px; padding: 6px; border-inline-start: 3px solid; border-radius: 4px; cursor: pointer; }
-.calendar-event strong, .calendar-event span { display: block; }
+.time-col span:last-child { height: 0; }
+.calendar-event { position: absolute; min-height: 45px; padding: 6px; overflow: hidden; border-inline-start: 3px solid; border-radius: 4px; cursor: pointer; }
+.calendar-event strong, .calendar-event span { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .calendar-event strong { color: var(--text); font-size: 8px; }
 .calendar-event span { color: var(--muted); font-size: 7px; margin-top: 4px; }
 .attendance-controls { display: flex; align-items: flex-end; gap: 12px; margin-bottom: 16px; padding: 14px 16px; border: 1px solid var(--border); border-radius: 11px; background: var(--paper); }
@@ -333,7 +335,7 @@ tbody tr:hover { background: var(--info-bg); }
 @keyframes drawer-in { from { opacity: 0; transform: translateX(22px) } to { opacity: 1; transform: translateX(0) } }
 @keyframes toast-in { from { opacity: 0; transform: translateY(10px) } to { opacity: 1; transform: translateY(0) } }
 @media (max-width: 1250px) {
-  .metrics-grid { grid-template-columns: repeat(3, 1fr); }
+  .metrics-grid, .finance-metrics.five { grid-template-columns: repeat(3, 1fr); }
   .teacher-grid { grid-template-columns: repeat(3, 1fr); }
 }
 @media (max-width: 950px) {
@@ -1183,3 +1185,15 @@ html:has(.lp) { scroll-behavior: smooth; }
 @keyframes drawer-in-rtl { from { opacity: 0; transform: translateX(-22px) } to { opacity: 1; transform: translateX(0) } }
 /* Latin data (times, receipt numbers, the wordmark) reads left to right inside Arabic text. */
 [dir="rtl"] .schedule-day, [dir="rtl"] .time-col, [dir="rtl"] .muted-cell { direction: ltr; text-align: start; }
+
+/* Analytics: monthly bars. */
+.analytics-grid { grid-template-columns: 1fr 1fr; margin-bottom: 17px; }
+.bar-chart { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 4px; }
+.bar-col { display: flex; flex-direction: column; align-items: stretch; gap: 6px; cursor: default; }
+.bar-area { position: relative; height: 170px; }
+.bar-zero { position: absolute; inset-inline: 0; border-top: 1px solid var(--line); }
+.bar { position: absolute; inset-inline: 18%; min-height: 2px; background: var(--accent); border-radius: 4px 4px 0 0; }
+.bar.negative { background: var(--bad-fg); border-radius: 0 0 4px 4px; }
+.bar-col:hover .bar { filter: brightness(1.15); }
+.bar-label { color: var(--muted-2); font-size: 9px; text-align: center; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+@media (max-width: 950px) { .analytics-grid { grid-template-columns: 1fr; } }

@@ -121,6 +121,28 @@ export function GroupDrawer({ groupId, onClose, goTo }: { groupId: number; onClo
 const GRID_START = 8;
 const GRID_HOURS = 12;
 const hours = (time: string) => Number(time.slice(0, 2)) + Number(time.slice(3, 5)) / 60;
+const span = (group: Group) => { const from = hours(group.start_time!); return { from, to: group.end_time ? hours(group.end_time) : from + 2 }; };
+
+// Sessions that overlap share the column side by side instead of covering each other. Each run of
+// overlapping sessions gets as many lanes as it needs; a session takes the first lane free at its start.
+export function layoutDay(dayGroups: Group[]) {
+  const placed: { group: Group; lane: number; lanes: number }[] = [];
+  let run: typeof placed = [];
+  let laneEnds: number[] = [];
+  const close = () => { for (const item of run) item.lanes = laneEnds.length; run = []; laneEnds = []; };
+  for (const group of [...dayGroups].sort((a, b) => span(a).from - span(b).from)) {
+    const { from, to } = span(group);
+    if (run.length && from >= Math.max(...laneEnds)) close();
+    const free = laneEnds.findIndex((end) => end <= from);
+    const lane = free === -1 ? laneEnds.length : free;
+    laneEnds[lane] = to;
+    const item = { group, lane, lanes: 1 };
+    run.push(item);
+    placed.push(item);
+  }
+  close();
+  return placed;
+}
 
 export function Planning({ openGroup }: { openGroup: (id: number) => void }) {
   const t = useAppT();
@@ -146,17 +168,16 @@ export function Planning({ openGroup }: { openGroup: (id: number) => void }) {
       {weekOffset !== 0 && <button className="text-button" onClick={() => setWeekOffset(0)}>{p.today}</button>}
     </div>}>
       <div className="table-scroll"><div className="calendar-grid">
-        <div className="time-col"><span />{[8, 10, 12, 14, 16, 18, 20].map((hour) => <span key={hour}>{String(hour).padStart(2, "0")}:00</span>)}</div>
+        <div className="time-col">{[8, 10, 12, 14, 16, 18, 20].map((hour) => <span key={hour}>{String(hour).padStart(2, "0")}:00</span>)}</div>
         {DAYS.map((day, index) => <div className={`day-col ${dates[index].toDateString() === todayKey ? "today" : ""}`} key={day}>
           <div className="day-head">{t.v.day[day]}<small>{dates[index].getDate()}</small></div>
           <div className="day-slots">
             {[0, 1, 2, 3, 4, 5].map((slot) => <div className="calendar-slot" key={slot} />)}
-            {visible.filter((group) => group.days.includes(day)).map((group) => {
-              const from = hours(group.start_time!);
-              const to = group.end_time ? hours(group.end_time) : from + 2;
+            {layoutDay(visible.filter((group) => group.days.includes(day))).map(({ group, lane, lanes }) => {
+              const { from, to } = span(group);
               const top = clampPercent(((from - GRID_START) / GRID_HOURS) * 100);
               const height = Math.max(8, clampPercent(((to - GRID_START) / GRID_HOURS) * 100) - top);
-              return <div className="calendar-event" key={group.id} style={{ top: `${top}%`, height: `${height}%`, background: `${group.color}18`, borderLeftColor: group.color }} onClick={() => openGroup(group.id)} title={group.name}>
+              return <div className="calendar-event" key={group.id} style={{ top: `${top}%`, height: `${height}%`, insetInlineStart: `calc(${(lane / lanes) * 100}% + 3px)`, width: `calc(${100 / lanes}% - 6px)`, background: `${group.color}18`, borderInlineStartColor: group.color }} onClick={() => openGroup(group.id)} title={group.name}>
                 <strong>{group.name.split(" — ")[0]}</strong><span>{timeRange(group, t.common.noTime)} · {group.room || "—"}</span>
               </div>;
             })}

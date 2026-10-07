@@ -5,11 +5,13 @@ import { ROLES } from "../auth";
 import type { Role } from "../auth";
 import { label as labelOf, useAppT } from "../appCopy";
 import { friendlyError, useData } from "../data";
-import { locale } from "../lang";
+import { LANGS } from "../i18n";
+import { locale, setLang, useLang } from "../lang";
+import type { Lang } from "../lang";
 import type { MemberRow } from "../lib/queries";
 import { supabase } from "../lib/supabase";
 import { FormModal } from "../appUI";
-import { Badge, Button, COLORS, EmptyState, Icon, PageHeader, Panel, formatDate, initialsBadge, todayISO } from "../ui";
+import { Badge, Button, COLORS, EmptyState, Icon, PageHeader, Panel, formatDate, initialsBadge, setTheme, todayISO, useTheme } from "../ui";
 import type { IconName } from "../ui";
 
 // ---------------------------------------------------------------- Certificates
@@ -68,18 +70,39 @@ export function Certificates() {
 
 export function Settings({ userId }: { userId: string }) {
   const s = useAppT().settings;
-  const [tab, setTab] = useState<"school" | "users" | "activity">("school");
+  const { isDirector } = useData();
+  // Everyone gets the display preferences; the school, the team and the log stay with the director.
+  const tabs: { key: "school" | "users" | "activity" | "prefs"; icon: IconName; label: string }[] = [
+    ...(isDirector ? [
+      { key: "school" as const, icon: "building" as const, label: s.tabSchool },
+      { key: "users" as const, icon: "users" as const, label: s.tabUsers },
+      { key: "activity" as const, icon: "clock" as const, label: s.tabActivity },
+    ] : []),
+    { key: "prefs", icon: "settings", label: s.tabPrefs },
+  ];
+  const [tab, setTab] = useState(tabs[0].key);
   return <>
     <PageHeader eyebrow={s.eyebrow} title={s.title} description={s.description} />
     <div className="settings-layout">
       <aside className="settings-nav">
-        <button className={tab === "school" ? "active" : ""} onClick={() => setTab("school")}><Icon name="building" size={16} />{s.tabSchool}<Icon name="chevron" size={15} /></button>
-        <button className={tab === "users" ? "active" : ""} onClick={() => setTab("users")}><Icon name="users" size={16} />{s.tabUsers}<Icon name="chevron" size={15} /></button>
-        <button className={tab === "activity" ? "active" : ""} onClick={() => setTab("activity")}><Icon name="clock" size={16} />{s.tabActivity}<Icon name="chevron" size={15} /></button>
+        {tabs.map((item) => <button key={item.key} className={tab === item.key ? "active" : ""} onClick={() => setTab(item.key)}><Icon name={item.icon} size={16} />{item.label}<Icon name="chevron" size={15} /></button>)}
       </aside>
-      <div className="settings-content">{tab === "school" ? <SchoolSettings /> : tab === "users" ? <UserSettings userId={userId} /> : <ActivityLog />}</div>
+      <div className="settings-content">{tab === "school" ? <SchoolSettings /> : tab === "users" ? <UserSettings userId={userId} /> : tab === "activity" ? <ActivityLog /> : <Preferences />}</div>
     </div>
   </>;
+}
+
+function Preferences() {
+  const s = useAppT().settings;
+  const lang = useLang();
+  const theme = useTheme();
+  return <Panel title={s.prefs}>
+    <div className="settings-form">
+      <label>{s.fLanguage}<select className="field" value={lang} onChange={(event) => setLang(event.target.value as Lang)}>{LANGS.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
+      <label>{s.fTheme}<select className="field" value={theme} onChange={(event) => setTheme(event.target.value as "light" | "dark")}><option value="light">{s.themeLight}</option><option value="dark">{s.themeDark}</option></select></label>
+    </div>
+    <p className="form-hint">{s.prefsHint}</p>
+  </Panel>;
 }
 
 function SchoolSettings() {

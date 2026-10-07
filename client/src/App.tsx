@@ -3,16 +3,17 @@ import { rolePages } from "./auth";
 import type { Member, PageKey } from "./auth";
 import { useAppT } from "./appCopy";
 import { useData } from "./data";
-import { LangPicker, usePage, useT } from "./i18n";
+import { usePage } from "./i18n";
 import { Certificates, Settings } from "./pages/Admin";
 import { Attendance } from "./pages/Attendance";
 import { Courses, Teachers } from "./pages/Catalog";
 import { Dashboard } from "./pages/Dashboard";
 import { GroupDrawer, Groups, Planning } from "./pages/Groups";
+import { Analytics } from "./pages/Analytics";
 import { Payments } from "./pages/Payments";
 import { StudentDrawer } from "./pages/StudentDrawer";
 import { Enrollments, Students } from "./pages/Students";
-import { BrandMark, Icon, ThemeToggle, initials } from "./ui";
+import { BrandMark, Icon, initials } from "./ui";
 import type { IconName } from "./ui";
 
 // Each page has its own address so refresh, back/forward and shared links work.
@@ -26,6 +27,7 @@ const PAGES: { key: PageKey; path: string; icon: IconName }[] = [
   { key: "planning", path: "/planning", icon: "calendar" },
   { key: "attendance", path: "/presences", icon: "check" },
   { key: "payments", path: "/paiements", icon: "wallet" },
+  { key: "analytics", path: "/statistiques", icon: "chart" },
   { key: "certificates", path: "/certificats", icon: "print" },
   { key: "settings", path: "/parametres", icon: "settings" },
 ];
@@ -51,7 +53,6 @@ function SubscriptionBanner() {
 export default function App({ member, email, userId, onSignOut }: { member: Member; email: string; userId: string; onSignOut: () => void }) {
   const { school, students, groups, canEdit, readOnly, notice, clearNotice } = useData();
   const t = useAppT();
-  const site = useT();
   const page_ = usePage();
   const allowed = rolePages[member.role];
   const resolve = (key: PageKey | undefined) => (key && allowed.includes(key) ? key : allowed[0]);
@@ -101,6 +102,7 @@ export default function App({ member, email, userId, onSignOut }: { member: Memb
       case "planning": return <Planning openGroup={setGroupId} />;
       case "attendance": return <Attendance key={attendanceGroup ?? "default"} initialGroupId={attendanceGroup} />;
       case "payments": return <Payments openStudent={setStudentId} />;
+      case "analytics": return <Analytics />;
       case "certificates": return <Certificates />;
       case "settings": return <Settings userId={userId} />;
     }
@@ -128,8 +130,6 @@ export default function App({ member, email, userId, onSignOut }: { member: Memb
             <input aria-label={t.common.searchLabel} placeholder={t.common.searchPlaceholder} value={search} onChange={(event) => setSearch(event.target.value)} onKeyDown={(event) => { if (event.key === "Escape") setSearch(""); if (event.key === "Enter" && results[0]) { results[0].open(); setSearch(""); } }} />
             {query.length >= 2 && <div className="search-results" role="listbox">{results.length ? results.map((result) => <button key={result.key} role="option" aria-selected={false} onClick={() => { result.open(); setSearch(""); }}><strong>{result.label}</strong><span>{result.hint}</span></button>) : <span className="search-empty">{t.common.noResult}</span>}</div>}
           </div>}
-          <LangPicker label={site.language} />
-          <ThemeToggle labels={site.theme} />
           <span className="top-divider" />
           <button className="top-profile" onClick={onSignOut} title={t.common.signOut}><span className="user-avatar small">{initials(displayName)}</span><span>{displayName}</span><Icon name="logout" size={13} /></button>
         </div>

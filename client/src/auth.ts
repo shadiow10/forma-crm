@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { arrivedToSetPassword, supabase } from "./lib/supabase";
 
 export type Role = "director" | "secretaire" | "teacher";
-export type PageKey = "dashboard" | "students" | "enrollments" | "formations" | "teachers" | "groups" | "planning" | "attendance" | "payments" | "certificates" | "settings";
+export type PageKey = "dashboard" | "students" | "enrollments" | "formations" | "teachers" | "groups" | "planning" | "attendance" | "payments" | "analytics" | "certificates" | "settings";
 
 export type Member = {
   role: Role;
@@ -16,9 +16,9 @@ export const ROLES: Role[] = ["director", "secretaire", "teacher"];
 
 // Menu access per role. The database enforces the same rules; this only hides pages a role cannot use.
 export const rolePages: Record<Role, PageKey[]> = {
-  director: ["dashboard", "students", "enrollments", "formations", "teachers", "groups", "planning", "attendance", "payments", "certificates", "settings"],
-  secretaire: ["dashboard", "students", "enrollments", "formations", "groups", "planning", "attendance", "payments"],
-  teacher: ["planning", "groups", "attendance", "formations"],
+  director: ["dashboard", "students", "enrollments", "formations", "teachers", "groups", "planning", "attendance", "payments", "analytics", "certificates", "settings"],
+  secretaire: ["dashboard", "students", "enrollments", "formations", "groups", "planning", "attendance", "payments", "settings"],
+  teacher: ["planning", "groups", "attendance", "formations", "settings"],
 };
 
 export type AuthState =

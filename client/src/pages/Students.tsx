@@ -1,7 +1,9 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { label as labelOf, useAppT } from "../appCopy";
 import { useData } from "../data";
-import { Badge, COLORS, Icon, MetricCard, PageHeader, Panel, clampPercent, downloadCSV, formatDate, initialsBadge, statusTone } from "../ui";
+import { readSheet, studentsFromSheet } from "../lib/sheet";
+import { supabase } from "../lib/supabase";
+import { Badge, Button, COLORS, Icon, MetricCard, PageHeader, Panel, clampPercent, downloadCSV, formatDate, initialsBadge, statusTone } from "../ui";
 import { EnrollmentForm, StudentForm } from "./forms";
 
 // Stored values: the filter compares them, the label is translated when shown.
@@ -11,11 +13,24 @@ const matches = (query: string, ...values: (string | null | undefined)[]) => val
 export function Students({ openStudent }: { openStudent: (id: number) => void }) {
   const t = useAppT();
   const s = t.students;
-  const { students, courses, summaryOf, money, groupById, teachers } = useData();
+  const { students, courses, summaryOf, money, groupById, teachers, school, save, ask, notify, blocked } = useData();
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState("Tous");
   const [course, setCourse] = useState("Toutes");
   const [creating, setCreating] = useState(false);
+  const fileInput = useRef<HTMLInputElement>(null);
+
+  // A row needs a name and a phone; a phone already in the school is skipped rather than doubled.
+  const importFile = async (file: File | undefined) => {
+    if (!file || blocked()) return;
+    const sheet = await readSheet(file).catch(() => null);
+    if (!sheet) { notify(s.importUnreadable); return; }
+    const found = studentsFromSheet(sheet, students.map((student) => student.phone));
+    if (!found.students.length) { notify(s.importNothing); return; }
+    if (!(await ask({ title: s.importTitle(found.students.length), text: s.importText(found.incomplete, found.duplicates), confirmLabel: s.importConfirm }))) return;
+    // ponytail: one insert for the whole file; split it into batches if schools import tens of thousands of rows.
+    await save(() => supabase.from("students").insert(found.students.map((student) => ({ ...student, school_id: school.id }))), s.imported(found.students.length));
+  };
 
   const rows = students.map((student) => ({ student, summary: summaryOf(student.id) }));
   const courseName = (id?: number) => courses.find((item) => item.id === id)?.name ?? "—";
@@ -33,7 +48,12 @@ export function Students({ openStudent }: { openStudent: (id: number) => void })
   ]);
 
   return <>
-    <PageHeader eyebrow={s.eyebrow} title={s.title} description={s.description} actionLabel={s.action} onAction={() => setCreating(true)} />
+    <PageHeader eyebrow={s.eyebrow} title={s.title} description={s.description} actionLabel={s.action} onAction={() => setCreating(true)}
+      extra={<>
+        <input ref={fileInput} type="file" hidden accept=".xlsx,.csv,.tsv,.txt,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv"
+          onChange={(event) => { void importFile(event.target.files?.[0]); event.target.value = ""; }} />
+        <Button variant="outline" icon="upload" onClick={() => fileInput.current?.click()}>{s.importAction}</Button>
+      </>} />
     <div className="metrics-grid metrics-grid-4">
       <MetricCard label={s.total} value={String(students.length)} note={s.inDirectory} icon="users" accent={COLORS.teal} />
       <MetricCard label={s.running} value={String(rows.filter(({ summary }) => summary.status === "En cours").length)} note={s.started} icon="graduation" accent="#5B8DEF" />
