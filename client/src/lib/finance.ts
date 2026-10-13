@@ -1,4 +1,4 @@
-import type { Course, Enrollment, Group, Teacher } from "./queries";
+import type { Course, Enrollment, Group, GroupSession, Teacher } from "./queries";
 
 // Money worked out from what the school already records: course durations, enrollment prices,
 // the weekly timetable and each teacher's hourly rate. Months are "YYYY-MM" strings.
@@ -28,13 +28,20 @@ const runsIn = (enrollment: Enrollment, course: Course | undefined, month: strin
 };
 
 const hours = (time: string) => Number(time.slice(0, 2)) + Number(time.slice(3, 5)) / 60;
-export const weeklyHours = (group: Group) => (group.start_time && group.end_time ? Math.max(0, hours(group.end_time) - hours(group.start_time)) * group.days.length : 0);
+export const sessionHours = (group: Group) => (group.start_time && group.end_time ? Math.max(0, hours(group.end_time) - hours(group.start_time)) : 0);
+export const weeklyHours = (group: Group) => sessionHours(group) * group.days.length;
+
+// Days this group actually met in "YYYY-MM", from the registers taken.
+export const sessionsInMonth = (sessions: GroupSession[], groupId: number, month: string) =>
+  sessions.filter((session) => session.group_id === groupId && session.session_date.slice(0, 7) === month).length;
 
 // What each teacher earns in a month: the hours on the timetable (weeks × 52/12) for every group of
 // theirs that has students running the course that month, at their hourly rate. A teacher on a fixed
 // monthly salary earns that salary, once, in every month they have at least one such group.
-// ponytail: planned hours, not sessions held; count attendance dates per group if pay must follow cancellations.
-export function teacherPay(month: string, data: { groups: Group[]; teachers: Teacher[]; enrollments: Enrollment[]; courses: Course[] }) {
+// Hours are the sessions actually held — the days a register was taken — not the timetable. A
+// cancelled session earns nothing, the same rule that already decides what a pupil owes (0019).
+// The school's side of that bargain: no register means no session, for billing and for pay alike.
+export function teacherPay(month: string, data: { groups: Group[]; teachers: Teacher[]; enrollments: Enrollment[]; courses: Course[]; groupSessions: GroupSession[] }) {
   const courseById = new Map(data.courses.map((course) => [course.id, course]));
   const pay = new Map<number, { hours: number; amount: number; groups: Group[]; fixed: boolean }>();
   for (const group of data.groups) {
@@ -43,7 +50,7 @@ export function teacherPay(month: string, data: { groups: Group[]; teachers: Tea
     // A dropped monthly enrollment still ran until its ends_on; a dropped formation never counts.
     const running = data.enrollments.some((enrollment) => enrollment.group_id === group.id && (enrollment.monthly_fee != null || enrollment.status !== "Abandonné") && runsIn(enrollment, courseById.get(enrollment.course_id), month));
     if (!running) continue;
-    const monthHours = Math.round(weeklyHours(group) * 52 / 12);
+    const monthHours = Math.round(sessionsInMonth(data.groupSessions, group.id, month) * sessionHours(group));
     const row = pay.get(teacher.id) ?? { hours: 0, amount: 0, groups: [], fixed: teacher.monthly_salary != null };
     const hoursNow = row.hours + monthHours;
     pay.set(teacher.id, { ...row, hours: hoursNow, amount: row.fixed ? teacher.monthly_salary! : hoursNow * (teacher.hourly_rate ?? 0), groups: [...row.groups, group] });

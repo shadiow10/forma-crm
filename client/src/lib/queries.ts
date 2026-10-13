@@ -17,6 +17,9 @@ export type Enrollment = { id: number; student_id: number; course_id: number; gr
 export type Balance = { enrollment_id: number; total: number; paid: number; balance: number; months_due: number | null };
 export type Payment = { id: number; enrollment_id: number; amount: number; paid_on: string; method: string; created_at: string; month_no: number | null };
 export type AttendanceStat = { group_id: number; student_id: number; sessions: number; present: number; late: number; absent: number };
+// One row per day a group met, from the registers taken. Teacher pay counts these, so a cancelled
+// session (no register) earns nothing — the same rule that already decides what a pupil owes.
+export type GroupSession = { group_id: number; session_date: string };
 export type MemberRow = { user_id: string; role: Role; full_name: string | null; email: string | null; teacher_id: number | null };
 
 export type SchoolData = {
@@ -30,6 +33,7 @@ export type SchoolData = {
   balances: Balance[];
   payments: Payment[];
   attendanceStats: AttendanceStat[];
+  groupSessions: GroupSession[];
   members: MemberRow[];
 };
 
@@ -53,7 +57,7 @@ export async function fetchAll<T>(build: () => any, order: string[]): Promise<T[
 // ponytail: whole school in memory; move lists to server-side paging when a school passes ~10k students.
 export async function loadSchoolData(client: SupabaseClient, schoolId: number): Promise<SchoolData> {
   const from = (table: string, columns: string) => () => client.from(table).select(columns).eq("school_id", schoolId);
-  const [school, courses, teachers, pay, groups, students, groupStudents, enrollments, balances, payments, attendanceStats, members] = await Promise.all([
+  const [school, courses, teachers, pay, groups, students, groupStudents, enrollments, balances, payments, attendanceStats, groupSessions, members] = await Promise.all([
     client.from("schools").select("id, name, slug, currency, phone, email, address, is_demo, paid_until, billing, kind, sessions_per_month").eq("id", schoolId).single().then(({ data, error }) => {
       if (error) throw error;
       return data as School;
@@ -68,6 +72,7 @@ export async function loadSchoolData(client: SupabaseClient, schoolId: number): 
     fetchAll<Balance>(from("enrollment_balances", "enrollment_id, total, paid, balance, months_due"), ["enrollment_id"]),
     fetchAll<Payment>(from("payments", "id, enrollment_id, amount, paid_on, method, created_at, month_no"), ["paid_on", "id"]),
     fetchAll<AttendanceStat>(from("attendance_stats", "group_id, student_id, sessions, present, late, absent"), ["group_id", "student_id"]),
+    fetchAll<GroupSession>(from("group_sessions", "group_id, session_date"), ["group_id", "session_date"]),
     fetchAll<MemberRow>(from("school_members", "user_id, role, full_name, email, teacher_id"), ["created_at", "user_id"]),
   ]);
   const rates = new Map(pay.map((row) => [row.teacher_id, row]));
@@ -75,7 +80,7 @@ export async function loadSchoolData(client: SupabaseClient, schoolId: number): 
   // every page that shows "Total" reads it from here.
   const owed = new Map(balances.map((row) => [row.enrollment_id, row.total]));
   return {
-    school, courses, groups, students, groupStudents, balances, payments, attendanceStats, members,
+    school, courses, groups, students, groupStudents, balances, payments, attendanceStats, groupSessions, members,
     enrollments: enrollments.map((enrollment) => (enrollment.monthly_fee === null ? enrollment : { ...enrollment, total: owed.get(enrollment.id) ?? enrollment.monthly_fee })),
     teachers: teachers.map((teacher) => ({ ...teacher, hourly_rate: rates.get(teacher.id)?.hourly_rate ?? null, monthly_salary: rates.get(teacher.id)?.monthly_salary ?? null })),
   };

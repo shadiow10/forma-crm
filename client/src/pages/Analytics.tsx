@@ -30,14 +30,14 @@ function BarChart({ bars, label }: { bars: { key: string; label: string; value: 
 export function Analytics() {
   const t = useAppT();
   const a = t.analytics;
-  const { payments, enrollments, groups, teachers, courses, money } = useData();
+  const { payments, enrollments, groups, teachers, courses, groupSessions, money } = useData();
   const thisMonth = todayISO().slice(0, 7);
   const years = [...new Set([thisMonth.slice(0, 4), ...payments.map((payment) => payment.paid_on.slice(0, 4)), ...enrollments.map((enrollment) => enrollment.enrolled_on.slice(0, 4))])].sort().reverse();
   const [year, setYear] = useState(years[0]);
   const [table, setTable] = useState(false);
 
   const again = reEnrollmentIds(enrollments);
-  const payData = { groups, teachers, enrollments, courses };
+  const payData = { groups, teachers, enrollments, courses, groupSessions };
   // Months not reached yet stay empty rather than showing a zero.
   const monthStats = (month: string) => {
     if (month > thisMonth) return null;

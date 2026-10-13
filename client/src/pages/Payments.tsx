@@ -12,7 +12,7 @@ export const receiptNumber = (payment: Payment) => `R-${payment.paid_on.slice(0,
 export function Payments({ openStudent }: { openStudent: (id: number) => void }) {
   const t = useAppT();
   const p = t.payments;
-  const { payments, enrollments, studentById, courses, groups, teachers, balanceOf, money, isDirector, isSoutien, save, ask } = useData();
+  const { payments, enrollments, studentById, courses, groups, teachers, groupSessions, balanceOf, money, isDirector, isSoutien, save, ask } = useData();
   // An école de soutien opens on this month's fees: that is the question at the desk.
   const [tab, setTab] = useState<"history" | "unpaid" | "monthly" | "teachers">(isSoutien ? "monthly" : "history");
   const [recording, setRecording] = useState<{ enrollmentId?: number } | null>(null);
@@ -69,7 +69,7 @@ export function Payments({ openStudent }: { openStudent: (id: number) => void })
     .filter((row) => (row.student?.full_name ?? "").toLowerCase().includes(search))
     .sort((a, b) => b.behind - a.behind);
   // Pay needs the hourly rates, which only the director can read.
-  const pay = isDirector ? teacherPay(month, { groups, teachers, enrollments, courses }) : new Map() as ReturnType<typeof teacherPay>;
+  const pay = isDirector ? teacherPay(month, { groups, teachers, enrollments, courses, groupSessions }) : new Map() as ReturnType<typeof teacherPay>;
   const payRows = [...pay].map(([id, row]) => ({ teacher: teachers.find((item) => item.id === id)!, ...row })).sort((a, b) => b.amount - a.amount);
   const payTotal = totalPay(pay);
 
