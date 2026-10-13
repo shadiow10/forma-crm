@@ -41,43 +41,35 @@ const PAGE = 1000; // Supabase returns at most 1000 rows per request.
 
 // Reads every row of a query. `order` must make the order stable.
 //
-// The first request asks for the row count as well, so the remaining pages can be fetched together
-// instead of one after another. A school with 3000 payments used to wait for four round trips in a
-// row; it now waits for two. Most tables fit in one page and are unaffected.
+// Pages after the first are fetched in parallel, in doubling batches, so a table that needs several
+// of them waits once per batch instead of once per page. Deliberately NO count: asking PostgREST
+// for an exact count runs the whole query a second time, and on enrollment_balances that measured
+// 291 ms — paid by every table on every load, to save one round trip on the only table big enough
+// to need it. Most tables fit in a single page and now cost exactly one request, as before.
 export async function fetchAll<T>(build: () => any, order: string[]): Promise<T[]> {
   const page = async (from: number) => {
     let query = build();
     for (const column of order) query = query.order(column);
-    const { data, error, count } = await query.range(from, from + PAGE - 1);
+    const { data, error } = await query.range(from, from + PAGE - 1);
     if (error) throw error;
-    return { rows: data as T[], count: count as number | null };
+    return data as T[];
   };
 
-  const first = await page(0);
-  if (first.rows.length < PAGE) return first.rows;
+  const rows = await page(0);
+  if (rows.length < PAGE) return rows;
 
-  // No count (an older client, or a view that cannot be counted): fall back to one page at a time.
-  if (first.count == null) {
-    const rows = [...first.rows];
-    for (let from = PAGE; ; from += PAGE) {
-      const next = await page(from);
-      rows.push(...next.rows);
-      if (next.rows.length < PAGE) return rows;
-    }
+  for (let from = PAGE, batch = 2; ; from += batch * PAGE, batch = Math.min(batch * 2, 8)) {
+    const parts = await Promise.all(Array.from({ length: batch }, (_, i) => page(from + i * PAGE)));
+    for (const part of parts) rows.push(...part);
+    if (parts[parts.length - 1].length < PAGE) return rows;
   }
-
-  const starts: number[] = [];
-  for (let from = PAGE; from < first.count; from += PAGE) starts.push(from);
-  const rest = await Promise.all(starts.map((from) => page(from)));
-  return rest.reduce((all, part) => (all.push(...part.rows), all), [...first.rows]);
 }
 
 // Loads everything the app shows for one school. RLS decides what each role gets back:
 // a teacher simply receives no students, payments or members.
 // ponytail: whole school in memory; move lists to server-side paging when a school passes ~10k students.
 export async function loadSchoolData(client: SupabaseClient, schoolId: number): Promise<SchoolData> {
-  // count: the first page reports how many rows there are, so fetchAll can request the rest together.
-  const from = (table: string, columns: string) => () => client.from(table).select(columns, { count: "exact" }).eq("school_id", schoolId);
+  const from = (table: string, columns: string) => () => client.from(table).select(columns).eq("school_id", schoolId);
   const [school, courses, teachers, pay, groups, students, groupStudents, enrollments, balances, payments, attendanceStats, groupSessions, members] = await Promise.all([
     client.from("schools").select("id, name, slug, currency, phone, email, address, is_demo, paid_until, billing, kind, sessions_per_month").eq("id", schoolId).single().then(({ data, error }) => {
       if (error) throw error;
