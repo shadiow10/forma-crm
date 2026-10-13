@@ -1,0 +1,15 @@
+-- Found by loading a test school with 600 pupils, 1365 enrolments and 16380 attendance rows.
+--
+-- enrollment_balances calls private.months_due once per enrolment, and months_due counts the
+-- distinct session dates of a group. The only index starting with group_id is the primary key,
+-- (group_id, student_id, session_date) — so counting a group's days meant walking every pupil's
+-- row for that group, 1365 times over. 300,000 buffer reads, 1.4 seconds, on every page load.
+--
+-- (group_id, session_date) lets that count read dates directly instead of pupils-then-dates:
+--   before  1436 ms, shared hit=299915
+--   after    608 ms, shared hit=47395
+--
+-- Still not cheap — months_due is a per-row function call and that is the real cost. This index is
+-- the one-line half of the fix; making the balances view compute every group's months in a single
+-- pass is the other half, worth doing when a school passes a few hundred pupils.
+create index if not exists attendance_group_session_idx on public.attendance (group_id, session_date);
