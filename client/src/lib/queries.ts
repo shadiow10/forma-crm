@@ -5,10 +5,11 @@ export type Role = "director" | "secretaire" | "teacher";
 export type EnrollmentStatus = "Inscrit" | "En cours" | "Terminé" | "Abandonné";
 export type AttendanceStatus = "P" | "A" | "L";
 
-export type School = { id: number; name: string; slug: string; currency: string; phone: string | null; email: string | null; address: string | null; is_demo: boolean; paid_until: string | null; billing: "monthly" | "yearly" | null; kind: "formation" | "soutien"; sessions_per_month: number };
-export type Course = { id: number; name: string; short_name: string; duration: string; price: number; color: string; billing: "total" | "monthly"; level: string | null };
+export type School = { id: number; name: string; slug: string; currency: string; phone: string | null; email: string | null; address: string | null; is_demo: boolean; paid_until: string | null; billing: "monthly" | "semester" | "yearly" | null; kind: "formation" | "soutien"; sessions_per_month: number; student_limit: number | null };
+export type Course = { id: number; name: string; short_name: string; duration: string; price: number; color: string; billing: "total" | "monthly"; level: string | null; sessions_per_month: number | null };
 // hourly_rate comes from the teacher_pay view: null for a secretaire, who cannot read it.
-export type Teacher = { id: number; full_name: string; subject: string | null; phone: string | null; email: string | null; hourly_rate: number | null; monthly_salary: number | null; contract: string; color: string };
+export type Teacher = { id: number; full_name: string; subject: string | null; phone: string | null; email: string | null; hourly_rate: number | null; monthly_salary: number | null; pay_mode: PayMode | null; per_student_rate: number | null; contract: string; color: string };
+export type PayMode = "hour" | "month" | "student";
 export type Group = { id: number; name: string; course_id: number | null; teacher_id: number | null; room: string | null; days: string[]; start_time: string | null; end_time: string | null; capacity: number; status: "Ouvert" | "Complet" | "Annulé"; color: string; level: string | null };
 export type Student = { id: number; full_name: string; phone: string; email: string | null; address: string | null; dob: string | null; source: string | null; created_at: string; level: string | null; filiere: string | null; parent_name: string | null; parent_phone: string | null };
 export type GroupStudent = { group_id: number; student_id: number };
@@ -20,6 +21,7 @@ export type AttendanceStat = { group_id: number; student_id: number; sessions: n
 // One row per day a group met, from the registers taken. Teacher pay counts these, so a cancelled
 // session (no register) earns nothing — the same rule that already decides what a pupil owes.
 export type GroupSession = { group_id: number; session_date: string };
+export type Room = { id: number; name: string; capacity: number | null };
 export type MemberRow = { user_id: string; role: Role; full_name: string | null; email: string | null; teacher_id: number | null };
 
 export type SchoolData = {
@@ -34,6 +36,7 @@ export type SchoolData = {
   payments: Payment[];
   attendanceStats: AttendanceStat[];
   groupSessions: GroupSession[];
+  rooms: Room[];
   members: MemberRow[];
 };
 
@@ -70,14 +73,14 @@ export async function fetchAll<T>(build: () => any, order: string[]): Promise<T[
 // ponytail: whole school in memory; move lists to server-side paging when a school passes ~10k students.
 export async function loadSchoolData(client: SupabaseClient, schoolId: number): Promise<SchoolData> {
   const from = (table: string, columns: string) => () => client.from(table).select(columns).eq("school_id", schoolId);
-  const [school, courses, teachers, pay, groups, students, groupStudents, enrollments, balances, payments, attendanceStats, groupSessions, members] = await Promise.all([
-    client.from("schools").select("id, name, slug, currency, phone, email, address, is_demo, paid_until, billing, kind, sessions_per_month").eq("id", schoolId).single().then(({ data, error }) => {
+  const [school, courses, teachers, pay, groups, students, groupStudents, enrollments, balances, payments, attendanceStats, groupSessions, members, rooms] = await Promise.all([
+    client.from("schools").select("id, name, slug, currency, phone, email, address, is_demo, paid_until, billing, kind, sessions_per_month, student_limit").eq("id", schoolId).single().then(({ data, error }) => {
       if (error) throw error;
       return data as School;
     }),
-    fetchAll<Course>(from("courses", "id, name, short_name, duration, price, color, billing, level"), ["name", "id"]),
-    fetchAll<Omit<Teacher, "hourly_rate" | "monthly_salary">>(from("teachers", "id, full_name, subject, phone, email, contract, color"), ["full_name", "id"]),
-    fetchAll<{ teacher_id: number; hourly_rate: number; monthly_salary: number | null }>(from("teacher_pay", "teacher_id, hourly_rate, monthly_salary"), ["teacher_id"]),
+    fetchAll<Course>(from("courses", "id, name, short_name, duration, price, color, billing, level, sessions_per_month"), ["name", "id"]),
+    fetchAll<Omit<Teacher, "hourly_rate" | "monthly_salary" | "pay_mode" | "per_student_rate">>(from("teachers", "id, full_name, subject, phone, email, contract, color"), ["full_name", "id"]),
+    fetchAll<{ teacher_id: number; hourly_rate: number; monthly_salary: number | null; pay_mode: PayMode; per_student_rate: number | null }>(from("teacher_pay", "teacher_id, hourly_rate, monthly_salary, pay_mode, per_student_rate"), ["teacher_id"]),
     fetchAll<Group>(from("groups", "id, name, course_id, teacher_id, room, days, start_time, end_time, capacity, status, color, level"), ["name", "id"]),
     fetchAll<Student>(from("students", "id, full_name, phone, email, address, dob, source, created_at, level, filiere, parent_name, parent_phone"), ["full_name", "id"]),
     fetchAll<GroupStudent>(from("group_students", "group_id, student_id"), ["group_id", "student_id"]),
@@ -87,14 +90,15 @@ export async function loadSchoolData(client: SupabaseClient, schoolId: number): 
     fetchAll<AttendanceStat>(from("attendance_stats", "group_id, student_id, sessions, present, late, absent"), ["group_id", "student_id"]),
     fetchAll<GroupSession>(from("group_sessions", "group_id, session_date"), ["group_id", "session_date"]),
     fetchAll<MemberRow>(from("school_members", "user_id, role, full_name, email, teacher_id"), ["created_at", "user_id"]),
+    fetchAll<Room>(from("rooms", "id, name, capacity"), ["name", "id"]),
   ]);
   const rates = new Map(pay.map((row) => [row.teacher_id, row]));
   // A monthly enrollment stores no total: what it owes so far comes from the balance view, and
   // every page that shows "Total" reads it from here.
   const owed = new Map(balances.map((row) => [row.enrollment_id, row.total]));
   return {
-    school, courses, groups, students, groupStudents, balances, payments, attendanceStats, groupSessions, members,
+    school, courses, groups, students, groupStudents, balances, payments, attendanceStats, groupSessions, members, rooms,
     enrollments: enrollments.map((enrollment) => (enrollment.monthly_fee === null ? enrollment : { ...enrollment, total: owed.get(enrollment.id) ?? enrollment.monthly_fee })),
-    teachers: teachers.map((teacher) => ({ ...teacher, hourly_rate: rates.get(teacher.id)?.hourly_rate ?? null, monthly_salary: rates.get(teacher.id)?.monthly_salary ?? null })),
+    teachers: teachers.map((teacher) => ({ ...teacher, hourly_rate: rates.get(teacher.id)?.hourly_rate ?? null, monthly_salary: rates.get(teacher.id)?.monthly_salary ?? null, pay_mode: rates.get(teacher.id)?.pay_mode ?? null, per_student_rate: rates.get(teacher.id)?.per_student_rate ?? null })),
   };
 }

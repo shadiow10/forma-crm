@@ -108,6 +108,7 @@ export default function Login() {
           ? <button className="text-button" type="button" onClick={() => switchMode("reset")}>{t.auth.forgot}</button>
           : <button className="text-button" type="button" onClick={() => switchMode("login")}>{t.auth.backToLogin}</button>}
       </p>
+      {mode === "login" && <p className="auth-muted auth-foot">{t.signup.noAccount} <a className="text-button" href="/creer-un-compte">{t.signup.link}</a></p>}
       <p className="auth-muted auth-foot"><a className="text-button" href="/">{t.auth.discover}</a></p>
     </AuthShell>
   );

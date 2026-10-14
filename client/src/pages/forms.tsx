@@ -1,6 +1,7 @@
 import { label as labelOf, useAppT } from "../appCopy";
 import { useData } from "../data";
 import type { Group, Student } from "../lib/queries";
+import { roomClashes, sameRoom } from "../lib/rooms";
 import { supabase } from "../lib/supabase";
 import { Drawer, FormModal } from "../appUI";
 import { DAYS, EmptyState, PALETTE, formatTime, todayISO } from "../ui";
@@ -64,13 +65,14 @@ export function StudentForm({ student, onClose, onSaved }: { student?: Student; 
 export function EnrollmentForm({ studentId, onClose }: { studentId?: number; onClose: () => void }) {
   const t = useAppT();
   const e = t.enrollForm;
-  const { school, courses, groups, students, save, money } = useData();
+  const { school, courses, groups, students, groupStudentIds, save, money } = useData();
   if (!courses.length) {
     return <Drawer title={e.title} eyebrow={e.subject} onClose={onClose}>
       <EmptyState title={e.noCourse} text={e.noCourseText} />
     </Drawer>;
   }
-  const groupsOf = (courseId: string) => groups.filter((group) => String(group.course_id) === courseId && group.status !== "Annulé");
+  // Only groups with a seat left: a full group takes no one else.
+  const groupsOf = (courseId: string) => groups.filter((group) => String(group.course_id) === courseId && group.status !== "Annulé" && groupStudentIds(group.id).length < group.capacity);
   const firstCourse = String(courses[0].id);
   return <FormModal
     title={e.title} subtitle={e.subject} submitLabel={e.submit} onClose={onClose}
@@ -224,7 +226,15 @@ export function MultiPaymentForm({ onClose, onPaid }: { onClose: () => void; onP
 export function GroupForm({ group, onClose }: { group?: Group; onClose: () => void }) {
   const t = useAppT();
   const g = t.groups;
-  const { school, courses, teachers, groups, save, isSoutien } = useData();
+  const { school, courses, teachers, groups, rooms, save, isSoutien } = useData();
+  // With rooms listed (0028), the room is picked among those free on the chosen days and hours.
+  // The group's own room stays offered when editing. No rooms yet: free text, as before.
+  const roomOptions = (values: Record<string, string>) => [
+    { value: "", label: t.rooms.none },
+    ...rooms.filter((room) => sameRoom(room.name, group?.room ?? null) || values.start_time >= values.end_time
+        || !roomClashes(groups, room.name, values.days.split(",").filter(Boolean), values.start_time, values.end_time, group?.id).length)
+      .map((room) => ({ value: room.name, label: room.capacity ? `${room.name} · ${t.rooms.fullFor(room.capacity)}` : room.name })),
+  ];
   // Another open group on one of the same days whose hours cross these ones.
   const clash = (values: Record<string, string>, same: (other: Group) => boolean) => groups.find((other) =>
     other.id !== group?.id && other.status !== "Annulé" && other.start_time && other.end_time && same(other)
@@ -237,7 +247,7 @@ export function GroupForm({ group, onClose }: { group?: Group; onClose: () => vo
       days: (group?.days ?? []).join(","), start_time: formatTime(group?.start_time ?? "09:00"), end_time: formatTime(group?.end_time ?? "11:00"),
       capacity: String(group?.capacity ?? 15), status: group?.status === "Annulé" ? "Annulé" : "Ouvert", level: group?.level ?? "",
     }}
-    fields={[
+    fields={(values) => [
       { key: "name", label: g.fName, required: true, full: true, placeholder: g.fNamePlaceholder },
       { key: "course", label: t.common.course, type: "select", options: [{ value: "", label: "—" }, ...courses.map((course) => ({ value: String(course.id), label: course.name }))] },
       { key: "teacher", label: t.common.teacher, type: "select", options: [{ value: "", label: t.students.toAssign }, ...teachers.map((teacher) => ({ value: String(teacher.id), label: teacher.full_name }))] },
@@ -245,7 +255,9 @@ export function GroupForm({ group, onClose }: { group?: Group; onClose: () => vo
       { key: "days", label: g.fDays, type: "days", full: true },
       { key: "start_time", label: g.fStart, type: "time", required: true },
       { key: "end_time", label: g.fEnd, type: "time", required: true },
-      { key: "room", label: g.fRoom, placeholder: g.fRoomPlaceholder },
+      rooms.length
+        ? { key: "room", label: t.rooms.pickFree, type: "select" as const, options: roomOptions(values) }
+        : { key: "room", label: g.fRoom, placeholder: g.fRoomPlaceholder },
       { key: "capacity", label: g.fCapacity, type: "number", required: true, min: 1 },
       { key: "status", label: t.common.status, type: "select", options: ["Ouvert", "Annulé"].map((value) => ({ value, label: labelOf(t.v.status, value) })) },
     ]}

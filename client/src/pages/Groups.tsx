@@ -3,10 +3,10 @@ import type { PageKey } from "../auth";
 import { label as labelOf, useAppT } from "../appCopy";
 import { friendlyError, useData } from "../data";
 import { locale } from "../lang";
-import type { Group } from "../lib/queries";
+import type { Course, Group } from "../lib/queries";
 import { supabase } from "../lib/supabase";
 import { Drawer } from "../appUI";
-import { Badge, Button, COLORS, DAYS, EmptyState, Icon, PageHeader, Panel, clampPercent, formatTime, initialsBadge, percent, statusTone } from "../ui";
+import { Badge, Button, COLORS, DAYS, EmptyState, Icon, MetricCard, PageHeader, Panel, clampPercent, formatTime, initialsBadge, percent, statusTone, todayISO } from "../ui";
 import { GroupForm } from "./forms";
 
 export const groupStatus = (group: Group, count: number) => (group.status === "Annulé" ? "Annulé" : count >= group.capacity ? "Complet" : "Ouvert");
@@ -29,16 +29,42 @@ export function useRoster(groupId: number | undefined) {
   return groupStudentIds(groupId).map((id) => studentById.get(id)).filter((student) => student !== undefined).map((student) => ({ id: student.id, full_name: student.full_name })).sort((a, b) => a.full_name.localeCompare(b.full_name));
 }
 
+// Sessions a group should hold in a month ("YYYY-MM"): the "séances par mois" of a monthly subject
+// (0025), otherwise one per timetable day that falls in the month (every Sunday and Wednesday…).
+export function plannedSessions(group: Group, course: Course | undefined, schoolSessions: number, month: string) {
+  if (course?.billing === "monthly") return course.sessions_per_month ?? schoolSessions;
+  const [year, monthIndex] = [Number(month.slice(0, 4)), Number(month.slice(5, 7)) - 1];
+  let count = 0;
+  for (let day = new Date(year, monthIndex, 1); day.getMonth() === monthIndex; day.setDate(day.getDate() + 1)) {
+    if (group.days.includes(DAYS[day.getDay()])) count++;
+  }
+  return count;
+}
+
 export function Groups({ openGroup }: { openGroup: (id: number) => void }) {
   const t = useAppT();
   const g = t.groups;
-  const { groups, teachers, courses, groupStudentIds, canEdit } = useData();
+  const { groups, teachers, courses, groupStudentIds, groupSessions, school, canEdit } = useData();
   const [creating, setCreating] = useState(false);
+  const month = todayISO().slice(0, 7);
+  // A session counts the moment attendance is taken for the group that day (group_sessions, 0020).
+  const heldThisMonth = new Map<number, number>();
+  for (const session of groupSessions) if (session.session_date.startsWith(month)) heldThisMonth.set(session.group_id, (heldThisMonth.get(session.group_id) ?? 0) + 1);
+  const statuses = groups.map((group) => groupStatus(group, groupStudentIds(group.id).length));
+  const tally = (status: string) => statuses.filter((item) => item === status).length;
   return <>
     <PageHeader eyebrow={g.eyebrow} title={g.title} description={canEdit ? g.description : g.descriptionTeacher} actionLabel={canEdit ? g.action : undefined} onAction={() => setCreating(true)} />
+    {groups.length > 0 && <div className="metrics-grid metrics-grid-4">
+      <MetricCard label={g.countTotal} value={String(groups.length)} note={g.countTotalNote} icon="users" accent="#5B8DEF" />
+      <MetricCard label={g.countOpen} value={String(tally("Ouvert"))} note={g.countOpenNote} icon="checkCircle" accent={COLORS.green} />
+      <MetricCard label={g.countFull} value={String(tally("Complet"))} note={g.countFullNote} icon="warning" accent={COLORS.yellow} />
+      <MetricCard label={g.countClosed} value={String(tally("Annulé"))} note={g.countClosedNote} icon="lock" accent={COLORS.red} />
+    </div>}
     {groups.length ? <div className="class-cards">{groups.map((group) => {
       const count = groupStudentIds(group.id).length;
       const status = groupStatus(group, count);
+      const planned = plannedSessions(group, courses.find((course) => course.id === group.course_id), school.sessions_per_month, month);
+      const held = heldThisMonth.get(group.id) ?? 0;
       return <div className="class-card" key={group.id} onClick={() => openGroup(group.id)} tabIndex={0} onKeyDown={(event) => event.key === "Enter" && openGroup(group.id)}>
         <div className="class-color" style={{ background: group.color }} />
         <div className="class-card-main">
@@ -47,6 +73,7 @@ export function Groups({ openGroup }: { openGroup: (id: number) => void }) {
           <p><Icon name="teacher" size={14} /> {teachers.find((teacher) => teacher.id === group.teacher_id)?.full_name ?? t.common.unassigned} · {group.room || t.common.noRoom}</p>
           <p><Icon name="calendar" size={14} /> {group.days.map((day) => t.v.day[day]).join(" · ") || t.common.noDays}, {timeRange(group, t.common.noTime)}</p>
           {canEdit && <div className="capacity"><div><span>{g.capacity}</span><strong>{count}/{group.capacity}</strong></div><div className="capacity-track"><i style={{ width: `${clampPercent(percent(count, group.capacity))}%`, background: count >= group.capacity ? COLORS.coral : group.color }} /></div></div>}
+          {status !== "Annulé" && planned > 0 && <div className="capacity month-sessions"><div><span>{g.monthSessions}</span><strong>{g.sessionsOf(held, planned)}</strong></div><div className="capacity-track"><i style={{ width: `${clampPercent(percent(held, planned))}%`, background: held >= planned ? COLORS.green : COLORS.teal }} /></div></div>}
         </div>
       </div>;
     })}</div> : <Panel><EmptyState title={g.empty} text={canEdit ? g.emptyText : g.emptyTextTeacher} /></Panel>}
@@ -79,7 +106,10 @@ export function GroupDrawer({ groupId, onClose, goTo }: { groupId: number; onClo
   };
 
   return <>
-    <Drawer title={group.name} eyebrow={g.drawer} onClose={onClose}>
+    <Drawer title={group.name} eyebrow={g.drawer} onClose={onClose} actions={<>
+      <Button small variant="soft" icon="check" onClick={() => { onClose(); goTo("attendance", group.id); }}>{g.attendanceShort}</Button>
+      {canEdit && <Button small variant="outline" icon="edit" onClick={() => setEditing(true)}>{t.common.edit}</Button>}
+    </>}>
     <div className="class-drawer-head">
       <span className="class-color-large" style={{ background: group.color }} />
       <div>
@@ -99,19 +129,15 @@ export function GroupDrawer({ groupId, onClose, goTo }: { groupId: number; onClo
           {canEdit && <button className="row-menu" onClick={() => removeStudent(student.id, student.full_name)} aria-label={`${t.common.remove} ${student.full_name}`}><Icon name="close" size={14} /></button>}
         </div>;
       })}</div> : <EmptyState title={g.emptyRoster} text={g.emptyRosterText} />}
-      {canEdit && candidates.length > 0 && <div className="inline-add">
+      {/* A full or cancelled group takes no one else (the database refuses it too, 0029). */}
+      {canEdit && status === "Complet" && <p className="muted-copy">{t.errors.groupFull}</p>}
+      {canEdit && status === "Ouvert" && candidates.length > 0 && <div className="inline-add">
         <select className="field" aria-label={g.addStudentLabel} value={adding} onChange={(event) => setAdding(event.target.value)}><option value="">{g.addStudent}</option>{candidates.map((student) => <option key={student.id} value={student.id}>{student.full_name}</option>)}</select>
         <Button icon="plus" disabled={!adding} onClick={addStudent}>{t.common.add}</Button>
       </div>}
     </div>
-    <div className="drawer-section">
-      <h4>{t.common.actions}</h4>
-      <div className="drawer-actions vertical">
-        <Button variant="soft" icon="check" onClick={() => { onClose(); goTo("attendance", group.id); }}>{g.takeAttendance}</Button>
-        {canEdit && <Button variant="outline" icon="edit" onClick={() => setEditing(true)}>{g.editGroup}</Button>}
-        {isDirector && <Button variant="danger" icon="trash" onClick={deleteGroup}>{g.deleteGroup}</Button>}
-      </div>
-    </div>
+    {/* Attendance and edit sit next to the title; deleting stays down here, away from them. */}
+    {isDirector && <div className="drawer-section"><div className="drawer-actions vertical"><Button variant="danger" icon="trash" onClick={deleteGroup}>{g.deleteGroup}</Button></div></div>}
   </Drawer>
     {editing && <GroupForm group={group} onClose={() => setEditing(false)} />}
   </>;

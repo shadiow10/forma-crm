@@ -203,6 +203,7 @@ await db.exec(`update school_members set role = 'director' where user_id = '${U.
 // Teacher pay: the director and the teacher themselves, nobody else.
 assert.ok(await fails("S", "select hourly_rate from teachers"), "secretaire cannot read the pay column");
 assert.equal(await count("S", "teacher_pay"), 0, "secretaire sees no pay rows");
+assert.ok(await fails("S", "select per_student_rate from teachers"), "nor the per-student rate (0030)");
 assert.equal(await count("D", "teacher_pay"), 5, "director sees every rate");
 assert.deepEqual((await as("T", "select teacher_id from teacher_pay")).map((r) => r.teacher_id), [2], "teacher sees only their own rate");
 
@@ -352,5 +353,59 @@ values ('Cours El Nadjah', 'École de soutien scolaire', 'Blida', 'Directeur C',
 update orders set status = 'payé' where school_name = 'Cours El Nadjah';`);
 assert.equal((await db.query("select kind from schools where name = 'Cours El Nadjah'")).rows[0].kind, "soutien", "a soutien order opens a soutien school");
 assert.equal((await db.query("select kind from schools where name = 'École Annuelle'")).rows[0].kind, "formation");
+
+// 0025: a course decides how many sessions make its month. The dropped Maths pupil above had five
+// counted sessions: two months at 4 per month, one month at 8.
+await db.exec(`set test.uid = ''; update courses set sessions_per_month = 8 where id = ${ids.course}`);
+assert.equal((await balanceOf()).months_due, 1, "eight sessions per month: five sessions are still month 1");
+await db.exec(`set test.uid = ''; update courses set sessions_per_month = 4 where id = ${ids.course}`);
+assert.equal((await balanceOf()).months_due, 2);
+
+// 0027: the student limit holds for one student and for an import, whatever the role.
+await db.exec("set test.uid = ''; update schools set student_limit = 3 where id = 2");   // two students in school 2
+assert.ok(!(await fails("D2", "insert into students (school_id, full_name, phone) values (2, 'Troisième', '0550000003')")), "up to the limit");
+await assert.rejects(as("D2", "insert into students (school_id, full_name, phone) values (2, 'Quatrième', '0550000004')"), /Limite de 3/, "past the limit, with the reason");
+await db.exec("set test.uid = ''; update schools set student_limit = 4 where id = 2");
+await assert.rejects(as("D2", "insert into students (school_id, full_name, phone) values (2, 'A', '1'), (2, 'B', '2')"), /Limite/, "an import that crosses the limit is refused whole");
+assert.equal(await count("D2", "students"), 3, "and adds nobody");
+
+// Packs: the director asks, nobody in the school can mark one paid, payment raises the limit.
+assert.ok(await fails("S", "insert into student_packs (school_id, pack) values (1, 500)"), "a secretaire cannot order a pack");
+assert.ok(!(await fails("D", "insert into student_packs (school_id, pack) values (1, 500)")), "the director can");
+assert.ok(await fails("D", "update student_packs set status = 'payé'"), "and cannot mark it paid");
+assert.ok(await fails("D", "update schools set student_limit = 99999 where id = 1"), "nor raise the limit by hand");
+await db.exec("set test.uid = ''; update student_packs set status = 'payé' where school_id = 1");
+assert.equal((await db.query("select student_limit from schools where id = 1")).rows[0].student_limit, 1000, "a paid pack adds 500 to the 500 of the plan");
+
+// 0028: rooms. (The backfill from existing group rooms runs before the seed here, so it has nothing to copy.)
+assert.ok(!(await fails("D", "insert into rooms (school_id, name, capacity) values (1, 'Salle Neuve', 20)")), "the director adds a room");
+assert.ok(await fails("S", "insert into rooms (school_id, name) values (1, 'Salle S')"), "the secretaire cannot");
+assert.ok(await count("S", "rooms") > 0 && await count("T", "rooms") > 0, "but the office and teachers read them");
+assert.equal(await count("D2", "rooms where school_id = 1"), 0, "another school sees none");
+await db.exec("set test.uid = ''; update groups set room = 'Salle Neuve' where id = 1");
+await as("D", "update rooms set name = 'Renommée' where school_id = 1 and name = 'Salle Neuve'");
+assert.equal((await db.query("select room from groups where id = 1")).rows[0].room, "Renommée", "a renamed room takes its groups along");
+await as("D", "delete from rooms where school_id = 1 and name = 'Renommée'");
+assert.equal((await db.query("select room from groups where id = 1")).rows[0].room, null, "a deleted room leaves its groups with no room");
+
+// 0029: a full group takes no one else, but a student already in it is no error.
+await db.exec("set test.uid = ''; update groups set capacity = (select count(*) from group_students where group_id = 1) where id = 1");
+const outsider = (await db.query("select id from students where school_id = 1 and id not in (select student_id from group_students where group_id = 1) limit 1")).rows[0].id;
+assert.ok(await fails("D", `insert into group_students (school_id, group_id, student_id) values (1, 1, ${outsider})`), "a full group refuses a new student");
+assert.ok(!(await fails("D", "insert into group_students (school_id, group_id, student_id) select 1, 1, student_id from group_students where group_id = 1 limit 1 on conflict do nothing")), "re-adding a member is not refused");
+await db.exec("set test.uid = ''; update groups set capacity = capacity + 1 where id = 1");
+assert.ok(!(await fails("D", `insert into group_students (school_id, group_id, student_id) values (1, 1, ${outsider})`)), "a free seat takes the student");
+
+// 0030: the pay mode is stored; salaried teachers kept their salary.
+assert.ok(!(await fails("D", "update teachers set pay_mode = 'student', per_student_rate = 800 where school_id = 1 and id = 2")), "the director sets per-student pay");
+assert.ok(await fails("D", "update teachers set pay_mode = 'piece' where school_id = 1 and id = 2"), "only the three modes exist");
+assert.deepEqual((await as("T", "select pay_mode, per_student_rate from teacher_pay")).map((r) => [r.pay_mode, r.per_student_rate]), [["student", 800]], "the teacher reads their own mode");
+
+// Plans by duration: 6 months covered, 500 students + the pack.
+await db.exec(`insert into auth.users (id, email, email_confirmed_at) values ('00000000-0000-0000-0000-0000000000a6', 'semestre@ecole.dz', now());
+select place_order('École Semestre', 'Centre de formation', 'Oran', 'Directeur S', 'semestre@ecole.dz', '0555000006', 'standard', 'semester', null, 500, false);
+update orders set status = 'payé' where school_name = 'École Semestre';`);
+const semester = (await db.query(`select paid_until = current_date + interval '6 months' as six_months, student_limit, billing from schools where name = 'École Semestre'`)).rows[0];
+assert.deepEqual(semester, { six_months: true, student_limit: 1000, billing: "semester" });
 
 console.log("all access checks passed");

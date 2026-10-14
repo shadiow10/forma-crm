@@ -6,6 +6,7 @@ import { supabase } from "../lib/supabase";
 import { Drawer } from "../appUI";
 import { Badge, Button, EmptyState, Icon, formatDate, initials, statusTone } from "../ui";
 import { EnrollmentForm, PaymentForm, StudentForm } from "./forms";
+import { Receipt, usePrintReceipt } from "./Payments";
 
 type DocumentRow = { id: number; type: string; file_path: string; status: "Validé" | "À vérifier"; created_at: string };
 type NoteRow = { id: number; body: string; created_at: string };
@@ -41,6 +42,7 @@ export function StudentDrawer({ studentId, onClose }: { studentId: number; onClo
   const [note, setNote] = useState("");
   const [docType, setDocType] = useState(DOCUMENT_TYPES[0]);
   const [uploading, setUploading] = useState(false);
+  const [receipt, printReceipt] = usePrintReceipt();
 
   const loadExtras = useCallback(async () => {
     const [docs, notesResult] = await Promise.all([
@@ -165,7 +167,8 @@ export function StudentDrawer({ studentId, onClose }: { studentId: number; onClo
     </div>
 
     <div className="drawer-section profile-section">
-      <h4>{f.payments}</h4>
+      {/* Its own small button, apart from the profile's main actions: the newest payment's receipt. */}
+      <div className="drawer-section-head"><h4>{f.payments}</h4>{studentPayments.length > 0 && <Button small variant="outline" icon="print" onClick={() => printReceipt([studentPayments[0].id])}>{f.printLastReceipt}</Button>}</div>
       {studentPayments.length ? <div className="document-list">{studentPayments.map((payment) => <div className="document-row" key={payment.id}>
         <span className="document-icon"><Icon name="wallet" size={16} /></span>
         <div><strong>{money(payment.amount)}</strong><span>{formatDate(payment.paid_on)} · {labelOf(t.v.method, payment.method)} · {courseName(summary.enrollments.find((enrollment) => enrollment.id === payment.enrollment_id)!.course_id)}</span></div>
@@ -199,5 +202,6 @@ export function StudentDrawer({ studentId, onClose }: { studentId: number; onClo
     {form === "edit" && <StudentForm student={student} onClose={() => setForm(null)} />}
     {form === "enroll" && <EnrollmentForm studentId={student.id} onClose={() => setForm(null)} />}
     {form === "pay" && <PaymentForm enrollmentId={payFor} onClose={() => setForm(null)} />}
+    {receipt && <Receipt paymentIds={receipt} />}
   </>;
 }

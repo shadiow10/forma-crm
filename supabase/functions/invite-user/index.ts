@@ -2,26 +2,30 @@
 // Only a director of that school can call it. Deployed as the Supabase Edge Function "invite-user".
 import { createClient } from "npm:@supabase/supabase-js@2.116.0";
 
-// Only the app's own site may call this from a browser. SITE_URL is set with
-// `supabase secrets set SITE_URL=https://...`. Without it the function refuses to serve:
+// Only the app's own sites may call this from a browser. SITE_URL is the list of them, comma
+// separated: `supabase secrets set SITE_URL=https://app.example.dz,https://other.vercel.app`.
+// A browser only accepts the answer when it names the exact origin that asked, so the request's
+// origin is echoed back when it is on the list. Without SITE_URL the function refuses to serve:
 // falling back to "*" would silently drop the origin check on a half-configured deploy.
-const SITE_URL = Deno.env.get("SITE_URL");
-const cors = {
-  "Access-Control-Allow-Origin": SITE_URL ?? "",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-};
-const reply = (body: unknown, status = 200) =>
-  new Response(JSON.stringify(body), { status, headers: { ...cors, "Content-Type": "application/json" } });
+const SITES = (Deno.env.get("SITE_URL") ?? "").split(",").map((site) => site.trim().replace(/\/+$/, "")).filter(Boolean);
 
 // A school adds a handful of people, not a hundred.
 const MAX_INVITES_PER_HOUR = 10;
 
 Deno.serve(async (req) => {
-  if (!SITE_URL) {
+  if (!SITES.length) {
     console.error("SITE_URL is not set: refusing to serve. `supabase secrets set SITE_URL=https://...`");
     return new Response(JSON.stringify({ error: "Service mal configuré." }), { status: 500, headers: { "Content-Type": "application/json" } });
   }
+  const origin = req.headers.get("Origin") ?? "";
+  const cors = {
+    "Access-Control-Allow-Origin": SITES.includes(origin) ? origin : SITES[0],
+    "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+    "Access-Control-Allow-Methods": "POST, OPTIONS",
+    "Vary": "Origin",
+  };
+  const reply = (body: unknown, status = 200) =>
+    new Response(JSON.stringify(body), { status, headers: { ...cors, "Content-Type": "application/json" } });
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
   if (req.method !== "POST") return reply({ error: "Méthode non autorisée." }, 405);
 

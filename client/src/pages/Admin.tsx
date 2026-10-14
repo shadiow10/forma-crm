@@ -8,6 +8,7 @@ import { friendlyError, useData } from "../data";
 import { LANGS } from "../i18n";
 import { locale, setLang, useLang } from "../lang";
 import type { Lang } from "../lang";
+import { EXTRA_PACKS } from "../lib/plans";
 import type { MemberRow } from "../lib/queries";
 import { supabase } from "../lib/supabase";
 import { FormModal } from "../appUI";
@@ -68,8 +69,10 @@ export function Certificates() {
 
 // ---------------------------------------------------------------- Settings
 
-export function Settings({ userId }: { userId: string }) {
-  const s = useAppT().settings;
+// Logging out lives here, at the foot of the settings menu, for every role.
+export function Settings({ userId, signedInAs, onSignOut }: { userId: string; signedInAs: string; onSignOut: () => void }) {
+  const t = useAppT();
+  const s = t.settings;
   const { isDirector } = useData();
   // Everyone gets the display preferences; the school, the team and the log stay with the director.
   const tabs: { key: "school" | "users" | "activity" | "prefs"; icon: IconName; label: string }[] = [
@@ -86,8 +89,12 @@ export function Settings({ userId }: { userId: string }) {
     <div className="settings-layout">
       <aside className="settings-nav">
         {tabs.map((item) => <button key={item.key} className={tab === item.key ? "active" : ""} onClick={() => setTab(item.key)}><Icon name={item.icon} size={16} />{item.label}<Icon name="chevron" size={15} /></button>)}
+        <div className="settings-account">
+          <span>{s.signedInAs(signedInAs)}</span>
+          <button className="settings-logout" onClick={onSignOut}><Icon name="logout" size={16} />{t.common.signOut}</button>
+        </div>
       </aside>
-      <div className="settings-content">{tab === "school" ? <SchoolSettings /> : tab === "users" ? <UserSettings userId={userId} /> : tab === "activity" ? <ActivityLog /> : <Preferences />}</div>
+      <div className="settings-content">{tab === "school" ? <><SchoolSettings /><StudentLimit /></> : tab === "users" ? <UserSettings userId={userId} /> : tab === "activity" ? <ActivityLog /> : <Preferences />}</div>
     </div>
   </>;
 }
@@ -108,18 +115,17 @@ function Preferences() {
 function SchoolSettings() {
   const t = useAppT();
   const s = t.settings;
-  const { school, save, subscription, isSoutien } = useData();
-  const [values, setValues] = useState({ name: school.name, phone: school.phone ?? "", email: school.email ?? "", address: school.address ?? "", currency: school.currency, sessions: String(school.sessions_per_month ?? 4) });
+  const { school, save, subscription } = useData();
+  const [values, setValues] = useState({ name: school.name, phone: school.phone ?? "", email: school.email ?? "", address: school.address ?? "", currency: school.currency });
   const [busy, setBusy] = useState(false);
   const set = (key: keyof typeof values) => (event: { target: { value: string } }) => setValues({ ...values, [key]: event.target.value });
   const submit = async (event: FormEvent) => {
     event.preventDefault();
     if (!values.name.trim()) return;
     setBusy(true);
-    const sessions = Math.min(31, Math.max(1, Math.round(Number(values.sessions)) || 4));
+    // Sessions per month moved to each course (0025).
     await save(() => supabase.from("schools").update({
       name: values.name.trim(), phone: values.phone.trim() || null, email: values.email.trim() || null, address: values.address.trim() || null, currency: values.currency,
-      ...(isSoutien ? { sessions_per_month: sessions } : {}),
     }).eq("id", school.id), s.saved);
     setBusy(false);
   };
@@ -131,13 +137,48 @@ function SchoolSettings() {
         <label>{s.fEmail}<input className="field" type="email" value={values.email} onChange={set("email")} /></label>
         <label>{s.fAddress}<input className="field" value={values.address} onChange={set("address")} /></label>
         <label>{s.fCurrency}<select className="field" value={values.currency} onChange={set("currency")}>{Object.keys(t.v.currency).map((code) => <option key={code} value={code}>{t.v.currency[code]}</option>)}</select></label>
-        {isSoutien && <label>{t.so.fSessions}<input className="field" type="number" min={1} max={31} value={values.sessions} onChange={set("sessions")} /></label>}
       </div>
-      {isSoutien && <p className="form-hint">{t.so.sessionsHint}</p>}
       <p className="form-hint">{s.hint(school.slug)}</p>
-      {school.paid_until && <p className="form-hint"><Icon name="calendar" size={13} /> {s.subscription(school.billing === "yearly" ? s.yearly : s.monthly, subscription.state === "frozen" ? s.expired : s.valid, formatDate(school.paid_until))}</p>}
+      {school.paid_until && <p className="form-hint"><Icon name="calendar" size={13} /> {s.subscription(school.billing === "yearly" ? s.yearly : school.billing === "semester" ? s.semester : s.monthly, subscription.state === "frozen" ? s.expired : s.valid, formatDate(school.paid_until))}</p>}
       <Button type="submit" icon="check" disabled={busy}>{busy ? t.common.saving : t.common.save}</Button>
     </form>
+  </Panel>;
+}
+
+// How many students the plan covers, and a way to ask for more (0027). The request is paid like an
+// order; the limit goes up when it is marked paid in the dashboard.
+function StudentLimit() {
+  const t = useAppT();
+  const s = t.settings;
+  const { school, students, money, save, notify } = useData();
+  const [pending, setPending] = useState<{ pack: number | null; on_quote: boolean }[]>([]);
+  const [choice, setChoice] = useState<string>(String(EXTRA_PACKS[0].students));
+  const [busy, setBusy] = useState(false);
+  const load = () => supabase.from("student_packs").select("pack, on_quote").eq("school_id", school.id).eq("status", "nouveau")
+    .then(({ data, error }) => { if (error) notify(friendlyError(error, t.errors)); else setPending(data ?? []); });
+  useEffect(() => { void load(); }, [school.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  const label = (pack: number | null, onQuote: boolean) => onQuote || pack === null ? s.packQuote : `+${pack} · ${money(EXTRA_PACKS.find((item) => item.students === pack)?.price ?? 0)}`;
+  const request = async () => {
+    setBusy(true);
+    const onQuote = choice === "quote";
+    if (await save(() => supabase.from("student_packs").insert({ school_id: school.id, pack: onQuote ? null : Number(choice), on_quote: onQuote }), s.packSent)) await load();
+    setBusy(false);
+  };
+  const near = school.student_limit !== null && students.length >= school.student_limit * 0.9;
+  return <Panel title={s.students}>
+    <p className={`student-count ${near ? "near" : ""}`}><Icon name="users" size={15} /> {school.student_limit === null ? s.noLimit(students.length) : s.studentsOf(students.length, school.student_limit)}</p>
+    {school.student_limit !== null && <>
+      <h4 className="pack-title">{s.packTitle}</h4>
+      <div className="inline-add">
+        <select className="field" aria-label={s.packTitle} value={choice} onChange={(event) => setChoice(event.target.value)}>
+          {EXTRA_PACKS.map((item) => <option key={item.students} value={String(item.students)}>{label(item.students, false)}</option>)}
+          <option value="quote">{s.packQuote}</option>
+        </select>
+        <Button icon="plus" disabled={busy} onClick={request}>{s.packRequest}</Button>
+      </div>
+      {pending.map((item, index) => <p className="form-hint" key={index}><Icon name="clock" size={13} /> {s.packPending(label(item.pack, item.on_quote))}</p>)}
+      <p className="form-hint">{s.packHint}</p>
+    </>}
   </Panel>;
 }
 

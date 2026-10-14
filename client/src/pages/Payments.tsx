@@ -5,9 +5,24 @@ import { courseMonths, monthNumber, monthStatus, monthlyFee, teacherPay, totalPa
 import type { Payment } from "../lib/queries";
 import { supabase } from "../lib/supabase";
 import { Badge, Button, COLORS, EmptyState, Icon, MetricCard, PageHeader, Panel, downloadCSV, formatDate, todayISO } from "../ui";
+import { payRate } from "./Catalog";
 import { METHODS, MultiPaymentForm, PaymentForm } from "./forms";
 
 export const receiptNumber = (payment: Payment) => `R-${payment.paid_on.slice(0, 4)}-${String(payment.id).padStart(6, "0")}`;
+
+// Which payments to print. Setting ids puts <Receipt> on the page, prints it, then takes it away.
+// Shared by the payments page and the student profile.
+export function usePrintReceipt() {
+  const [receipt, setReceipt] = useState<number[] | null>(null);
+  useEffect(() => {
+    if (!receipt) return;
+    const done = () => setReceipt(null);
+    window.addEventListener("afterprint", done, { once: true });
+    window.print();
+    return () => window.removeEventListener("afterprint", done);
+  }, [receipt]);
+  return [receipt, setReceipt] as const;
+}
 
 export function Payments({ openStudent }: { openStudent: (id: number) => void }) {
   const t = useAppT();
@@ -16,7 +31,7 @@ export function Payments({ openStudent }: { openStudent: (id: number) => void })
   // An école de soutien opens on this month's fees: that is the question at the desk.
   const [tab, setTab] = useState<"history" | "unpaid" | "monthly" | "teachers">(isSoutien ? "monthly" : "history");
   const [recording, setRecording] = useState<{ enrollmentId?: number } | null>(null);
-  const [receipt, setReceipt] = useState<number[] | null>(null); // payment ids printed on one sheet
+  const [receipt, setReceipt] = usePrintReceipt(); // payment ids printed on one sheet
   const [multi, setMulti] = useState(false);
   const [method, setMethod] = useState("Tous");
   const [sort, setSort] = useState<"balance" | "last">("balance");
@@ -24,14 +39,6 @@ export function Payments({ openStudent }: { openStudent: (id: number) => void })
   const month = todayISO().slice(0, 7);
   const search = query.trim().toLowerCase();
 
-  // Print the receipt once it is on the page, then take it away.
-  useEffect(() => {
-    if (!receipt) return;
-    const done = () => setReceipt(null);
-    window.addEventListener("afterprint", done, { once: true });
-    window.print();
-    return () => window.removeEventListener("afterprint", done);
-  }, [receipt]);
 
   const enrollmentById = new Map(enrollments.map((enrollment) => [enrollment.id, enrollment]));
   const courseName = (id?: number) => courses.find((course) => course.id === id)?.name ?? "—";
@@ -88,7 +95,7 @@ export function Payments({ openStudent }: { openStudent: (id: number) => void })
     ])
     : downloadCSV(`paie-formateurs-${month}.csv`, [
       p.csvTeachers,
-      ...payRows.map((row) => [row.teacher.full_name, row.groups.map((group) => group.name).join(", "), row.hours, row.teacher.hourly_rate, row.amount]),
+      ...payRows.map((row) => [row.teacher.full_name, row.groups.map((group) => group.name).join(", "), t.teachers.payModes[row.mode], row.hours, row.students, payRate(row.teacher, money, t), row.amount]),
     ]);
   const remove = async (id: number, amount: number) => {
     const sure = await ask({ title: p.deleteTitle(money(amount)), danger: true, confirmLabel: t.common.del, text: p.deleteText });
@@ -167,8 +174,8 @@ export function Payments({ openStudent }: { openStudent: (id: number) => void })
           <tbody>{payRows.map((row) => <tr key={row.teacher.id}>
             <td><strong>{row.teacher.full_name}</strong><span className="cell-sub">{labelOf(t.v.contract, row.teacher.contract)}</span></td>
             <td>{row.groups.map((group) => group.name).join(", ")}</td>
-            <td>{row.hours} h</td>
-            <td>{row.fixed ? `${money(row.teacher.monthly_salary ?? 0)} ${t.so.perMonth}` : money(row.teacher.hourly_rate ?? 0)}</td>
+            <td>{row.mode === "student" ? t.common.students(row.students) : `${row.hours} h`}</td>
+            <td>{payRate(row.teacher, money, t)}<span className="cell-sub">{t.teachers.payModes[row.mode]}</span></td>
             <td><strong>{money(row.amount)}</strong></td>
           </tr>)}</tbody>
         </table></div>
@@ -196,7 +203,7 @@ export function Payments({ openStudent }: { openStudent: (id: number) => void })
 
 // Printed on the top half of an A4 sheet; hidden on screen. Several payments (one desk visit,
 // several subjects) share one sheet: one line each, the total underneath.
-function Receipt({ paymentIds }: { paymentIds: number[] }) {
+export function Receipt({ paymentIds }: { paymentIds: number[] }) {
   const t = useAppT();
   const r = t.payments.receipt;
   const { school, payments, enrollments, studentById, courses, balanceOf, money, me } = useData();

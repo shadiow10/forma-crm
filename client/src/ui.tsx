@@ -136,8 +136,8 @@ export const BrandMark = ({ size = 32 }: { size?: number }) => (
   </span>
 );
 
-export const Button = ({ children, variant = "primary", icon, onClick, type = "button", disabled = false }: { children: ReactNode; variant?: Variant; icon?: IconName; onClick?: () => void; type?: "button" | "submit"; disabled?: boolean }) => (
-  <button type={type} disabled={disabled} onClick={onClick} className="button" style={variants[variant]}>{icon && <Icon name={icon} size={15} />}{children}</button>
+export const Button = ({ children, variant = "primary", icon, onClick, type = "button", disabled = false, small = false }: { children: ReactNode; variant?: Variant; icon?: IconName; onClick?: () => void; type?: "button" | "submit"; disabled?: boolean; small?: boolean }) => (
+  <button type={type} disabled={disabled} onClick={onClick} className={small ? "button small" : "button"} style={variants[variant]}>{icon && <Icon name={icon} size={small ? 13 : 15} />}{children}</button>
 );
 
 export const MetricCard = ({ label, value, note, icon, accent }: { label: string; value: string; note: string; icon: IconName; accent: string }) => (

@@ -75,6 +75,8 @@ export function friendlyError(error: { code?: string; message: string }, e: AppC
   if (error.code === "23503") return e.inUse;
   if (error.code === "23505") return e.duplicate;
   if (error.code === "23514") return e.invalid;
+  if (error.code === "CL001") return e.studentLimit; // 0027: the school reached its student limit
+  if (error.code === "CL002") return e.groupFull; // 0029: the group has no seat left
   if (/fetch|network/i.test(error.message)) return e.network;
   // Raw Postgres messages name tables, columns and constraints. Dev console only: in production the
   // console belongs to whoever opened devtools, and a schema map should not be there for the taking.

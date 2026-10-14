@@ -7,6 +7,9 @@ import { supabase } from "./lib/supabase";
 const LEGAL_PATHS = new Set(["/mentions-legales", "/cgv", "/confidentialite"]);
 const Landing = lazy(() => import("./Landing").then((m) => ({ default: m.Landing })));
 const Checkout = lazy(() => import("./Landing").then((m) => ({ default: m.Checkout })));
+const Signup = lazy(() => import("./Landing").then((m) => ({ default: m.Signup })));
+// Not "/inscriptions": that is the app's enrolments page.
+const SIGNUP_PATH = "/creer-un-compte";
 const Legal = lazy(() => import("./Legal").then((m) => ({ default: m.Legal })));
 import Login, { AuthShell, SetPassword } from "./Login";
 // The signed-in app is a separate download: visitors on the landing page never fetch it.
@@ -74,7 +77,7 @@ function Waiting({ email }: { email: string }) {
 }
 
 // The app's own addresses; anything else typed by hand is a wrong address, not a login page.
-const PAGE_PATHS = new Set(["/", "/etudiants", "/inscriptions", "/formations", "/formateurs", "/groupes", "/planning", "/presences", "/paiements", "/certificats", "/parametres"]);
+const PAGE_PATHS = new Set(["/", "/etudiants", "/inscriptions", "/formations", "/formateurs", "/groupes", "/planning", "/salles", "/presences", "/paiements", "/statistiques", "/certificats", "/parametres"]);
 
 function NotFound() {
   const t = useT().access;
@@ -90,12 +93,14 @@ function Root() {
     // Public site for visitors; any app address (e.g. /etudiants) still leads to the login.
     if (window.location.pathname === "/") return <Landing />;
     if (window.location.pathname === "/commander") return <Checkout />;
+    if (window.location.pathname === SIGNUP_PATH) return <Signup />;
     // /connexion and the app addresses lead to the login; anything else is a wrong address.
     if (window.location.pathname === "/connexion" || PAGE_PATHS.has(window.location.pathname)) return <Login />;
     return <NotFound />;
   }
   // Signed in with no school: he may still need to send (or resend) his order.
-  if (auth.status === "noAccess" && window.location.pathname === "/commander") return <Checkout />;
+  // A signed-in account opening the sign-up page already has its account: on to the order form.
+  if (auth.status === "noAccess" && (window.location.pathname === "/commander" || window.location.pathname === SIGNUP_PATH)) return <Checkout />;
   if (auth.status === "setPassword") return <SetPassword email={auth.email} />;
   if (auth.status === "noAccess") return <Waiting email={auth.email} />;
   if (auth.status === "error") return <Message title={t.loadError} text={t.profileError(auth.message)} action={{ label: t.retry, run: () => window.location.reload() }} />;

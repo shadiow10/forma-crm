@@ -4,7 +4,7 @@ import { useData } from "../data";
 import { locale } from "../lang";
 import { Badge, Button, COLORS, DAYS, EmptyState, Icon, MetricCard, PageHeader, Panel, formatDate, formatTime, initialsBadge, statusTone, todayISO } from "../ui";
 
-export function Dashboard({ goTo, openStudent, firstName }: { goTo: (page: PageKey) => void; openStudent: (id: number) => void; firstName: string }) {
+export function Dashboard({ goTo, openStudent }: { goTo: (page: PageKey) => void; openStudent: (id: number) => void }) {
   const { students, enrollments, groups, payments, attendanceStats, courses, teachers, studentById, groupStudentIds, summaryOf, balanceOf, money, canEdit, isSoutien } = useData();
   const t = useAppT();
   const d = t.dash;
@@ -41,7 +41,7 @@ export function Dashboard({ goTo, openStudent, firstName }: { goTo: (page: PageK
   const setup = d.setupSteps.map((step, index) => ({ ...step, page: setupPages[index], done: setupDone[index] }));
 
   return <>
-    <PageHeader eyebrow={dateLabel} title={d.hello(firstName)} description={d.intro} actionLabel={d.newEnrollment} onAction={() => goTo("enrollments")} />
+    <PageHeader eyebrow={dateLabel} title={d.hello} description={d.intro} actionLabel={d.newEnrollment} onAction={() => goTo("enrollments")} />
     <div className="metrics-grid">
       <MetricCard label={d.activeStudents} value={String(activeStudents.size)} note={d.ofDirectory(students.length)} icon="graduation" accent={COLORS.teal} />
       {isSoutien

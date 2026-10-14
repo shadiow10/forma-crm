@@ -11,6 +11,7 @@ import { Dashboard } from "./pages/Dashboard";
 import { GroupDrawer, Groups, Planning } from "./pages/Groups";
 import { Analytics } from "./pages/Analytics";
 import { Payments } from "./pages/Payments";
+import { Rooms } from "./pages/Rooms";
 import { StudentDrawer } from "./pages/StudentDrawer";
 import { Enrollments, Students } from "./pages/Students";
 import { BrandMark, Icon, initials } from "./ui";
@@ -25,6 +26,7 @@ const PAGES: { key: PageKey; path: string; icon: IconName }[] = [
   { key: "teachers", path: "/formateurs", icon: "teacher" },
   { key: "groups", path: "/groupes", icon: "users" },
   { key: "planning", path: "/planning", icon: "calendar" },
+  { key: "rooms", path: "/salles", icon: "building" },
   { key: "attendance", path: "/presences", icon: "check" },
   { key: "payments", path: "/paiements", icon: "wallet" },
   { key: "analytics", path: "/statistiques", icon: "chart" },
@@ -94,7 +96,7 @@ export default function App({ member, email, userId, onSignOut }: { member: Memb
 
   const renderPage = () => {
     switch (page) {
-      case "dashboard": return <Dashboard goTo={goTo} openStudent={setStudentId} firstName={displayName.split(/[ @]/)[0]} />;
+      case "dashboard": return <Dashboard goTo={goTo} openStudent={setStudentId} />;
       case "students": return <Students openStudent={setStudentId} />;
       case "enrollments": return <Enrollments openStudent={setStudentId} />;
       case "formations": return <Courses />;
@@ -103,9 +105,10 @@ export default function App({ member, email, userId, onSignOut }: { member: Memb
       case "planning": return <Planning openGroup={setGroupId} />;
       case "attendance": return <Attendance key={attendanceGroup ?? "default"} initialGroupId={attendanceGroup} />;
       case "payments": return <Payments openStudent={setStudentId} />;
+      case "rooms": return <Rooms openGroup={setGroupId} />;
       case "analytics": return <Analytics />;
       case "certificates": return <Certificates />;
-      case "settings": return <Settings userId={userId} />;
+      case "settings": return <Settings userId={userId} signedInAs={displayName} onSignOut={onSignOut} />;
     }
   };
 
@@ -119,7 +122,6 @@ export default function App({ member, email, userId, onSignOut }: { member: Memb
           <Icon name={item.icon} size={17} /><span>{t.nav[item.key]}</span>
         </a>)}
       </div></nav>
-      <div className="sidebar-user"><span className="user-avatar">{initials(displayName)}</span><div><strong>{displayName}</strong><span>{t.roles[member.role]}</span></div><button className="icon-button" onClick={onSignOut} title={t.common.signOut} aria-label={t.common.signOut}><Icon name="logout" size={17} /></button></div>
     </aside>
     {sidebarOpen && <div className="sidebar-overlay" onClick={() => setSidebarOpen(false)} />}
     <main className="main-area">
@@ -131,8 +133,6 @@ export default function App({ member, email, userId, onSignOut }: { member: Memb
             <input aria-label={t.common.searchLabel} placeholder={t.common.searchPlaceholder} value={search} onChange={(event) => setSearch(event.target.value)} onKeyDown={(event) => { if (event.key === "Escape") setSearch(""); if (event.key === "Enter" && results[0]) { results[0].open(); setSearch(""); } }} />
             {query.length >= 2 && <div className="search-results" role="listbox">{results.length ? results.map((result) => <button key={result.key} role="option" aria-selected={false} onClick={() => { result.open(); setSearch(""); }}><strong>{result.label}</strong><span>{result.hint}</span></button>) : <span className="search-empty">{t.common.noResult}</span>}</div>}
           </div>}
-          <span className="top-divider" />
-          <button className="top-profile" onClick={onSignOut} title={t.common.signOut}><span className="user-avatar small">{initials(displayName)}</span><span>{displayName}</span><Icon name="logout" size={13} /></button>
         </div>
       </header>
       {school.is_demo

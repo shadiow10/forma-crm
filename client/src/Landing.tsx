@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { EXTRA_PACKS } from "./lib/plans";
 import { supabase } from "./lib/supabase";
 import { isLeaked } from "./Login";
 import type { FormEvent, ReactNode } from "react";
@@ -11,16 +12,17 @@ import type { IconName } from "./ui";
 // Real version: checkout → payment gateway (Chargily: Edahabia/CIB) → webhook creates the school
 // and invites the director with the existing invite-user flow.
 
-type Billing = "monthly" | "yearly";
+// One offer sold by duration; the id is what orders.billing stores (0027). Prices in DA; the names
+// live in i18n.tsx. Every plan covers 500 students with unlimited users.
 type PlanId = keyof Copy["plans"];
-
-// Monthly prices in DA; the names and what each plan adds live in i18n.tsx. Yearly = 10 months.
-export const PLANS: { id: PlanId; monthly: number; featured?: boolean }[] = [
-  { id: "essentiel", monthly: 7900 },
-  { id: "pro", monthly: 14900, featured: true },
-  { id: "etablissement", monthly: 24900 },
+export const PLANS: { id: PlanId; price: number; months: number; featured?: boolean }[] = [
+  { id: "monthly", price: 10000, months: 1 },
+  { id: "semester", price: 60000, months: 6 },
+  { id: "yearly", price: 89900, months: 12, featured: true },
 ];
-const planTotal = (monthly: number, billing: Billing) => (billing === "yearly" ? monthly * 10 : monthly);
+// A longer plan shows its price per month when that beats paying month by month.
+const monthlyPrice = (plan: (typeof PLANS)[number]) => Math.round(plan.price / plan.months);
+const cheaperPerMonth = (plan: (typeof PLANS)[number]) => plan.months > 1 && monthlyPrice(plan) < PLANS[0].price;
 
 const PROBLEM_ICONS: IconName[] = ["clock", "wallet", "warning"];
 const ROLE_ICONS: IconName[] = ["building", "file", "teacher"];
@@ -158,18 +160,18 @@ export function Landing() {
     window.addEventListener("keydown", close);
     return () => window.removeEventListener("keydown", close);
   }, [menuOpen]);
-  const [billing, setBilling] = useState<Billing>("monthly");
   const navLabels = [t.nav.features, t.nav.roles, t.nav.pricing, t.nav.faq];
-  const featured = PLANS.find((plan) => plan.featured)!;
   return <div className="lp" {...page}>
     <header className="lp-header">
       <Brand />
       <nav className="lp-nav" aria-label={t.sections}>{NAV.map((id, index) => <a key={id} href={`#${id}`} className={active === id ? "active" : ""}>{navLabels[index]}</a>)}</nav>
       <Prefs />
       <a className="lp-login" href="/connexion">{t.signIn}</a>
+      <a className="lp-login lp-signup-link" href="/creer-un-compte">{t.signup.link}</a>
       <button className="lp-burger" type="button" aria-label={t.menu} aria-expanded={menuOpen} aria-controls="lp-menu" onClick={() => setMenuOpen(!menuOpen)}><Icon name={menuOpen ? "close" : "menu"} size={20} /></button>
       {menuOpen && <nav id="lp-menu" className="lp-menu" aria-label={t.menu}>
         {NAV.map((id, index) => <a key={id} href={`#${id}`} onClick={() => setMenuOpen(false)}>{navLabels[index]}</a>)}
+        <a href="/creer-un-compte">{t.signup.link}</a>
         <Prefs />
       </nav>}
     </header>
@@ -245,10 +247,6 @@ export function Landing() {
           <p className="lp-eyebrow">{t.pricing.eyebrow}</p>
           <h2>{t.pricing.title}</h2>
           <p>{t.pricing.text}</p>
-          <div className="lp-billing" role="group" aria-label={t.pricing.period}>
-            <button className={billing === "monthly" ? "active" : ""} aria-pressed={billing === "monthly"} onClick={() => setBilling("monthly")}>{t.pricing.monthly}</button>
-            <button className={billing === "yearly" ? "active" : ""} aria-pressed={billing === "yearly"} onClick={() => setBilling("yearly")}>{t.pricing.yearly}</button>
-          </div>
           <div className="lp-included">
             <strong>{t.pricing.includedTitle}</strong>
             <ul>{t.pricing.included.map((item) => <li key={item}><Icon name="check" size={14} />{item}</li>)}</ul>
@@ -263,18 +261,25 @@ export function Landing() {
                 <h3>{copy.name}{plan.featured && <span className="lp-badge">{t.pricing.recommended}</span>}</h3>
                 <p>{copy.tagline}</p>
               </div>
-              <div className="lp-plan-size"><span>{copy.students}</span><span>{copy.users}</span></div>
+              <div className="lp-plan-size" />
               <div className="lp-plan-price">
-                <strong key={billing} className="lp-swap">{money(planTotal(plan.monthly, billing), t)}</strong>
-                <span>{billing === "yearly" ? t.pricing.perYear(money(Math.round(plan.monthly * 10 / 12), t)) : t.pricing.perMonth}</span>
+                <strong>{money(plan.price, t)}</strong>
+                {cheaperPerMonth(plan) && <span>{t.pricing.perMonth(money(monthlyPrice(plan), t))}</span>}
               </div>
-              <a className={`lp-plan-cta ${plan.featured ? "primary" : ""}`} href={`/commander?plan=${plan.id}&periode=${billing}`} aria-label={t.pricing.chooseAria(copy.name)}>
+              <a className={`lp-plan-cta ${plan.featured ? "primary" : ""}`} href={`/commander?plan=${plan.id}`} aria-label={t.pricing.chooseAria(copy.name)}>
                 {t.pricing.choose} <Icon name="arrow" size={16} />
               </a>
-              {plan.featured && <ul className="lp-plan-extras">{copy.features.map((feature) => <li key={feature}><Icon name="spark" size={14} />{feature}</li>)}</ul>}
             </article>;
           })}
-          <p className="lp-ledger-note">{t.pricing.note(t.plans[featured.id].name, t.plans[featured.id].features.length)}</p>
+          <div className="lp-extras">
+            <strong>{t.pricing.extrasTitle}</strong>
+            <ul>
+              {EXTRA_PACKS.map((pack) => <li key={pack.students}><Icon name="plus" size={14} />{t.pricing.extraLine(pack.students, money(pack.price, t))}</li>)}
+              <li><Icon name="plus" size={14} />{t.pricing.extraQuote}</li>
+            </ul>
+            <span>{t.pricing.extrasNote}</span>
+          </div>
+          <p className="lp-ledger-note">{t.pricing.note}</p>
         </div>
       </section>
 
@@ -295,85 +300,112 @@ export function Landing() {
   </div>;
 }
 
-// ---------------------------------------------------------------- Demo checkout
+// ---------------------------------------------------------------- Checkout and sign-up
 
-// Supabase refuses anything weaker, so the form asks for the same thing.
+// Supabase refuses anything weaker, so the sign-up form asks for the same thing.
 const STRONG_PASSWORD = /^(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9]).{10,}$/;
 // What lands in the orders table, whatever language the visitor reads the site in.
 const TYPES_FR = ["Centre de formation", "École de soutien scolaire", "École de langues"]; // "soutien" opens an école de soutien (0019)
 const METHODS_FR = ["en main propre", "virement ou CCP"];
 
+// The school and director details, shared by the order form and the sign-up page. The sign-up page
+// keeps them on the account (user_metadata), and the order form starts from them.
+type Details = { school: string; type: number; wilaya: string; director: string; email: string; phone: string };
+const EMPTY: Details = { school: "", type: 0, wilaya: "", director: "", email: "", phone: "" };
+const toMetadata = (details: Details) => ({ school_name: details.school.trim(), school_type: details.type, wilaya: details.wilaya.trim(), director_name: details.director.trim(), phone: details.phone.trim() });
+const fromMetadata = (data: Record<string, unknown> | undefined): Partial<Details> => !data ? {} : {
+  school: String(data.school_name ?? ""), type: Number(data.school_type ?? 0) || 0, wilaya: String(data.wilaya ?? ""),
+  director: String(data.director_name ?? ""), phone: String(data.phone ?? ""),
+};
+
+function detailErrors(values: Details, t: Copy) {
+  const next: Record<string, string> = {};
+  if (!values.school.trim()) next.school = t.checkout.errors.school;
+  if (!values.wilaya.trim()) next.wilaya = t.checkout.errors.wilaya;
+  if (!values.director.trim()) next.director = t.checkout.errors.director;
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(values.email.trim())) next.email = t.checkout.errors.email;
+  if (!/^0[5-7]\d{8}$/.test(values.phone.replace(/[\s.-]/g, ""))) next.phone = t.checkout.errors.phone;
+  return next;
+}
+
+// The two fieldsets both pages show: the school, then the director.
+function DetailFields({ values, set, setType, errors, disabled, emailLocked, children }: {
+  values: Details; set: (key: keyof Details) => (event: { target: { value: string } }) => void; setType: (type: number) => void;
+  errors: Record<string, string>; disabled: boolean; emailLocked: boolean; children?: ReactNode;
+}) {
+  const t = useT();
+  const field = (key: Exclude<keyof Details, "type">, label: string, props: Record<string, string | boolean> = {}) => <label>
+    {label}
+    <input className="field" value={values[key]} onChange={set(key)} aria-invalid={Boolean(errors[key])} {...props} />
+    {errors[key] && <span className="field-error">{errors[key]}</span>}
+  </label>;
+  return <>
+    <fieldset disabled={disabled}>
+      <legend>{t.checkout.schoolLegend}</legend>
+      {field("school", t.checkout.schoolName, { placeholder: t.checkout.schoolPlaceholder, autoComplete: "organization" })}
+      <label>{t.checkout.schoolType}<select className="field" value={values.type} onChange={(event) => setType(Number(event.target.value))}>{t.checkout.types.map((label, index) => <option key={label} value={index}>{label}</option>)}</select></label>
+      {field("wilaya", t.checkout.wilaya, { placeholder: t.checkout.wilayaPlaceholder })}
+    </fieldset>
+    <fieldset disabled={disabled}>
+      <legend>{t.checkout.accountLegend}</legend>
+      {field("director", t.checkout.director, { autoComplete: "name" })}
+      {field("email", t.checkout.email, { type: "email", autoComplete: "email", placeholder: "directeur@ecole.dz", readOnly: emailLocked })}
+      {field("phone", t.checkout.phone, { type: "tel", autoComplete: "tel", placeholder: "0555 00 00 00" })}
+      {children}
+    </fieldset>
+  </>;
+}
+
+function useDetails(initial: Partial<Details> = {}) {
+  const [values, setValues] = useState<Details>({ ...EMPTY, ...initial });
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const set = (key: keyof Details) => (event: { target: { value: string } }) => { setValues((current) => ({ ...current, [key]: event.target.value })); setErrors((current) => ({ ...current, [key]: "" })); };
+  const setType = (type: number) => setValues((current) => ({ ...current, type }));
+  return { values, setValues, errors, setErrors, set, setType };
+}
+
+// The order form. It only records the order: no login is created and no email is sent until the
+// order is accepted (0026). A visitor signed in already (sign-up page) has the order on that login.
 export function Checkout() {
   const t = useT();
   const page = usePage();
-  const params = new URLSearchParams(window.location.search);
-  const requested = params.get("plan");
-  const [planId, setPlanId] = useState<PlanId>(PLANS.some((plan) => plan.id === requested) ? requested as PlanId : "pro");
-  const [billing, setBilling] = useState<Billing>(params.get("periode") === "yearly" ? "yearly" : "monthly");
-  const [type, setType] = useState(0);
+  const requested = new URLSearchParams(window.location.search).get("plan");
+  const [planId, setPlanId] = useState<PlanId>(PLANS.some((plan) => plan.id === requested) ? requested as PlanId : "yearly");
+  const [extra, setExtra] = useState<"0" | "500" | "1000" | "quote">("0");
   const [method, setMethod] = useState(0);
-  const [values, setValues] = useState({ school: "", wilaya: "", director: "", email: "", phone: "", password: "" });
-  const [errors, setErrors] = useState<Record<string, string>>({});
+  const { values, setValues, errors, setErrors, set, setType } = useDetails();
   const [step, setStep] = useState<"form" | "sending" | "done">("form");
   const [reference, setReference] = useState("");
   const [account, setAccount] = useState<string | null>(null); // email of the session, when already signed in
   useEffect(() => { supabase.auth.getSession().then(({ data }) => {
-    const email = data.session?.user.email;
-    if (email) { setAccount(email); setValues((current) => ({ ...current, email })); }
-  }); }, []);
+    const user = data.session?.user;
+    if (user?.email) { setAccount(user.email); setValues((current) => ({ ...current, ...fromMetadata(user.user_metadata), email: user.email! })); }
+  }); }, [setValues]);
   const plan = PLANS.find((item) => item.id === planId)!;
-  const planCopy = t.plans[planId];
-  const total = money(planTotal(plan.monthly, billing), t);
-  const set = (key: keyof typeof values) => (event: { target: { value: string } }) => { setValues({ ...values, [key]: event.target.value }); setErrors({ ...errors, [key]: "" }); };
+  const pack = EXTRA_PACKS.find((item) => String(item.students) === extra);
+  const total = plan.price + (pack?.price ?? 0);
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();
-    const next: Record<string, string> = {};
-    if (!values.school.trim()) next.school = t.checkout.errors.school;
-    if (!values.wilaya.trim()) next.wilaya = t.checkout.errors.wilaya;
-    if (!values.director.trim()) next.director = t.checkout.errors.director;
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(values.email.trim())) next.email = t.checkout.errors.email;
-    if (!/^0[5-7]\d{8}$/.test(values.phone.replace(/[\s.-]/g, ""))) next.phone = t.checkout.errors.phone;
-    if (!account && !STRONG_PASSWORD.test(values.password)) next.password = t.checkout.errors.password;
+    const next = detailErrors(values, t);
     setErrors(next);
     if (Object.keys(next).length) return;
     setStep("sending");
-    // A director's password opens their whole school: same leak check as the invitation screen.
-    if (!account && (await isLeaked(values.password))) {
-      setStep("form");
-      setErrors({ password: t.checkout.errors.leaked });
-      return;
-    }
-    // Already signed in (an account created earlier, order never sent): keep that login, skip signup.
-    const signUp = account ? { error: null } : await supabase.auth.signUp({ email: values.email.trim().toLowerCase(), password: values.password });
-    if (signUp.error) {
-      if (import.meta.env.DEV) console.error(signUp.error); // the exact reason, dev only; the visitor gets the message below
-      setStep("form");
-      const already = /already|registered|exists/i.test(signUp.error.message);
-      const weak = signUp.error.code === "weak_password";
-      setErrors({ [already ? "email" : weak ? "password" : "form"]: already ? t.checkout.errors.exists : weak ? t.checkout.errors.weak : t.checkout.errors.signup });
-      return;
-    }
     // place_order runs as owner: it can write the order and hand back its number without opening the table.
     const { data, error } = await supabase.rpc("place_order", {
-      p_school_name: values.school, p_school_type: TYPES_FR[type], p_wilaya: values.wilaya,
+      p_school_name: values.school, p_school_type: TYPES_FR[values.type], p_wilaya: values.wilaya,
       p_director_name: values.director, p_email: values.email, p_phone: values.phone,
-      p_plan: planId, p_billing: billing,
+      p_plan: "standard", p_billing: planId,
       p_notes: `Paiement souhaité : ${METHODS_FR[method]}`,
+      p_extra_students: pack?.students ?? 0, p_extra_on_quote: extra === "quote",
     });
-    if (error || !data) { setStep("form"); setErrors({ form: t.checkout.errors.send }); return; }
+    if (error || !data) { if (import.meta.env.DEV) console.error(error); setStep("form"); setErrors({ form: t.checkout.errors.send }); return; }
     setReference(`CMD-${String(data).padStart(5, "0")}`);
     setStep("done");
     window.scrollTo({ top: 0 });
   };
 
-  const field = (key: keyof typeof values, label: string, props: Record<string, string> = {}) => <label>
-    {label}
-    <input className="field" value={values[key]} onChange={set(key)} aria-invalid={Boolean(errors[key])} {...props} />
-    {errors[key] && <span className="field-error">{errors[key]}</span>}
-  </label>;
-
-  const doneValues = [values.email.trim(), values.phone.trim(), values.school.trim()];
+  const doneValues = [values.phone.trim(), values.email.trim(), values.school.trim()];
 
   return <div className="lp lp-checkout-page" {...page}>
     <header className="lp-header"><Brand /><a className="lp-login" href="/#tarifs">{t.checkout.back}</a></header>
@@ -383,29 +415,18 @@ export function Checkout() {
       <span className="lp-done-icon"><Icon name="checkCircle" size={34} /></span>
       <h1>{t.checkout.done.title}</h1>
       <p>{t.checkout.done.thanks(values.director.trim())} <strong>{reference}</strong>.</p>
-      <p className="lp-price-note">{planCopy.name} · {total} {billing === "yearly" ? t.pricing.perYear(money(Math.round(plan.monthly * 10 / 12), t)) : t.pricing.perMonth}</p>
+      <p className="lp-price-note">{t.plans[planId].name} · {money(total, t)}{extra === "quote" ? ` + ${t.checkout.onQuote}` : ""}</p>
       <ol className="lp-next">
         {t.checkout.done.steps.map((item, index) => <li key={item.title}><strong>{item.title}</strong><span>{item.text(doneValues[index])}</span></li>)}
       </ol>
       <p className="lp-price-note">{t.checkout.done.nothingCharged}</p>
-      <a className="lp-btn primary" href="/connexion">{t.checkout.done.goToLogin}</a>
+      <a className="lp-btn primary" href="/">{t.checkout.done.goToLogin}</a>
     </section> : <div className="lp-checkout">
       <form className="lp-checkout-form" onSubmit={submit} noValidate>
         <h1>{t.checkout.title}</h1>
-        <fieldset disabled={step === "sending"}>
-          <legend>{t.checkout.schoolLegend}</legend>
-          {field("school", t.checkout.schoolName, { placeholder: t.checkout.schoolPlaceholder, autoComplete: "organization" })}
-          <label>{t.checkout.schoolType}<select className="field" value={type} onChange={(event) => setType(Number(event.target.value))}>{t.checkout.types.map((label, index) => <option key={label} value={index}>{label}</option>)}</select></label>
-          {field("wilaya", t.checkout.wilaya, { placeholder: t.checkout.wilayaPlaceholder })}
-        </fieldset>
-        <fieldset disabled={step === "sending"}>
-          <legend>{t.checkout.accountLegend}</legend>
-          {field("director", t.checkout.director, { autoComplete: "name" })}
-          {field("email", t.checkout.email, { type: "email", autoComplete: "email", placeholder: "directeur@ecole.dz", ...(account ? { readOnly: "true" } : {}) })}
-          {field("phone", t.checkout.phone, { type: "tel", autoComplete: "tel", placeholder: "0555 00 00 00" })}
-          {!account && field("password", t.checkout.password, { type: "password", autoComplete: "new-password", placeholder: t.checkout.passwordPlaceholder })}
-          <p className="lp-terms">{account ? t.checkout.signedIn(account) : t.checkout.ownCredentials}</p>
-        </fieldset>
+        <DetailFields values={values} set={set} setType={setType} errors={errors} disabled={step === "sending"} emailLocked={Boolean(account)}>
+          <p className="lp-terms">{account ? t.checkout.signedIn(account) : t.checkout.noPassword}</p>
+        </DetailFields>
         <fieldset disabled={step === "sending"}>
           <legend>{t.checkout.payLegend}</legend>
           <div className="lp-methods">
@@ -420,15 +441,82 @@ export function Checkout() {
 
       <aside className="lp-summary">
         <h2>{t.checkout.summary}</h2>
-        <label>{t.checkout.plan}<select className="field" value={planId} onChange={(event) => setPlanId(event.target.value as PlanId)} disabled={step === "sending"}>{PLANS.map((item) => <option key={item.id} value={item.id}>{t.plans[item.id].name} · {money(item.monthly, t)}</option>)}</select></label>
-        <div className="lp-billing small" role="group" aria-label={t.pricing.period}>
-          <button type="button" className={billing === "monthly" ? "active" : ""} aria-pressed={billing === "monthly"} onClick={() => setBilling("monthly")}>{t.pricing.monthly}</button>
-          <button type="button" className={billing === "yearly" ? "active" : ""} aria-pressed={billing === "yearly"} onClick={() => setBilling("yearly")}>{t.pricing.yearlyShort}</button>
-        </div>
-        <ul>{[planCopy.students, planCopy.users, ...planCopy.features].map((feature) => <li key={feature}><Icon name="check" size={14} />{feature}</li>)}</ul>
-        <div className="lp-total"><span>{t.checkout.total(billing === "yearly" ? t.checkout.totalYearly : t.checkout.totalMonthly)}</span><strong key={billing + planId} className="lp-swap">{total}</strong></div>
-        {billing === "yearly" && <p className="lp-price-note">{t.checkout.saving(money(plan.monthly * 2, t))}</p>}
+        <label>{t.checkout.plan}<select className="field" value={planId} onChange={(event) => setPlanId(event.target.value as PlanId)} disabled={step === "sending"}>{PLANS.map((item) => <option key={item.id} value={item.id}>{t.plans[item.id].name} · {money(item.price, t)}</option>)}</select></label>
+        <label>{t.checkout.extras}<select className="field" value={extra} onChange={(event) => setExtra(event.target.value as typeof extra)} disabled={step === "sending"}>
+          <option value="0">{t.checkout.extraNone}</option>
+          {EXTRA_PACKS.map((item) => <option key={item.students} value={String(item.students)}>{t.checkout.extraOption(item.students, money(item.price, t))}</option>)}
+          <option value="quote">{t.checkout.extraQuote}</option>
+        </select></label>
+        <ul>{t.pricing.included.slice(0, 4).map((feature) => <li key={feature}><Icon name="check" size={14} />{feature}</li>)}</ul>
+        <dl className="lp-lines">
+          <div><dt>{t.checkout.linePlan(t.plans[planId].name)}</dt><dd>{money(plan.price, t)}</dd></div>
+          {pack && <div><dt>{t.checkout.lineExtra(pack.students)}</dt><dd>{money(pack.price, t)}</dd></div>}
+          {extra === "quote" && <div><dt>{t.checkout.lineQuote}</dt><dd>{t.checkout.onQuote}</dd></div>}
+        </dl>
+        <div className="lp-total"><span>{t.checkout.total}</span><strong key={planId + extra} className="lp-swap">{money(total, t)}</strong></div>
       </aside>
+    </div>}
+  </div>;
+}
+
+// Creating an account before buying: the details are kept on the account and fill the order form
+// later. Supabase sends its confirmation email; its link lands on the order form, signed in.
+export function Signup() {
+  const t = useT();
+  const page = usePage();
+  const { values, errors, setErrors, set, setType } = useDetails();
+  const [password, setPassword] = useState("");
+  const [step, setStep] = useState<"form" | "sending" | "done">("form");
+
+  const submit = async (event: FormEvent) => {
+    event.preventDefault();
+    const next = detailErrors(values, t);
+    if (!STRONG_PASSWORD.test(password)) next.password = t.checkout.errors.password;
+    setErrors(next);
+    if (Object.keys(next).length) return;
+    setStep("sending");
+    // A director's password opens their whole school: same leak check as the invitation screen.
+    if (await isLeaked(password)) { setStep("form"); setErrors({ password: t.checkout.errors.leaked }); return; }
+    const { error } = await supabase.auth.signUp({
+      email: values.email.trim().toLowerCase(), password,
+      options: { data: toMetadata(values), emailRedirectTo: `${window.location.origin}/commander` },
+    });
+    if (error) {
+      if (import.meta.env.DEV) console.error(error); // the exact reason, dev only; the visitor gets the message below
+      setStep("form");
+      const already = /already|registered|exists/i.test(error.message);
+      const weak = error.code === "weak_password";
+      setErrors({ [already ? "email" : weak ? "password" : "form"]: already ? t.checkout.errors.exists : weak ? t.checkout.errors.weak : t.checkout.errors.signup });
+      return;
+    }
+    setStep("done");
+    window.scrollTo({ top: 0 });
+  };
+
+  return <div className="lp lp-checkout-page" {...page}>
+    <header className="lp-header"><Brand /><a className="lp-login" href="/connexion">{t.signIn}</a></header>
+    {step === "done" ? <section className="lp-done">
+      <span className="lp-done-icon"><Icon name="mail" size={34} /></span>
+      <h1>{t.signup.doneTitle}</h1>
+      <p>{t.signup.doneText(values.email.trim())}</p>
+      <a className="lp-btn primary" href="/#tarifs">{t.signup.choosePlan}</a>
+    </section> : <div className="lp-checkout lp-signup">
+      <form className="lp-checkout-form" onSubmit={submit} noValidate>
+        <h1>{t.signup.title}</h1>
+        <p className="lp-terms">{t.signup.text}</p>
+        <DetailFields values={values} set={set} setType={setType} errors={errors} disabled={step === "sending"} emailLocked={false}>
+          <label>
+            {t.checkout.password}
+            <input className="field" type="password" autoComplete="new-password" placeholder={t.checkout.passwordPlaceholder} value={password}
+              onChange={(event) => { setPassword(event.target.value); setErrors((current) => ({ ...current, password: "" })); }} aria-invalid={Boolean(errors.password)} />
+            {errors.password && <span className="field-error">{errors.password}</span>}
+          </label>
+        </DetailFields>
+        <p className="lp-terms">{t.checkout.terms} <a href="/cgv" target="_blank">{t.checkout.termsCgv}</a> {t.checkout.termsAnd} <a href="/confidentialite" target="_blank">{t.checkout.termsPrivacy}</a>.</p>
+        {errors.form && <p className="field-error" role="alert">{errors.form}</p>}
+        <button className="lp-btn primary lp-pay" type="submit" disabled={step === "sending"}>{step === "sending" && <Spinner />}{step === "sending" ? t.signup.sending : t.signup.submit}</button>
+        <p className="lp-terms">{t.signup.haveAccount} <a href="/connexion">{t.signIn}</a></p>
+      </form>
     </div>}
   </div>;
 }
