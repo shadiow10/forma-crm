@@ -3,7 +3,8 @@ import type { PageKey } from "../auth";
 import { label as labelOf, useAppT } from "../appCopy";
 import { friendlyError, useData } from "../data";
 import { locale } from "../lang";
-import type { Course, Group } from "../lib/queries";
+import type { Group } from "../lib/queries";
+import { plannedSessions } from "../lib/finance";
 import { supabase } from "../lib/supabase";
 import { Drawer } from "../appUI";
 import { Badge, Button, COLORS, DAYS, EmptyState, Icon, MetricCard, PageHeader, Panel, clampPercent, formatTime, initialsBadge, percent, statusTone, todayISO } from "../ui";
@@ -29,17 +30,6 @@ export function useRoster(groupId: number | undefined) {
   return groupStudentIds(groupId).map((id) => studentById.get(id)).filter((student) => student !== undefined).map((student) => ({ id: student.id, full_name: student.full_name })).sort((a, b) => a.full_name.localeCompare(b.full_name));
 }
 
-// Sessions a group should hold in a month ("YYYY-MM"): the "séances par mois" of a monthly subject
-// (0025), otherwise one per timetable day that falls in the month (every Sunday and Wednesday…).
-export function plannedSessions(group: Group, course: Course | undefined, schoolSessions: number, month: string) {
-  if (course?.billing === "monthly") return course.sessions_per_month ?? schoolSessions;
-  const [year, monthIndex] = [Number(month.slice(0, 4)), Number(month.slice(5, 7)) - 1];
-  let count = 0;
-  for (let day = new Date(year, monthIndex, 1); day.getMonth() === monthIndex; day.setDate(day.getDate() + 1)) {
-    if (group.days.includes(DAYS[day.getDay()])) count++;
-  }
-  return count;
-}
 
 export function Groups({ openGroup }: { openGroup: (id: number) => void }) {
   const t = useAppT();
@@ -84,7 +74,7 @@ export function Groups({ openGroup }: { openGroup: (id: number) => void }) {
 export function GroupDrawer({ groupId, onClose, goTo }: { groupId: number; onClose: () => void; goTo: (page: PageKey, groupId?: number) => void }) {
   const t = useAppT();
   const g = t.groups;
-  const { groupById, teachers, courses, students, groupStudentIds, attendanceRate, canEdit, isDirector, school, save, ask } = useData();
+  const { groupById, teachers, courses, students, enrollments, groupStudentIds, attendanceRate, canEdit, isDirector, school, save, ask } = useData();
   const group = groupById.get(groupId);
   const roster = useRoster(groupId);
   const [editing, setEditing] = useState(false);
@@ -92,14 +82,41 @@ export function GroupDrawer({ groupId, onClose, goTo }: { groupId: number; onClo
   if (!group) return null;
   const inGroup = new Set(groupStudentIds(group.id));
   const candidates = students.filter((student) => !inGroup.has(student.id));
+  // Searched by typing: the browser's own suggestion list narrows as you type. Name · phone, so two
+  // pupils with the same name stay apart; only an exact pick from the list can be added.
+  const pickLabel = (student: { full_name: string; phone: string }) => `${student.full_name} · ${student.phone}`;
+  const picked = candidates.find((student) => pickLabel(student) === adding);
   const status = groupStatus(group, roster.length);
 
+  // Joining a group is enrolling in its subject: the pupil is billed and counts for the teacher's pay.
+  // An enrolment in that subject still without a group is put in this one rather than doubled.
+  // A group with no subject only takes the member, as before.
+  const course = courses.find((item) => item.id === group.course_id);
+  const running = (status: string) => status === "Inscrit" || status === "En cours";
   const addStudent = async () => {
-    if (!adding) return;
-    if (await save(() => supabase.from("group_students").insert({ school_id: school.id, group_id: group.id, student_id: Number(adding) }), g.added)) setAdding("");
+    if (!picked) return;
+    const member = { school_id: school.id, group_id: group.id, student_id: picked.id };
+    const loose = course && enrollments.find((enrollment) => enrollment.student_id === picked.id && enrollment.course_id === course.id && enrollment.group_id === null && running(enrollment.status));
+    const done = await save(async () => {
+      if (!course) return supabase.from("group_students").insert(member);
+      if (loose) {
+        const linked = await supabase.from("enrollments").update({ group_id: group.id }).eq("id", loose.id);
+        return linked.error ? linked : supabase.from("group_students").insert(member);
+      }
+      return supabase.rpc("create_enrollment", {
+        p_school_id: school.id, p_student_id: picked.id, p_course_id: course.id, p_group_id: group.id, p_enrolled_on: todayISO(),
+        p_total: course.billing === "monthly" ? 0 : course.price, p_notes: "", p_first_payment: 0, p_method: "Espèces",
+        p_monthly_fee: course.billing === "monthly" ? course.price : null,
+      });
+    }, course ? g.addedEnrolled(picked.full_name, course.name) : g.added);
+    if (done) setAdding("");
   };
+  // Leaving the group keeps the enrolment and its payments; it just no longer sits in this group.
   const removeStudent = async (id: number, name: string) => await ask({ title: g.removeTitle(name), danger: true, confirmLabel: t.common.remove })
-    && save(() => supabase.from("group_students").delete().eq("group_id", group.id).eq("student_id", id), g.removed(name));
+    && save(async () => {
+      const left = await supabase.from("group_students").delete().eq("group_id", group.id).eq("student_id", id);
+      return left.error ? left : supabase.from("enrollments").update({ group_id: null }).eq("group_id", group.id).eq("student_id", id).in("status", ["Inscrit", "En cours"]);
+    }, g.removed(name));
   const deleteGroup = async () => {
     if (!(await ask({ title: g.deleteTitle(group.name), danger: true, confirmLabel: t.common.del, text: g.deleteText }))) return;
     if (await save(() => supabase.from("groups").delete().eq("id", group.id), g.deleted)) onClose();
@@ -132,8 +149,10 @@ export function GroupDrawer({ groupId, onClose, goTo }: { groupId: number; onClo
       {/* A full or cancelled group takes no one else (the database refuses it too, 0029). */}
       {canEdit && status === "Complet" && <p className="muted-copy">{t.errors.groupFull}</p>}
       {canEdit && status === "Ouvert" && candidates.length > 0 && <div className="inline-add">
-        <select className="field" aria-label={g.addStudentLabel} value={adding} onChange={(event) => setAdding(event.target.value)}><option value="">{g.addStudent}</option>{candidates.map((student) => <option key={student.id} value={student.id}>{student.full_name}</option>)}</select>
-        <Button icon="plus" disabled={!adding} onClick={addStudent}>{t.common.add}</Button>
+        <input className="field" type="search" list="group-candidates" aria-label={g.addStudentLabel} placeholder={g.addStudent} value={adding}
+          onChange={(event) => setAdding(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") void addStudent(); }} />
+        <datalist id="group-candidates">{candidates.map((student) => <option key={student.id} value={pickLabel(student)} />)}</datalist>
+        <Button icon="plus" disabled={!picked} onClick={addStudent}>{t.common.add}</Button>
       </div>}
     </div>
     {/* Attendance and edit sit next to the title; deleting stays down here, away from them. */}

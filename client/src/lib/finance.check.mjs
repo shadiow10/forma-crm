@@ -34,6 +34,27 @@ assert.equal(monthlyFee(monthlyData.enrollments[0], course), 3000);
 const perStudent = { ...data, teachers: [{ id: 5, hourly_rate: 2000, per_student_rate: 800, pay_mode: "student" }], enrollments: [enrollment(1, 1, "2026-03-10"), enrollment(2, 2, "2026-03-12"), enrollment(3, 3, "2026-03-15", { status: "Abandonné" })] };
 assert.equal(totalPay(teacherPay("2026-03", perStudent)), 2 * 800, "a dropped student is not paid for");
 assert.equal(teacherPay("2026-03", perStudent).get(5).students, 2);
+
+// A group filled from its own panel (members, no enrolment in it) counts once it held a session.
+const panelOnly = { ...data, enrollments: [], groupStudents: [{ group_id: 10, student_id: 1 }, { group_id: 10, student_id: 2 }, { group_id: 10, student_id: 3 }] };
+assert.equal(totalPay(teacherPay("2026-03", { ...panelOnly, teachers: [{ id: 5, monthly_salary: 30000, pay_mode: "month" }] })), 30000, "salary paid");
+assert.equal(totalPay(teacherPay("2026-03", { ...panelOnly, teachers: [{ id: 5, per_student_rate: 800, pay_mode: "student" }] })), 3 * 800, "its members are its students");
+assert.equal(totalPay(teacherPay("2026-03", panelOnly)), 9 * 2 * 2000, "hours held");
+assert.equal(totalPay(teacherPay("2026-04", panelOnly)), 0, "no session that month: not counted");
+
+// Both kinds in one group: the 2 running enrolments, plus a pupil added from the panel; the dropped one is not paid for.
+const mixed = { ...perStudent, groupStudents: [1, 2, 3, 4].map((student_id) => ({ group_id: 10, student_id })) };
+assert.equal(teacherPay("2026-03", mixed).get(5).students, 3);
+assert.equal(totalPay(teacherPay("2026-03", mixed)), 3 * 800, "adding a pupil to the group raises per-student pay");
+
+// Per student is paid in proportion to the sessions held. Formation: planned = timetable days in the
+// month (Mondays and Wednesdays of March 2026: 9). Monthly subject: its sessions per month.
+const fewHeld = { ...perStudent, groupSessions: perStudent.groupSessions.slice(0, 3) };
+assert.equal(totalPay(teacherPay("2026-03", fewHeld)), Math.round(2 * 800 * 3 / 9), "3 of 9 sessions: a third");
+assert.deepEqual([teacherPay("2026-03", fewHeld).get(5).held, teacherPay("2026-03", fewHeld).get(5).planned], [3, 9]);
+const monthlySubject = { ...fewHeld, groups: fewHeld.groups.map((group) => ({ ...group, course_id: 1 })), courses: [{ ...course, billing: "monthly", sessions_per_month: 12 }] };
+assert.equal(totalPay(teacherPay("2026-03", monthlySubject)), 2 * 800 * 3 / 12, "3 of 12: a quarter");
+assert.equal(totalPay(teacherPay("2026-03", { ...perStudent, groupSessions: [...perStudent.groupSessions, { group_id: 10, session_date: "2026-03-31" }] })), 2 * 800, "an extra session never pays more than the full amount");
 assert.equal(monthStatus(3000, 7000, 2), "paid");
 assert.equal(monthStatus(3000, 7000, 3), "partly");
 assert.equal(monthStatus(3000, 7000, 4), "unpaid");

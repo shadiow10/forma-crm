@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { label as labelOf, useAppT } from "../appCopy";
 import { useData } from "../data";
 import { courseMonths, monthNumber, monthStatus, monthlyFee, teacherPay, totalPay } from "../lib/finance";
@@ -27,7 +28,7 @@ export function usePrintReceipt() {
 export function Payments({ openStudent }: { openStudent: (id: number) => void }) {
   const t = useAppT();
   const p = t.payments;
-  const { payments, enrollments, studentById, courses, groups, teachers, groupSessions, balanceOf, money, isDirector, isSoutien, save, ask } = useData();
+  const { payments, enrollments, studentById, courses, groups, teachers, groupSessions, groupStudents, school, balanceOf, money, isDirector, isSoutien, save, ask } = useData();
   // An école de soutien opens on this month's fees: that is the question at the desk.
   const [tab, setTab] = useState<"history" | "unpaid" | "monthly" | "teachers">(isSoutien ? "monthly" : "history");
   const [recording, setRecording] = useState<{ enrollmentId?: number } | null>(null);
@@ -76,7 +77,7 @@ export function Payments({ openStudent }: { openStudent: (id: number) => void })
     .filter((row) => (row.student?.full_name ?? "").toLowerCase().includes(search))
     .sort((a, b) => b.behind - a.behind);
   // Pay needs the hourly rates, which only the director can read.
-  const pay = isDirector ? teacherPay(month, { groups, teachers, enrollments, courses, groupSessions }) : new Map() as ReturnType<typeof teacherPay>;
+  const pay = isDirector ? teacherPay(month, { groups, teachers, enrollments, courses, groupSessions, groupStudents, schoolSessions: school.sessions_per_month }) : new Map() as ReturnType<typeof teacherPay>;
   const payRows = [...pay].map(([id, row]) => ({ teacher: teachers.find((item) => item.id === id)!, ...row })).sort((a, b) => b.amount - a.amount);
   const payTotal = totalPay(pay);
 
@@ -174,7 +175,7 @@ export function Payments({ openStudent }: { openStudent: (id: number) => void })
           <tbody>{payRows.map((row) => <tr key={row.teacher.id}>
             <td><strong>{row.teacher.full_name}</strong><span className="cell-sub">{labelOf(t.v.contract, row.teacher.contract)}</span></td>
             <td>{row.groups.map((group) => group.name).join(", ")}</td>
-            <td>{row.mode === "student" ? t.common.students(row.students) : `${row.hours} h`}</td>
+            <td>{row.mode === "student" ? <>{t.common.students(row.students)}<span className="cell-sub">{t.groups.monthSessions} {t.groups.sessionsOf(row.held, row.planned)}</span></> : `${row.hours} h`}</td>
             <td>{payRate(row.teacher, money, t)}<span className="cell-sub">{t.teachers.payModes[row.mode]}</span></td>
             <td><strong>{money(row.amount)}</strong></td>
           </tr>)}</tbody>
@@ -218,7 +219,8 @@ export function Receipt({ paymentIds }: { paymentIds: number[] }) {
   const enrollment = enrollmentOf(payment);
   const student = enrollment ? studentById.get(enrollment.student_id) : undefined;
   const { paid, balance } = enrollment ? balanceOf(enrollment.id) : { paid: 0, balance: 0 };
-  return <div className="print-receipt">
+  // Straight under <body>, outside the app: printing shows this alone, on one page (index.css).
+  return createPortal(<div className="print-receipt">
     <header>
       <div><strong>{school.name}</strong><span>{[school.address, school.phone, school.email].filter(Boolean).join(" · ")}</span></div>
       <div className="receipt-number"><small>{r.title}</small><strong>{r.number} {lines.map(receiptNumber).join(", ")}</strong><span>{r.on(formatDate(payment.paid_on, "long"))}</span></div>
@@ -239,5 +241,5 @@ export function Receipt({ paymentIds }: { paymentIds: number[] }) {
       </tbody>
     </table>}
     <footer><span>{r.printedOn(formatDate(todayISO(), "long"))}{me.full_name ? r.by(me.full_name) : ""}</span><div>{r.signature}</div></footer>
-  </div>;
+  </div>, document.body);
 }

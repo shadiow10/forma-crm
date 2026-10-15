@@ -1021,7 +1021,10 @@ html:has(.lp) { scroll-behavior: smooth; }
 @media print {
   body * { visibility: hidden; }
   .formal-document, .formal-document * { visibility: visible; }
-  .print-receipt { display: block; position: fixed; top: 0; left: 0; right: 0; padding: 12mm 14mm; background: #fff; color: #111; font: 11pt "DM Sans", sans-serif; }
+  /* A receipt prints alone: the app is taken out of the page, not just hidden, so it adds no blank
+     pages, and the receipt flows normally instead of being repeated on each page (fixed would). */
+  body:has(> .print-receipt) > :not(.print-receipt) { display: none !important; }
+  .print-receipt { display: block; padding: 12mm 14mm; background: #fff; color: #111; font: 11pt "DM Sans", sans-serif; break-inside: avoid; }
   .print-receipt, .print-receipt * { visibility: visible; }
   .formal-document { position: fixed; inset: 0; margin: auto; box-shadow: none; }
   .toast, .sidebar, .topbar, .app-footer { display: none !important; }

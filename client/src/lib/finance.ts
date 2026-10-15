@@ -1,4 +1,4 @@
-import type { Course, Enrollment, Group, GroupSession, PayMode, Teacher } from "./queries";
+import type { Course, Enrollment, Group, GroupSession, GroupStudent, PayMode, Teacher } from "./queries";
 
 // Money worked out from what the school already records: course durations, enrollment prices,
 // the weekly timetable and each teacher's hourly rate. Months are "YYYY-MM" strings.
@@ -27,6 +27,19 @@ const runsIn = (enrollment: Enrollment, course: Course | undefined, month: strin
   return n >= 1 && n <= courseMonths(course);
 };
 
+// Sessions a group should hold in a month ("YYYY-MM"): the "séances par mois" of a monthly subject
+// (0025), otherwise one per timetable day that falls in the month (every Sunday and Wednesday…).
+const WEEK = ["Dim", "Lun", "Mar", "Mer", "Jeu", "Ven", "Sam"]; // as stored in groups.days (ui.tsx DAYS)
+export function plannedSessions(group: Group, course: Course | undefined, schoolSessions: number, month: string) {
+  if (course?.billing === "monthly") return course.sessions_per_month ?? schoolSessions;
+  const [year, monthIndex] = [Number(month.slice(0, 4)), Number(month.slice(5, 7)) - 1];
+  let count = 0;
+  for (let day = new Date(year, monthIndex, 1); day.getMonth() === monthIndex; day.setDate(day.getDate() + 1)) {
+    if (group.days.includes(WEEK[day.getDay()])) count++;
+  }
+  return count;
+}
+
 const hours = (time: string) => Number(time.slice(0, 2)) + Number(time.slice(3, 5)) / 60;
 export const sessionHours = (group: Group) => (group.start_time && group.end_time ? Math.max(0, hours(group.end_time) - hours(group.start_time)) : 0);
 export const weeklyHours = (group: Group) => sessionHours(group) * group.days.length;
@@ -37,25 +50,39 @@ export const sessionsInMonth = (sessions: GroupSession[], groupId: number, month
 
 // What each teacher earns in a month, for every group of theirs that has students running the course
 // that month, by their pay mode (0030): the hours held × the hourly rate; or the students running
-// × the per-student rate; or a fixed salary, once, in every month they have at least one such group.
+// × the per-student rate, in proportion to the sessions held out of those planned (2 of 8 held:
+// a quarter; never more than the full amount); or a fixed salary, once, in every month they have at least one such group.
 // Hours are the sessions actually held — the days a register was taken — not the timetable. A
 // cancelled session earns nothing, the same rule that already decides what a pupil owes (0019).
 // The school's side of that bargain: no register means no session, for billing and for pay alike.
-export function teacherPay(month: string, data: { groups: Group[]; teachers: Teacher[]; enrollments: Enrollment[]; courses: Course[]; groupSessions: GroupSession[] }) {
+// A group's students are everyone in it once: those whose enrolment in the group runs that month,
+// and the members added from the group's own panel (no enrolment in it), but not someone whose
+// enrolment in this group has ended or was dropped. A group with no one enrolled counts once it
+// held a session that month.
+// ponytail: group_students has no dates, so a past month counts today's members; dated membership if that matters.
+export function teacherPay(month: string, data: { groups: Group[]; teachers: Teacher[]; enrollments: Enrollment[]; courses: Course[]; groupSessions: GroupSession[]; groupStudents?: GroupStudent[]; schoolSessions?: number }) {
   const courseById = new Map(data.courses.map((course) => [course.id, course]));
-  const pay = new Map<number, { hours: number; students: number; amount: number; groups: Group[]; mode: PayMode }>();
+  const pay = new Map<number, { hours: number; students: number; held: number; planned: number; studentPay: number; amount: number; groups: Group[]; mode: PayMode }>();
   for (const group of data.groups) {
     const teacher = data.teachers.find((item) => item.id === group.teacher_id);
     if (!teacher || group.status === "Annulé") continue;
     // A dropped monthly enrollment still ran until its ends_on; a dropped formation never counts.
-    const running = data.enrollments.filter((enrollment) => enrollment.group_id === group.id && (enrollment.monthly_fee != null || enrollment.status !== "Abandonné") && runsIn(enrollment, courseById.get(enrollment.course_id), month)).length;
-    if (!running) continue;
-    const monthHours = Math.round(sessionsInMonth(data.groupSessions, group.id, month) * sessionHours(group));
-    const row = pay.get(teacher.id) ?? { hours: 0, students: 0, amount: 0, groups: [], mode: teacher.pay_mode ?? "hour" };
+    const here = data.enrollments.filter((enrollment) => enrollment.group_id === group.id);
+    const runningIds = new Set(here.filter((enrollment) => (enrollment.monthly_fee != null || enrollment.status !== "Abandonné") && runsIn(enrollment, courseById.get(enrollment.course_id), month)).map((enrollment) => enrollment.student_id));
+    const held = sessionsInMonth(data.groupSessions, group.id, month);
+    if (!runningIds.size && !held) continue;
+    const stopped = new Set(here.map((enrollment) => enrollment.student_id).filter((id) => !runningIds.has(id)));
+    const members = (data.groupStudents ?? []).filter((member) => member.group_id === group.id && !stopped.has(member.student_id)).map((member) => member.student_id);
+    const running = new Set([...runningIds, ...members]).size;
+    const monthHours = Math.round(held * sessionHours(group));
+    const planned = plannedSessions(group, courseById.get(group.course_id ?? -1), data.schoolSessions ?? 8, month);
+    const share = planned > 0 ? Math.min(1, held / planned) : 1; // no timetable to compare with: paid in full
+    const row = pay.get(teacher.id) ?? { hours: 0, students: 0, held: 0, planned: 0, studentPay: 0, amount: 0, groups: [], mode: teacher.pay_mode ?? "hour" };
     const hours = row.hours + monthHours;
     const students = row.students + running;
-    const amount = row.mode === "month" ? teacher.monthly_salary ?? 0 : row.mode === "student" ? students * (teacher.per_student_rate ?? 0) : hours * (teacher.hourly_rate ?? 0);
-    pay.set(teacher.id, { ...row, hours, students, amount, groups: [...row.groups, group] });
+    const studentPay = row.studentPay + running * (teacher.per_student_rate ?? 0) * share;
+    const amount = row.mode === "month" ? teacher.monthly_salary ?? 0 : row.mode === "student" ? Math.round(studentPay) : hours * (teacher.hourly_rate ?? 0);
+    pay.set(teacher.id, { ...row, hours, students, held: row.held + held, planned: row.planned + planned, studentPay, amount, groups: [...row.groups, group] });
   }
   return pay;
 }
