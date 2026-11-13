@@ -793,7 +793,6 @@ tbody tr[tabindex]:focus-visible, .class-card:focus-visible, .teacher-card:focus
 .lp-lines { display: grid; gap: 8px; margin: 0 0 14px; }
 .lp-lines div { display: flex; justify-content: space-between; gap: 12px; font-size: 14px; color: var(--lp-text); }
 .lp-lines dd { margin: 0; color: var(--ink); font-weight: 700; white-space: nowrap; }
-.lp-signup .lp-checkout-form { grid-column: 1 / -1; max-width: 640px; }
 .lp-signup-link { background: var(--ink); color: var(--paper) !important; }
 .lp-total { display: flex; justify-content: space-between; align-items: baseline; padding-top: 16px; border-top: 1px solid var(--lp-line); }
 .lp-total strong { color: var(--ink); font: 800 28px Manrope, sans-serif; letter-spacing: -.03em; }
@@ -1137,7 +1136,7 @@ html:has(.lp) { scroll-behavior: smooth; }
 /* On a phone the header keeps the brand, the sign-in pill and the menu; language and theme
    move inside the menu, where there is room for them. */
 @media (max-width: 900px) {
-  .lp-header > .lp-prefs { display: none; }
+  .lp-header-start > .lp-prefs { display: none; }
   .lp-menu .lp-prefs { justify-content: space-between; padding: 12px 16px 6px; margin-top: 4px; border-top: 1px solid var(--lp-line); }
   .lp-menu .lang-picker { flex: 1; justify-content: center; height: 42px; }
   .lp-menu .lang-picker button { min-height: 34px; padding: 0 14px; font-size: 15px; }
@@ -1224,3 +1223,69 @@ html:has(.lp) { scroll-behavior: smooth; }
 .room-group em { margin-inline-start: auto; color: var(--muted-2); font-size: 9px; font-style: normal; white-space: nowrap; }
 .room-card { cursor: default; }
 .rooms-metrics { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+
+/* Landing header, three zones: logo with language and theme at the start, sections in the middle,
+   sign-in and sign-up at the end. The two sides weigh about the same (357px and 290px), so from
+   1150px the sections sit exactly on the page's centre line; below that they go into the menu. */
+.lp-header-start, .lp-header-end { display: flex; align-items: center; gap: 12px; }
+.lp-header-end { gap: 8px; }
+.lp-header-end .lp-login { white-space: nowrap; }
+@media (min-width: 1150px) {
+  /* The bar may run wider than the 1200px content column: centring needs the room on both sides. */
+  .lp-header:has(> .lp-header-end) { display: grid; grid-template-columns: 1fr auto 1fr; column-gap: 20px; max-width: max(var(--lp-max), 1440px); }
+  .lp-header:has(> .lp-header-end) > .lp-nav { margin-inline: 0; justify-self: center; }
+  .lp-header-end { justify-self: end; }
+}
+@media (max-width: 1149px) {
+  .lp-header:has(> .lp-header-end) > .lp-nav { display: none; }
+  .lp-header:has(> .lp-header-end) > .lp-burger { display: grid; }
+  .lp-header > .lp-header-end { margin-inline-start: auto; }
+}
+/* Mid-size screens: a little tighter, so the logo side keeps some air before the sections. */
+@media (min-width: 1150px) and (max-width: 1299px) {
+  .lp-header-start .lang-picker svg { display: none; }
+  .lp-header:has(> .lp-header-end) > .lp-nav { gap: 20px; }
+}
+/* Between the phone layout and 1150px the menu button exists too, so its panel must be allowed. */
+@media (min-width: 901px) and (max-width: 1149px) { .lp-menu { display: grid; } }
+
+/* On phones the bordered sign-in button fills the bar and lands against the logo, so below 480px
+   it lives in the menu only (it is listed there at every width the menu exists). */
+@media (max-width: 479px) {
+  .lp-header > .lp-header-end { display: none; }
+  .lp-header > .lp-burger { margin-inline-start: auto; }
+}
+
+/* ================================================================
+   Sign in / create an account: one card, two tabs.
+   ================================================================ */
+.auth-brand:has(+ .auth-tabs) { margin-bottom: 18px; }
+.auth-tabs { position: relative; display: grid; grid-template-columns: 1fr 1fr; margin-bottom: 24px; padding: 4px; border: 1px solid var(--border); border-radius: 11px; background: var(--surface-2); }
+.auth-tabs button { position: relative; z-index: 1; min-height: 36px; padding: 0 10px; border: 0; border-radius: 8px; background: transparent; color: var(--muted); font-size: 13px; font-weight: 700; white-space: nowrap; transition: color 200ms ease; }
+.auth-tabs button[aria-selected="true"] { color: var(--ink); }
+.auth-tabs button:focus-visible { outline: 3px solid rgba(67,56,202,.4); outline-offset: 1px; }
+.auth-tabs button:active { transform: none; }
+/* The thumb is the selected tab's background; it slides instead of jumping. */
+.auth-tabs-thumb { position: absolute; inset-block: 4px; inset-inline-start: 4px; width: calc(50% - 4px); border-radius: 8px; background: var(--paper); box-shadow: 0 1px 3px rgba(21,22,58,.12); transition: transform 320ms cubic-bezier(.23, 1, .32, 1); view-transition-name: auth-tab; }
+.auth-tabs[data-tab="signup"] .auth-tabs-thumb { transform: translateX(100%); }
+/* During the transition the thumb is its own layer; the labels get theirs too, painted above it. */
+.auth-tabs button:nth-of-type(1) { view-transition-name: auth-tab-login; }
+.auth-tabs button:nth-of-type(2) { view-transition-name: auth-tab-signup; }
+[dir="rtl"] .auth-tabs[data-tab="signup"] .auth-tabs-thumb { transform: translateX(-100%); }
+
+/* The sign-up fields inside the card: the two groups read as sections, not boxes. */
+.auth-signup fieldset { display: grid; gap: 14px; min-width: 0; margin: 0; padding: 0; border: 0; }
+.auth-signup fieldset + fieldset { margin-top: 8px; }
+.auth-signup legend { margin-bottom: 12px; padding: 0; color: var(--ink); font: 700 13px Manrope, sans-serif; }
+.auth-signup .auth-muted { font-size: 12px; }
+a.auth-submit { margin-top: 18px; text-decoration: none; }
+
+/* The card changes height between the two forms: it resizes in one motion while the contents
+   cross-fade. Snapshots keep their size (no stretching) and are clipped to the moving card. */
+.auth-card { view-transition-name: auth-card; }
+::view-transition-group(auth-card), ::view-transition-group(auth-tab) { animation-duration: 360ms; animation-timing-function: cubic-bezier(.23, 1, .32, 1); }
+::view-transition-image-pair(auth-card) { overflow: clip; border-radius: 16px; }
+::view-transition-old(auth-card), ::view-transition-new(auth-card) { width: 100%; height: auto; object-fit: none; object-position: top; animation-duration: 220ms; }
+@media (prefers-reduced-motion: reduce) {
+  .auth-tabs-thumb { transition: none; }
+}

@@ -1,12 +1,16 @@
-import { useState } from "react";
+import { Suspense, lazy, useEffect, useRef, useState } from "react";
 import type { FormEvent, ReactNode } from "react";
+import { flushSync } from "react-dom";
 import { passwordChosen, signOut } from "./auth";
-import { LangPicker, usePage, useT } from "./i18n";
+import { usePage, useT } from "./i18n";
 import type { Copy } from "./i18n";
-import { BrandMark, Icon, Spinner, ThemeToggle } from "./ui";
+import { BrandMark, Icon, Spinner } from "./ui";
 import { supabase } from "./lib/supabase";
 
-export function AuthShell({ children, controls = false }: { children: ReactNode; controls?: boolean }) {
+// The sign-up form lives with the order form it shares its fields with; it loads with the landing page.
+const SignupForm = lazy(() => import("./Landing").then((m) => ({ default: m.SignupForm })));
+
+export function AuthShell({ children, tabs }: { children: ReactNode; tabs?: ReactNode }) {
   const t = useT();
   const page = usePage();
   return (
@@ -20,8 +24,8 @@ export function AuthShell({ children, controls = false }: { children: ReactNode;
             </strong>
             <small>{t.auth.tagline}</small>
           </div>
-          {controls && <span className="lp-prefs"><LangPicker label={t.language} /><ThemeToggle labels={t.theme} /></span>}
         </div>
+        {tabs}
         {children}
       </div>
     </div>
@@ -42,7 +46,41 @@ const errorMessage = (error: { code?: string; status?: number; message?: string 
   return t.auth.errors.offline;
 };
 
-export default function Login() {
+type Tab = "login" | "signup";
+const TAB_PATHS: Record<Tab, string> = { login: "/connexion", signup: "/creer-un-compte" };
+
+// Sign in and create an account share one card. The switch moves a thumb between the two tabs
+// and the card resizes to the other form; both run as one view transition where the browser has
+// them (Chrome, Edge, Safari 18), and as a plain swap elsewhere or under reduced motion.
+export default function Login({ initial = "login" }: { initial?: Tab }) {
+  const t = useT();
+  const [tab, setTab] = useState<Tab>(initial);
+  const wanted = useRef<Tab>(initial); // the last tab asked for, even while a transition is still running
+  const running = useRef<ViewTransition | null>(null);
+  useEffect(() => { void import("./Landing"); }, []); // the sign-up form is ready before it is asked for
+  const show = (next: Tab) => {
+    if (next === wanted.current) return;
+    wanted.current = next;
+    running.current?.skipTransition(); // a quick second click wins over the animation still playing
+    // The address changes with the form, never ahead of it.
+    const apply = () => { flushSync(() => setTab(next)); window.history.replaceState(null, "", TAB_PATHS[next]); };
+    if (!("startViewTransition" in document) || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return apply();
+    running.current = document.startViewTransition(apply);
+  };
+  const tabs = <div className="auth-tabs" role="tablist" data-tab={tab}>
+    <span className="auth-tabs-thumb" aria-hidden="true" />
+    <button type="button" role="tab" aria-selected={tab === "login"} onClick={() => show("login")}>{t.signIn}</button>
+    <button type="button" role="tab" aria-selected={tab === "signup"} onClick={() => show("signup")}>{t.signup.link}</button>
+  </div>;
+  return (
+    <AuthShell tabs={tabs}>
+      {tab === "login" ? <SignInForm /> : <Suspense fallback={<p className="auth-muted">{t.access.loading}</p>}><SignupForm /></Suspense>}
+      <p className="auth-muted auth-foot"><a className="text-button" href="/">{t.auth.discover}</a></p>
+    </AuthShell>
+  );
+}
+
+function SignInForm() {
   const t = useT();
   const [mode, setMode] = useState<"login" | "reset">("login");
   const [email, setEmail] = useState("");
@@ -79,7 +117,7 @@ export default function Login() {
   const wrong = Boolean(error) && !sent;
 
   return (
-    <AuthShell controls>
+    <>
       <h1>{mode === "login" ? t.auth.title : t.auth.resetTitle}</h1>
       <p className="auth-muted">{mode === "login" ? t.auth.lead : t.auth.resetLead}</p>
       {sent ? (
@@ -108,9 +146,7 @@ export default function Login() {
           ? <button className="text-button" type="button" onClick={() => switchMode("reset")}>{t.auth.forgot}</button>
           : <button className="text-button" type="button" onClick={() => switchMode("login")}>{t.auth.backToLogin}</button>}
       </p>
-      {mode === "login" && <p className="auth-muted auth-foot">{t.signup.noAccount} <a className="text-button" href="/creer-un-compte">{t.signup.link}</a></p>}
-      <p className="auth-muted auth-foot"><a className="text-button" href="/">{t.auth.discover}</a></p>
-    </AuthShell>
+    </>
   );
 }
 

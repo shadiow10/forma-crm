@@ -7,7 +7,6 @@ import { supabase } from "./lib/supabase";
 const LEGAL_PATHS = new Set(["/mentions-legales", "/cgv", "/confidentialite"]);
 const Landing = lazy(() => import("./Landing").then((m) => ({ default: m.Landing })));
 const Checkout = lazy(() => import("./Landing").then((m) => ({ default: m.Checkout })));
-const Signup = lazy(() => import("./Landing").then((m) => ({ default: m.Signup })));
 // Not "/inscriptions": that is the app's enrolments page.
 const SIGNUP_PATH = "/creer-un-compte";
 const Legal = lazy(() => import("./Legal").then((m) => ({ default: m.Legal })));
@@ -93,7 +92,7 @@ function Root() {
     // Public site for visitors; any app address (e.g. /etudiants) still leads to the login.
     if (window.location.pathname === "/") return <Landing />;
     if (window.location.pathname === "/commander") return <Checkout />;
-    if (window.location.pathname === SIGNUP_PATH) return <Signup />;
+    if (window.location.pathname === SIGNUP_PATH) return <Login initial="signup" />;
     // /connexion and the app addresses lead to the login; anything else is a wrong address.
     if (window.location.pathname === "/connexion" || PAGE_PATHS.has(window.location.pathname)) return <Login />;
     return <NotFound />;

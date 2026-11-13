@@ -163,14 +163,16 @@ export function Landing() {
   const navLabels = [t.nav.features, t.nav.roles, t.nav.pricing, t.nav.faq];
   return <div className="lp" {...page}>
     <header className="lp-header">
-      <Brand />
+      <div className="lp-header-start"><Brand /><Prefs /></div>
       <nav className="lp-nav" aria-label={t.sections}>{NAV.map((id, index) => <a key={id} href={`#${id}`} className={active === id ? "active" : ""}>{navLabels[index]}</a>)}</nav>
-      <Prefs />
-      <a className="lp-login" href="/connexion">{t.signIn}</a>
-      <a className="lp-login lp-signup-link" href="/creer-un-compte">{t.signup.link}</a>
+      <div className="lp-header-end">
+        <a className="lp-login" href="/connexion">{t.signIn}</a>
+        <a className="lp-login lp-signup-link" href="/creer-un-compte">{t.signup.link}</a>
+      </div>
       <button className="lp-burger" type="button" aria-label={t.menu} aria-expanded={menuOpen} aria-controls="lp-menu" onClick={() => setMenuOpen(!menuOpen)}><Icon name={menuOpen ? "close" : "menu"} size={20} /></button>
       {menuOpen && <nav id="lp-menu" className="lp-menu" aria-label={t.menu}>
         {NAV.map((id, index) => <a key={id} href={`#${id}`} onClick={() => setMenuOpen(false)}>{navLabels[index]}</a>)}
+        <a href="/connexion">{t.signIn}</a>
         <a href="/creer-un-compte">{t.signup.link}</a>
         <Prefs />
       </nav>}
@@ -318,6 +320,21 @@ const fromMetadata = (data: Record<string, unknown> | undefined): Partial<Detail
   director: String(data.director_name ?? ""), phone: String(data.phone ?? ""),
 };
 
+// Email confirmation is on, so supabase.auth.signUp() hands back no session: between creating the
+// account and opening the link in the email, nothing is signed in and user_metadata is out of reach.
+// The details are kept here for that gap, so the order form is filled either way.
+// ponytail: one draft per browser, cleared once the order is in — on a shared computer the next
+// visitor starts from the last one. Scope it per email if that ever matters.
+const DRAFT = "classtra-order-draft";
+const saveDraft = (details: Details) => { try { localStorage.setItem(DRAFT, JSON.stringify(details)); } catch { /* private window */ } };
+const clearDraft = () => { try { localStorage.removeItem(DRAFT); } catch { /* private window */ } };
+const readDraft = (): Partial<Details> => {
+  try {
+    const saved = JSON.parse(localStorage.getItem(DRAFT) ?? "{}") as Partial<Details>;
+    return { ...saved, type: Number(saved.type ?? 0) || 0 };
+  } catch { return {}; }
+};
+
 function detailErrors(values: Details, t: Copy) {
   const next: Record<string, string> = {};
   if (!values.school.trim()) next.school = t.checkout.errors.school;
@@ -373,14 +390,22 @@ export function Checkout() {
   const [planId, setPlanId] = useState<PlanId>(PLANS.some((plan) => plan.id === requested) ? requested as PlanId : "yearly");
   const [extra, setExtra] = useState<"0" | "500" | "1000" | "quote">("0");
   const [method, setMethod] = useState(0);
-  const { values, setValues, errors, setErrors, set, setType } = useDetails();
+  const { values, setValues, errors, setErrors, set, setType } = useDetails(readDraft());
   const [step, setStep] = useState<"form" | "sending" | "done">("form");
   const [reference, setReference] = useState("");
   const [account, setAccount] = useState<string | null>(null); // email of the session, when already signed in
-  useEffect(() => { supabase.auth.getSession().then(({ data }) => {
-    const user = data.session?.user;
-    if (user?.email) { setAccount(user.email); setValues((current) => ({ ...current, ...fromMetadata(user.user_metadata), email: user.email! })); }
-  }); }, [setValues]);
+  // onAuthStateChange, not a single getSession(): arriving from the confirmation link, the session
+  // is read out of the URL a moment after this runs, and the form has to fill when it lands.
+  useEffect(() => {
+    const fill = (user: { email?: string; user_metadata?: Record<string, unknown> } | undefined) => {
+      if (!user?.email) return;
+      setAccount(user.email);
+      setValues((current) => ({ ...current, ...fromMetadata(user.user_metadata), email: user.email! }));
+    };
+    void supabase.auth.getSession().then(({ data }) => fill(data.session?.user));
+    const { data } = supabase.auth.onAuthStateChange((_event, session) => fill(session?.user));
+    return () => data.subscription.unsubscribe();
+  }, [setValues]);
   const plan = PLANS.find((item) => item.id === planId)!;
   const pack = EXTRA_PACKS.find((item) => String(item.students) === extra);
   const total = plan.price + (pack?.price ?? 0);
@@ -400,6 +425,7 @@ export function Checkout() {
       p_extra_students: pack?.students ?? 0, p_extra_on_quote: extra === "quote",
     });
     if (error || !data) { if (import.meta.env.DEV) console.error(error); setStep("form"); setErrors({ form: t.checkout.errors.send }); return; }
+    clearDraft();
     setReference(`CMD-${String(data).padStart(5, "0")}`);
     setStep("done");
     window.scrollTo({ top: 0 });
@@ -459,11 +485,11 @@ export function Checkout() {
   </div>;
 }
 
-// Creating an account before buying: the details are kept on the account and fill the order form
-// later. Supabase sends its confirmation email; its link lands on the order form, signed in.
-export function Signup() {
+// Creating an account before buying, in the sign-in card's second tab: the details are kept on the
+// account and fill the order form later. Supabase sends its confirmation email; its link lands on
+// the order form, signed in.
+export function SignupForm() {
   const t = useT();
-  const page = usePage();
   const { values, errors, setErrors, set, setType } = useDetails();
   const [password, setPassword] = useState("");
   const [step, setStep] = useState<"form" | "sending" | "done">("form");
@@ -489,34 +515,31 @@ export function Signup() {
       setErrors({ [already ? "email" : weak ? "password" : "form"]: already ? t.checkout.errors.exists : weak ? t.checkout.errors.weak : t.checkout.errors.signup });
       return;
     }
+    saveDraft(values); // the order form reads these until the confirmation link signs them in
     setStep("done");
-    window.scrollTo({ top: 0 });
   };
 
-  return <div className="lp lp-checkout-page" {...page}>
-    <header className="lp-header"><Brand /><a className="lp-login" href="/connexion">{t.signIn}</a></header>
-    {step === "done" ? <section className="lp-done">
-      <span className="lp-done-icon"><Icon name="mail" size={34} /></span>
-      <h1>{t.signup.doneTitle}</h1>
-      <p>{t.signup.doneText(values.email.trim())}</p>
-      <a className="lp-btn primary" href="/#tarifs">{t.signup.choosePlan}</a>
-    </section> : <div className="lp-checkout lp-signup">
-      <form className="lp-checkout-form" onSubmit={submit} noValidate>
-        <h1>{t.signup.title}</h1>
-        <p className="lp-terms">{t.signup.text}</p>
-        <DetailFields values={values} set={set} setType={setType} errors={errors} disabled={step === "sending"} emailLocked={false}>
-          <label>
-            {t.checkout.password}
-            <input className="field" type="password" autoComplete="new-password" placeholder={t.checkout.passwordPlaceholder} value={password}
-              onChange={(event) => { setPassword(event.target.value); setErrors((current) => ({ ...current, password: "" })); }} aria-invalid={Boolean(errors.password)} />
-            {errors.password && <span className="field-error">{errors.password}</span>}
-          </label>
-        </DetailFields>
-        <p className="lp-terms">{t.checkout.terms} <a href="/cgv" target="_blank">{t.checkout.termsCgv}</a> {t.checkout.termsAnd} <a href="/confidentialite" target="_blank">{t.checkout.termsPrivacy}</a>.</p>
-        {errors.form && <p className="field-error" role="alert">{errors.form}</p>}
-        <button className="lp-btn primary lp-pay" type="submit" disabled={step === "sending"}>{step === "sending" && <Spinner />}{step === "sending" ? t.signup.sending : t.signup.submit}</button>
-        <p className="lp-terms">{t.signup.haveAccount} <a href="/connexion">{t.signIn}</a></p>
-      </form>
-    </div>}
-  </div>;
+  if (step === "done") return <>
+    <h1>{t.signup.doneTitle}</h1>
+    <p className="auth-success" role="status">{t.signup.doneText(values.email.trim())}</p>
+    <a className="button auth-submit" href="/#tarifs">{t.signup.choosePlan}</a>
+  </>;
+
+  return <>
+    <h1>{t.signup.title}</h1>
+    <p className="auth-muted">{t.signup.text}</p>
+    <form className="auth-form auth-signup" onSubmit={submit} noValidate>
+      <DetailFields values={values} set={set} setType={setType} errors={errors} disabled={step === "sending"} emailLocked={false}>
+        <label>
+          {t.checkout.password}
+          <input className="field" type="password" autoComplete="new-password" placeholder={t.checkout.passwordPlaceholder} value={password}
+            onChange={(event) => { setPassword(event.target.value); setErrors((current) => ({ ...current, password: "" })); }} aria-invalid={Boolean(errors.password)} />
+          {errors.password && <span className="field-error">{errors.password}</span>}
+        </label>
+      </DetailFields>
+      <p className="auth-muted">{t.checkout.terms} <a className="text-button" href="/cgv" target="_blank">{t.checkout.termsCgv}</a> {t.checkout.termsAnd} <a className="text-button" href="/confidentialite" target="_blank">{t.checkout.termsPrivacy}</a>.</p>
+      {errors.form && <p className="auth-error" role="alert"><Icon name="warning" size={16} />{errors.form}</p>}
+      <button className="button auth-submit" type="submit" disabled={step === "sending"}>{step === "sending" && <Spinner />}{step === "sending" ? t.signup.sending : t.signup.submit}</button>
+    </form>
+  </>;
 }
