@@ -2,8 +2,9 @@ import { useEffect, useState } from "react";
 import { rolePages } from "./auth";
 import type { Member, PageKey } from "./auth";
 import { useAppT } from "./appCopy";
-import { useData } from "./data";
+import { friendlyError, useData } from "./data";
 import { usePage } from "./i18n";
+import { supabase } from "./lib/supabase";
 import { Certificates, Settings } from "./pages/Admin";
 import { Attendance } from "./pages/Attendance";
 import { Courses, Teachers } from "./pages/Catalog";
@@ -14,7 +15,7 @@ import { Payments } from "./pages/Payments";
 import { Rooms } from "./pages/Rooms";
 import { StudentDrawer } from "./pages/StudentDrawer";
 import { Enrollments, Students } from "./pages/Students";
-import { BrandMark, Icon, initials } from "./ui";
+import { BrandMark, Icon, formatDate, initials } from "./ui";
 import type { IconName } from "./ui";
 
 // Each page has its own address so refresh, back/forward and shared links work.
@@ -36,19 +37,35 @@ const PAGES: { key: PageKey; path: string; icon: IconName }[] = [
 const pathOf = (key: PageKey) => PAGES.find((page) => page.key === key)!.path;
 const pageAt = (path: string) => PAGES.find((page) => page.path === (path.replace(/\/+$/, "") || "/"))?.key;
 
-// Nothing before the last week of the subscription; then a warning, then the read-only notice.
-// The director is told what to do; a secretaire or a teacher only sees why saving stopped.
-function SubscriptionBanner() {
-  const { subscription, isDirector } = useData();
-  const t = useAppT().banner;
-  const renew = isDirector ? t.renewDirector : t.renewTeam;
+// A free trial shows its days left all along; a paid plan nothing before its last week, then a
+// warning, then the read-only notice. The director gets a button to choose a plan (Settings, 0033);
+// a secretaire or a teacher only sees why saving stopped.
+function SubscriptionBanner({ onChoose }: { onChoose: () => void }) {
+  const { subscription, isDirector, school, reload, notify } = useData();
+  const copy = useAppT();
+  const t = copy.banner;
+  // A scheduled deletion (0034) comes first: the date, and the director's way back.
+  if (school.delete_after) {
+    const cancel = async () => {
+      const { error } = await supabase.rpc("cancel_school_deletion", { p_school_id: school.id });
+      if (error) return notify(friendlyError(error, copy.errors));
+      await reload();
+      notify(copy.settings.deleteCancelled);
+    };
+    return <div className="demo-banner" role="alert"><Icon name="trash" size={15} /><span><strong>{t.deletingTitle}</strong> {t.deletingText(formatDate(school.delete_after, "long"))}{isDirector ? "" : t.renewTeam}</span>
+      {isDirector && <button className="text-button" onClick={cancel}>{t.cancelDeletion}</button>}</div>;
+  }
+  const renew = isDirector ? "" : t.renewTeam;
+  const choose = isDirector && <button className="text-button" onClick={onChoose}>{t.choosePlan}</button>;
   const left = (days: number, zero: string) => (days === 0 ? zero : t.days(days));
+  if (subscription.state === "trial")
+    return <div className="demo-banner trial-banner" role="note"><Icon name="spark" size={15} /><span><strong>{t.trialTitle}</strong> {t.trialText(subscription.daysLeft)}{renew}</span>{choose}</div>;
   if (subscription.state === "active" && subscription.daysLeft <= 7)
-    return <div className="demo-banner" role="note"><Icon name="calendar" size={15} /><span><strong>{t.dueTitle}</strong> {t.dueText(left(subscription.daysLeft, t.lessThanDay))}{renew}</span></div>;
+    return <div className="demo-banner" role="note"><Icon name="calendar" size={15} /><span><strong>{t.dueTitle}</strong> {t.dueText(left(subscription.daysLeft, t.lessThanDay))}{renew}</span>{choose}</div>;
   if (subscription.state === "grace")
-    return <div className="demo-banner" role="alert"><Icon name="warning" size={15} /><span><strong>{t.graceTitle}</strong> {t.graceText(left(subscription.daysLeft, t.today))}{renew}</span></div>;
+    return <div className="demo-banner" role="alert"><Icon name="warning" size={15} /><span><strong>{t.graceTitle}</strong> {t.graceText(left(subscription.daysLeft, t.today))}{renew}</span>{choose}</div>;
   if (subscription.state === "frozen")
-    return <div className="demo-banner" role="alert"><Icon name="lock" size={15} /><span><strong>{t.frozenTitle}</strong> {t.frozenText}{renew}</span></div>;
+    return <div className="demo-banner" role="alert"><Icon name="lock" size={15} /><span><strong>{t.frozenTitle}</strong> {t.frozenText}{renew}</span>{choose}</div>;
   return null;
 }
 
@@ -138,7 +155,7 @@ export default function App({ member, email, userId, onSignOut }: { member: Memb
       </header>
       {school.is_demo
         ? <div className="demo-banner" role="note"><Icon name="lock" size={15} /><span><strong>{t.banner.demo}</strong> {t.banner.demoText}</span><button className="text-button" onClick={onSignOut}>{t.banner.demoLeave}</button></div>
-        : <SubscriptionBanner />}
+        : <SubscriptionBanner onChoose={() => goTo("settings")} />}
       <div className="content-wrap">{renderPage()}</div>
       <footer className="app-footer"><span>Classtra · {school.name}</span><span><span className="status-live" /> {t.common.synced}</span></footer>
     </main>

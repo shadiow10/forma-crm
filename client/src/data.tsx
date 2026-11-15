@@ -47,7 +47,9 @@ type Store = SchoolData & {
   attendanceRate: (studentId: number, groupId?: number) => number | null;
 };
 
-const GRACE_DAYS = 15; // must match private.is_frozen in the database
+// Must match private.is_frozen in the database: 15 days after a paid plan, 3 after a free trial (0033).
+const GRACE_DAYS = 15;
+const TRIAL_GRACE_DAYS = 3;
 const WARN_DAYS = 7;   // start warning this long before the due date
 
 // Where a school stands with its subscription. The database enforces the same rule; this only
@@ -55,16 +57,19 @@ const WARN_DAYS = 7;   // start warning this long before the due date
 export type Subscription =
   | { state: "none" }
   | { state: "active"; daysLeft: number }
+  | { state: "trial"; daysLeft: number }   // free trial running: `daysLeft` days of it, today included
   | { state: "grace"; daysLeft: number }   // past due, still writable, `daysLeft` of grace remain
   | { state: "frozen" };
 
-export function subscriptionOf(paidUntil: string | null): Subscription {
+export function subscriptionOf(paidUntil: string | null, billing: string | null = null): Subscription {
   if (!paidUntil) return { state: "none" };
   const day = 24 * 60 * 60 * 1000;
   const today = new Date(new Date().toDateString()).getTime();
   const dueIn = Math.round((new Date(`${paidUntil}T00:00:00`).getTime() - today) / day);
-  if (dueIn >= 0) return { state: "active", daysLeft: dueIn };
-  if (dueIn >= -GRACE_DAYS) return { state: "grace", daysLeft: GRACE_DAYS + dueIn };
+  const trial = billing === "trial";
+  if (dueIn >= 0) return trial ? { state: "trial", daysLeft: dueIn + 1 } : { state: "active", daysLeft: dueIn };
+  const grace = trial ? TRIAL_GRACE_DAYS : GRACE_DAYS;
+  if (dueIn >= -grace) return { state: "grace", daysLeft: grace + dueIn };
   return { state: "frozen" };
 }
 
@@ -144,9 +149,10 @@ export function DataProvider({ member, children, fallback }: { member: AuthMembe
       return { enrollments, latest, status: latest?.status ?? "Sans inscription", total, paid, balance, paymentStatus, attendance: attendanceRate(studentId) };
     };
 
-    const subscription = subscriptionOf(data.school.paid_until);
-    const frozen = data.school.is_demo || subscription.state === "frozen";
-    const blocked = () => { if (frozen) setNotice(data.school.is_demo ? t.errors.demo : t.errors.frozen); return frozen; };
+    const subscription = subscriptionOf(data.school.paid_until, data.school.billing);
+    // A scheduled deletion (0034) locks the school like an expired one, with its own message.
+    const frozen = data.school.is_demo || data.school.delete_after !== null || subscription.state === "frozen";
+    const blocked = () => { if (frozen) setNotice(data.school.is_demo ? t.errors.demo : data.school.delete_after ? t.errors.deleting : t.errors.frozen); return frozen; };
     return {
       ...data,
       me: member,

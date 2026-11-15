@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { EXTRA_PACKS } from "./lib/plans";
+import { EXTRA_PACKS, PLANS, TRIAL_DAYS } from "./lib/plans";
+import type { PlanId } from "./lib/plans";
 import { supabase } from "./lib/supabase";
 import { isLeaked } from "./Login";
 import type { FormEvent, ReactNode } from "react";
@@ -12,14 +13,6 @@ import type { IconName } from "./ui";
 // Real version: checkout → payment gateway (Chargily: Edahabia/CIB) → webhook creates the school
 // and invites the director with the existing invite-user flow.
 
-// One offer sold by duration; the id is what orders.billing stores (0027). Prices in DA; the names
-// live in i18n.tsx. Every plan covers 500 students with unlimited users.
-type PlanId = keyof Copy["plans"];
-export const PLANS: { id: PlanId; price: number; months: number; featured?: boolean }[] = [
-  { id: "monthly", price: 10000, months: 1 },
-  { id: "semester", price: 60000, months: 6 },
-  { id: "yearly", price: 89900, months: 12, featured: true },
-];
 // A longer plan shows its price per month when that beats paying month by month.
 const monthlyPrice = (plan: (typeof PLANS)[number]) => Math.round(plan.price / plan.months);
 const cheaperPerMonth = (plan: (typeof PLANS)[number]) => plan.months > 1 && monthlyPrice(plan) < PLANS[0].price;
@@ -253,6 +246,8 @@ export function Landing() {
             <strong>{t.pricing.includedTitle}</strong>
             <ul>{t.pricing.included.map((item) => <li key={item}><Icon name="check" size={14} />{item}</li>)}</ul>
           </div>
+          {/* The 15-day free trial (0033): straight to a working school, before any plan. */}
+          <div className="lp-trial"><a className="lp-btn primary" href="/essai">{t.trial.cta} <Icon name="arrow" size={16} /></a><span>{t.trial.ctaNote}</span></div>
         </div>
 
         <div className="lp-ledger">
@@ -488,7 +483,8 @@ export function Checkout() {
 // Creating an account before buying, in the sign-in card's second tab: the details are kept on the
 // account and fill the order form later. Supabase sends its confirmation email; its link lands on
 // the order form, signed in.
-export function SignupForm() {
+// With `trial` (/essai), the confirmation link lands on the trial page instead of the order form.
+export function SignupForm({ trial = false }: { trial?: boolean }) {
   const t = useT();
   const { values, errors, setErrors, set, setType } = useDetails();
   const [password, setPassword] = useState("");
@@ -505,7 +501,7 @@ export function SignupForm() {
     if (await isLeaked(password)) { setStep("form"); setErrors({ password: t.checkout.errors.leaked }); return; }
     const { error } = await supabase.auth.signUp({
       email: values.email.trim().toLowerCase(), password,
-      options: { data: toMetadata(values), emailRedirectTo: `${window.location.origin}/commander` },
+      options: { data: toMetadata(values), emailRedirectTo: `${window.location.origin}${trial ? "/essai" : "/commander"}` },
     });
     if (error) {
       if (import.meta.env.DEV) console.error(error); // the exact reason, dev only; the visitor gets the message below
@@ -521,13 +517,13 @@ export function SignupForm() {
 
   if (step === "done") return <>
     <h1>{t.signup.doneTitle}</h1>
-    <p className="auth-success" role="status">{t.signup.doneText(values.email.trim())}</p>
-    <a className="button auth-submit" href="/#tarifs">{t.signup.choosePlan}</a>
+    <p className="auth-success" role="status">{trial ? t.trial.doneText(values.email.trim()) : t.signup.doneText(values.email.trim())}</p>
+    {!trial && <a className="button auth-submit" href="/#tarifs">{t.signup.choosePlan}</a>}
   </>;
 
   return <>
-    <h1>{t.signup.title}</h1>
-    <p className="auth-muted">{t.signup.text}</p>
+    <h1>{trial ? t.trial.title : t.signup.title}</h1>
+    <p className="auth-muted">{trial ? t.trial.text : t.signup.text}</p>
     <form className="auth-form auth-signup" onSubmit={submit} noValidate>
       <DetailFields values={values} set={set} setType={setType} errors={errors} disabled={step === "sending"} emailLocked={false}>
         <label>
@@ -539,7 +535,56 @@ export function SignupForm() {
       </DetailFields>
       <p className="auth-muted">{t.checkout.terms} <a className="text-button" href="/cgv" target="_blank">{t.checkout.termsCgv}</a> {t.checkout.termsAnd} <a className="text-button" href="/confidentialite" target="_blank">{t.checkout.termsPrivacy}</a>.</p>
       {errors.form && <p className="auth-error" role="alert"><Icon name="warning" size={16} />{errors.form}</p>}
-      <button className="button auth-submit" type="submit" disabled={step === "sending"}>{step === "sending" && <Spinner />}{step === "sending" ? t.signup.sending : t.signup.submit}</button>
+      <button className="button auth-submit" type="submit" disabled={step === "sending"}>{step === "sending" && <Spinner />}{step === "sending" ? t.signup.sending : trial ? t.trial.submit : t.signup.submit}</button>
+    </form>
+  </>;
+}
+
+// /essai, signed in and confirmed, no school yet: check the details kept at sign-up, then open the
+// school for 15 days (start_trial, 0033). Nothing to pay, nobody to wait for.
+export function StartTrial() {
+  const t = useT();
+  const { values, setValues, errors, setErrors, set, setType } = useDetails(readDraft());
+  const [step, setStep] = useState<"form" | "sending">("form");
+  const [problem, setProblem] = useState<"used" | "hasSchool" | "">("");
+  useEffect(() => { supabase.auth.getUser().then(({ data }) => {
+    const user = data.user;
+    if (user?.email) setValues((current) => ({ ...current, ...fromMetadata(user.user_metadata), email: user.email! }));
+  }); }, [setValues]);
+
+  const submit = async (event: FormEvent) => {
+    event.preventDefault();
+    const next = detailErrors(values, t);
+    setErrors(next);
+    if (Object.keys(next).length) return;
+    setStep("sending");
+    const { error } = await supabase.rpc("start_trial", {
+      p_school_name: values.school.trim(), p_school_type: TYPES_FR[values.type], p_wilaya: values.wilaya.trim(),
+      p_director_name: values.director.trim(), p_phone: values.phone.replace(/\D/g, ""),
+    });
+    if (error) {
+      setStep("form");
+      if (error.code === "CL003") return setProblem("used");
+      if (error.code === "CL004") return setProblem("hasSchool");
+      if (import.meta.env.DEV) console.error(error);
+      return setErrors({ form: error.code === "53400" ? error.message : t.checkout.errors.signup });
+    }
+    clearDraft();
+    window.location.href = "/"; // the account now has a school: the app opens
+  };
+
+  if (problem) return <>
+    <h1>{t.trial.startTitle}</h1>
+    <p className="auth-error" role="alert"><Icon name="warning" size={16} />{problem === "used" ? t.trial.used : t.trial.hasSchool}</p>
+    {problem === "used" && <a className="button auth-submit" href="/#tarifs">{t.trial.seePlans}</a>}
+  </>;
+  return <>
+    <h1>{t.trial.startTitle}</h1>
+    <p className="auth-muted">{t.trial.startText}</p>
+    <form className="auth-form auth-signup" onSubmit={submit} noValidate>
+      <DetailFields values={values} set={set} setType={setType} errors={errors} disabled={step === "sending"} emailLocked />
+      {errors.form && <p className="auth-error" role="alert"><Icon name="warning" size={16} />{errors.form}</p>}
+      <button className="button auth-submit" type="submit" disabled={step === "sending"}>{step === "sending" && <Spinner />}{step === "sending" ? t.trial.starting : t.trial.start}</button>
     </form>
   </>;
 }

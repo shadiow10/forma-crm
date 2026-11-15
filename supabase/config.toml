@@ -418,6 +418,10 @@ enabled = true
 [functions.order-approved]
 verify_jwt = false
 
+# Called by the database once a day (0034), with the same shared secret as order-approved.
+[functions.purge-schools]
+verify_jwt = false
+
 # French emails. On the live project, paste the same subjects and HTML in
 # Authentication → Emails → Templates (Invite user, Magic link, Confirm signup).
 [auth.email.template.invite]

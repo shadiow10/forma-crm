@@ -5,7 +5,7 @@ export type Role = "director" | "secretaire" | "teacher";
 export type EnrollmentStatus = "Inscrit" | "En cours" | "Terminé" | "Abandonné";
 export type AttendanceStatus = "P" | "A" | "L" | "E"; // E: excused, the session is kept for the student (0031)
 
-export type School = { id: number; name: string; slug: string; currency: string; phone: string | null; email: string | null; address: string | null; is_demo: boolean; paid_until: string | null; billing: "monthly" | "semester" | "yearly" | null; kind: "formation" | "soutien"; sessions_per_month: number; student_limit: number | null; logo_path: string | null };
+export type School = { id: number; name: string; slug: string; currency: string; phone: string | null; email: string | null; address: string | null; is_demo: boolean; paid_until: string | null; billing: "monthly" | "semester" | "yearly" | "trial" | null; kind: "formation" | "soutien"; sessions_per_month: number; student_limit: number | null; logo_path: string | null; delete_after: string | null };
 export type Course = { id: number; name: string; short_name: string; duration: string; price: number; color: string; billing: "total" | "monthly"; level: string | null; sessions_per_month: number | null };
 // hourly_rate comes from the teacher_pay view: null for a secretaire, who cannot read it.
 export type Teacher = { id: number; full_name: string; subject: string | null; phone: string | null; email: string | null; hourly_rate: number | null; monthly_salary: number | null; pay_mode: PayMode | null; per_student_rate: number | null; contract: string; color: string };
@@ -74,7 +74,7 @@ export async function fetchAll<T>(build: () => any, order: string[]): Promise<T[
 export async function loadSchoolData(client: SupabaseClient, schoolId: number): Promise<SchoolData> {
   const from = (table: string, columns: string) => () => client.from(table).select(columns).eq("school_id", schoolId);
   const [school, courses, teachers, pay, groups, students, groupStudents, enrollments, balances, payments, attendanceStats, groupSessions, members, rooms] = await Promise.all([
-    client.from("schools").select("id, name, slug, currency, phone, email, address, is_demo, paid_until, billing, kind, sessions_per_month, student_limit, logo_path").eq("id", schoolId).single().then(({ data, error }) => {
+    client.from("schools").select("id, name, slug, currency, phone, email, address, is_demo, paid_until, billing, kind, sessions_per_month, student_limit, logo_path, delete_after").eq("id", schoolId).single().then(({ data, error }) => {
       if (error) throw error;
       return data as School;
     }),

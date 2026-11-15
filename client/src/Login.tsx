@@ -52,7 +52,8 @@ const TAB_PATHS: Record<Tab, string> = { login: "/connexion", signup: "/creer-un
 // Sign in and create an account share one card. The switch moves a thumb between the two tabs
 // and the card resizes to the other form; both run as one view transition where the browser has
 // them (Chrome, Edge, Safari 18), and as a plain swap elsewhere or under reduced motion.
-export default function Login({ initial = "login" }: { initial?: Tab }) {
+// `trial` (/essai): the sign-up tab is the free trial one, and keeps the /essai address.
+export default function Login({ initial = "login", trial = false }: { initial?: Tab; trial?: boolean }) {
   const t = useT();
   const [tab, setTab] = useState<Tab>(initial);
   const wanted = useRef<Tab>(initial); // the last tab asked for, even while a transition is still running
@@ -63,18 +64,18 @@ export default function Login({ initial = "login" }: { initial?: Tab }) {
     wanted.current = next;
     running.current?.skipTransition(); // a quick second click wins over the animation still playing
     // The address changes with the form, never ahead of it.
-    const apply = () => { flushSync(() => setTab(next)); window.history.replaceState(null, "", TAB_PATHS[next]); };
+    const apply = () => { flushSync(() => setTab(next)); window.history.replaceState(null, "", trial && next === "signup" ? "/essai" : TAB_PATHS[next]); };
     if (!("startViewTransition" in document) || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return apply();
     running.current = document.startViewTransition(apply);
   };
   const tabs = <div className="auth-tabs" role="tablist" data-tab={tab}>
     <span className="auth-tabs-thumb" aria-hidden="true" />
     <button type="button" role="tab" aria-selected={tab === "login"} onClick={() => show("login")}>{t.signIn}</button>
-    <button type="button" role="tab" aria-selected={tab === "signup"} onClick={() => show("signup")}>{t.signup.link}</button>
+    <button type="button" role="tab" aria-selected={tab === "signup"} onClick={() => show("signup")}>{trial ? t.trial.cta : t.signup.link}</button>
   </div>;
   return (
     <AuthShell tabs={tabs}>
-      {tab === "login" ? <SignInForm /> : <Suspense fallback={<p className="auth-muted">{t.access.loading}</p>}><SignupForm /></Suspense>}
+      {tab === "login" ? <SignInForm /> : <Suspense fallback={<p className="auth-muted">{t.access.loading}</p>}><SignupForm trial={trial} /></Suspense>}
       <p className="auth-muted auth-foot"><a className="text-button" href="/">{t.auth.discover}</a></p>
     </AuthShell>
   );

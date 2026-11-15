@@ -17,7 +17,7 @@ await db.exec(`alter default privileges in schema public grant all on tables to 
 const migrations = new URL("../migrations/", import.meta.url);
 for (const file of fs.readdirSync(migrations).filter((name) => name.endsWith(".sql")).sort()) await db.exec(fs.readFileSync(new URL(file, migrations), "utf8"));
 await db.exec(fs.readFileSync(new URL("../seed.sql", import.meta.url), "utf8"));
-const U = { D: "00000000-0000-0000-0000-00000000000d", S: "00000000-0000-0000-0000-00000000000s".replace("s","5"), T: "00000000-0000-0000-0000-00000000000e", D2: "00000000-0000-0000-0000-0000000000d2", X: "00000000-0000-0000-0000-0000000000de", O: "00000000-0000-0000-0000-0000000000a0" , N: "00000000-0000-0000-0000-0000000000a1" , L: "00000000-0000-0000-0000-0000000000a2" , U: "00000000-0000-0000-0000-0000000000a3", Y: "00000000-0000-0000-0000-0000000000a4" };
+const U = { D: "00000000-0000-0000-0000-00000000000d", S: "00000000-0000-0000-0000-00000000000s".replace("s","5"), T: "00000000-0000-0000-0000-00000000000e", D2: "00000000-0000-0000-0000-0000000000d2", X: "00000000-0000-0000-0000-0000000000de", O: "00000000-0000-0000-0000-0000000000a0" , N: "00000000-0000-0000-0000-0000000000a1" , L: "00000000-0000-0000-0000-0000000000a2" , U: "00000000-0000-0000-0000-0000000000a3", Y: "00000000-0000-0000-0000-0000000000a4", TR: "00000000-0000-0000-0000-0000000000b1", TU: "00000000-0000-0000-0000-0000000000b2", TP: "00000000-0000-0000-0000-0000000000b3", TQ: "00000000-0000-0000-0000-0000000000b4" };
 await db.exec(`insert into auth.users values ('${U.D}'),('${U.S}'),('${U.T}'),('${U.D2}');
 insert into schools (id, name, slug) values (2, 'Autre École', 'autre-ecole');
 insert into courses (school_id, name, short_name, duration, price) values (2, 'Anglais', 'Anglais', '3 mois', 30000);
@@ -416,5 +416,66 @@ select place_order('École Semestre', 'Centre de formation', 'Oran', 'Directeur 
 update orders set status = 'payé' where school_name = 'École Semestre';`);
 const semester = (await db.query(`select paid_until = current_date + interval '6 months' as six_months, student_limit, billing from schools where name = 'École Semestre'`)).rows[0];
 assert.deepEqual(semester, { six_months: true, student_limit: 1000, billing: "semester" });
+
+// 0033: the free trial. Only a confirmed address, once per email and per phone, 15 days, 500 students.
+await db.exec(`insert into auth.users (id, email, email_confirmed_at) values
+  ('${U.TR}', 'essai@ecole.dz', now()), ('${U.TU}', 'pasconfirme@ecole.dz', null), ('${U.TP}', 'autre@ecole.dz', now()), ('${U.TQ}', 'troisieme@ecole.dz', now())`);
+const trial = (who, phone) => `select public.start_trial('École Essai', 'École de soutien scolaire', 'Blida', 'Directeur Essai', '${phone}') id`;
+assert.ok(await fails("TU", trial("TU", "0555000101")), "an unconfirmed email cannot start a trial");
+const trialSchool = Number((await as("TR", trial("TR", "0555 00 01 02")))[0].id);
+const trialOpened = (await db.query(`select billing, paid_until = current_date + 14 as fifteen_days, student_limit, kind from schools where id = ${trialSchool}`)).rows[0];
+assert.deepEqual(trialOpened, { billing: "trial", fifteen_days: true, student_limit: 500, kind: "soutien" }, "a trial opens at once for 15 days");
+assert.equal((await as("TR", `select role from school_members where school_id = ${trialSchool}`))[0].role, "director");
+assert.equal((await db.query(`select count(*)::int n from orders where billing = 'trial' and school_id = ${trialSchool} and status = 'payé'`)).rows[0].n, 1, "and shows up as an order");
+assert.ok(await fails("TR", trial("TR", "0555000103")), "an account with a school cannot start another trial");
+await assert.rejects(as("TP", trial("TP", "0555000102")), /déjà été utilisé/, "nor can a second account with the same phone");
+assert.ok(!(await fails("TQ", trial("TQ", "0555000104"))), "a different email and phone can");
+
+// After the 15 days: 3 days of grace, then read-only.
+await db.exec(`set test.uid = ''; update schools set paid_until = current_date - 3 where id = ${trialSchool}`);
+assert.ok(!(await fails("TR", `insert into students (school_id, full_name, phone) values (${trialSchool}, 'Élève Essai', '0661000001')`)), "still writable on the 3rd day of grace");
+await db.exec(`set test.uid = ''; update schools set paid_until = current_date - 4 where id = ${trialSchool}`);
+assert.ok(await fails("TR", `insert into students (school_id, full_name, phone) values (${trialSchool}, 'Élève Essai 2', '0661000002')`), "read-only after it");
+assert.equal(await count("TR", `students where school_id = ${trialSchool}`), 1, "with its data still there");
+
+// Choosing a plan from Settings: only the director, one pending request, and payment extends the same school.
+assert.ok(await fails("D", `select public.request_renewal(${trialSchool}, 'yearly', '0555000102')`), "another school's director cannot renew it");
+const asked = Number((await as("TR", `select public.request_renewal(${trialSchool}, 'yearly', '0555000102') id`))[0].id);
+assert.equal(Number((await as("TR", `select public.request_renewal(${trialSchool}, 'semester', '0555000102', 500) id`))[0].id), asked, "a second request changes the pending one");
+assert.deepEqual((await as("TR", `select billing, extra_students from public.pending_renewal(${trialSchool})`))[0], { billing: "semester", extra_students: 500 });
+assert.equal((await as("D", `select count(*)::int n from public.pending_renewal(${trialSchool})`))[0].n, 0, "another director sees nothing");
+const schoolsBefore = (await db.query("select count(*)::int n from schools")).rows[0].n;
+await db.exec(`set test.uid = ''; update orders set status = 'payé' where id = ${asked}`);
+const renewed = (await db.query(`select billing, paid_until = current_date + interval '6 months' as six_months, student_limit from schools where id = ${trialSchool}`)).rows[0];
+assert.deepEqual(renewed, { billing: "semester", six_months: true, student_limit: 1000 }, "paying extends the trial school from today, with its pack");
+assert.equal((await db.query("select count(*)::int n from schools")).rows[0].n, schoolsBefore, "no new school is opened");
+assert.equal(await count("TR", `students where school_id = ${trialSchool}`), 1, "and its students are still there");
+assert.ok(!(await fails("TR", `insert into students (school_id, full_name, phone) values (${trialSchool}, 'Élève Payé', '0661000003')`)), "writable again");
+
+// 0034: deleting a school. The director only, with the exact name; 30 days read-only, cancellable.
+assert.ok(await fails("D", `select public.request_school_deletion(${trialSchool}, 'École Essai')`), "another school's director cannot");
+await assert.rejects(as("TR", `select public.request_school_deletion(${trialSchool}, 'Mauvais nom')`), /ne correspond pas/, "the name must match");
+await as("TR", `select public.request_school_deletion(${trialSchool}, '  école essai ')`); // case and spaces do not matter
+assert.equal((await db.query(`select delete_after = current_date + 30 as in30 from schools where id = ${trialSchool}`)).rows[0].in30, true, "deletion is set 30 days ahead");
+assert.ok(await fails("TR", `insert into students (school_id, full_name, phone) values (${trialSchool}, 'Pendant', '0661000004')`), "the school is read-only meanwhile");
+assert.equal(await count("TR", `students where school_id = ${trialSchool}`), 2, "but still readable");
+await as("TR", `select public.cancel_school_deletion(${trialSchool})`);
+assert.ok(!(await fails("TR", `insert into students (school_id, full_name, phone) values (${trialSchool}, 'Après annulation', '0661000005')`)), "cancelling makes it writable again");
+await as("TR", `select public.request_school_deletion(${trialSchool}, 'École Essai')`);
+for (const fn of ["due_school_deletions()", `school_files(${trialSchool})`, `purge_school(${trialSchool})`])
+  assert.ok(await fails("TR", `select * from public.${fn}`), `the app cannot call ${fn}`);
+
+// Day 30: purge-schools (service role) erases the school and keeps its orders without the person.
+await db.exec(`set test.uid = ''; update schools set delete_after = current_date where id = ${trialSchool};
+  insert into activity_log (school_id, table_name, action) values (${trialSchool}, 'students', 'INSERT');`);
+const service = async (sql) => { await db.exec("reset role; set role service_role;"); try { return (await db.query(sql)).rows; } finally { await db.exec("reset role"); } };
+assert.deepEqual((await service("select * from public.due_school_deletions() id")).map((row) => Number(row.id)), [trialSchool]);
+const freed = (await service(`select * from public.purge_school(${trialSchool}) u`)).map((row) => row.u);
+assert.deepEqual(freed, [U.TR], "its director's login is handed back for deletion");
+const left = (await db.query(`select (select count(*)::int from schools where id = ${trialSchool}) schools, (select count(*)::int from students where school_id = ${trialSchool}) students,
+  (select count(*)::int from school_members where school_id = ${trialSchool}) members, (select count(*)::int from activity_log where school_id = ${trialSchool}) log`)).rows[0];
+assert.deepEqual(left, { schools: 0, students: 0, members: 0, log: 0 }, "nothing of the school is left");
+const kept = (await db.query(`select count(*)::int n, bool_and(email like 'supprime-%' and director_name = 'Supprimé' and user_id is null) wiped from orders where email like 'supprime-%' or email = 'essai@ecole.dz'`)).rows[0];
+assert.deepEqual(kept, { n: 2, wiped: true }, "its trial and its paid order stay, without the person");
 
 console.log("all access checks passed");

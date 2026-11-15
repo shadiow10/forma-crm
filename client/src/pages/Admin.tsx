@@ -8,8 +8,11 @@ import { friendlyError, useData } from "../data";
 import { LANGS } from "../i18n";
 import { locale, setLang, useLang } from "../lang";
 import type { Lang } from "../lang";
-import { EXTRA_PACKS } from "../lib/plans";
+import { EXTRA_PACKS, PLANS } from "../lib/plans";
+import type { PlanId } from "../lib/plans";
 import type { MemberRow } from "../lib/queries";
+import { fetchAll } from "../lib/queries";
+import { toCSV, zipFiles } from "../lib/zip";
 import { supabase } from "../lib/supabase";
 import { FormModal } from "../appUI";
 import { Badge, Button, COLORS, EmptyState, Icon, PageHeader, Panel, formatDate, initialsBadge, setTheme, todayISO, useTheme, variants } from "../ui";
@@ -95,7 +98,7 @@ export function Settings({ userId, signedInAs, onSignOut }: { userId: string; si
           <button className="settings-logout" onClick={onSignOut}><Icon name="logout" size={16} />{t.common.signOut}</button>
         </div>
       </aside>
-      <div className="settings-content">{tab === "school" ? <><SchoolSettings /><StudentLimit /></> : tab === "users" ? <UserSettings userId={userId} /> : tab === "activity" ? <ActivityLog /> : <Preferences />}</div>
+      <div className="settings-content">{tab === "school" ? <><Subscription /><SchoolSettings /><StudentLimit /><DangerZone /></> : tab === "users" ? <UserSettings userId={userId} /> : tab === "activity" ? <ActivityLog /> : <Preferences />}</div>
     </div>
   </>;
 }
@@ -161,9 +164,59 @@ function SchoolSettings() {
           <input type="file" hidden accept="image/png,image/jpeg" disabled={uploading} onChange={(event) => { void uploadLogo(event.target.files?.[0]); event.target.value = ""; }} /></label>
       </div>
       <p className="form-hint">{s.hint(school.slug)}</p>
-      {school.paid_until && <p className="form-hint"><Icon name="calendar" size={13} /> {s.subscription(school.billing === "yearly" ? s.yearly : school.billing === "semester" ? s.semester : s.monthly, subscription.state === "frozen" ? s.expired : s.valid, formatDate(school.paid_until))}</p>}
+      {school.paid_until && <p className="form-hint"><Icon name="calendar" size={13} /> {s.subscription(school.billing === "trial" ? s.trial : school.billing === "yearly" ? s.yearly : school.billing === "semester" ? s.semester : s.monthly, subscription.state === "frozen" ? s.expired : s.valid, formatDate(school.paid_until))}</p>}
       <Button type="submit" icon="check" disabled={busy}>{busy ? t.common.saving : t.common.save}</Button>
     </form>
+  </Panel>;
+}
+
+// Choosing a plan, after a trial or to renew (0033). The request waits for payment like an order;
+// marking it paid extends this same school. It goes straight to the database rather than through
+// save(): an expired, read-only school must still be able to ask for a plan.
+function Subscription() {
+  const t = useAppT();
+  const s = t.settings;
+  const { school, money, notify, reload, isDirector } = useData();
+  const [pending, setPending] = useState<{ billing: PlanId; created_at: string } | null>(null);
+  const [editing, setEditing] = useState(false);
+  const [plan, setPlan] = useState<PlanId>("yearly");
+  const mobile = (value: string) => value.replace(/\D/g, "");
+  const isMobile = (value: string) => /^0[5-7]\d{8}$/.test(mobile(value));
+  const [phone, setPhone] = useState(isMobile(school.phone ?? "") ? school.phone ?? "" : "");
+  const [error, setError] = useState("");
+  const [busy, setBusy] = useState(false);
+  const load = () => supabase.rpc("pending_renewal", { p_school_id: school.id })
+    .then(({ data, error: failed }) => { if (failed) notify(friendlyError(failed, t.errors)); else setPending((data as { billing: PlanId; created_at: string }[] | null)?.[0] ?? null); });
+  useEffect(() => { if (isDirector) void load(); }, [school.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  if (!isDirector) return null;
+  const name = (id: PlanId) => ({ monthly: s.monthly, semester: s.semester, yearly: s.yearly })[id];
+  const price = (id: PlanId) => money(PLANS.find((item) => item.id === id)!.price);
+  const send = async () => {
+    if (!isMobile(phone)) return setError(s.planPhoneBad);
+    setBusy(true);
+    const { error: failed } = await supabase.rpc("request_renewal", { p_school_id: school.id, p_billing: plan, p_phone: mobile(phone) });
+    setBusy(false);
+    if (failed) return notify(friendlyError(failed, t.errors));
+    notify(s.planSent);
+    setEditing(false);
+    await load();
+    void reload();
+  };
+  return <Panel title={s.planTitle}>
+    {pending && !editing ? <>
+      <p className="form-hint"><Icon name="clock" size={13} /> {s.planPending(`${name(pending.billing)} · ${price(pending.billing)}`, formatDate(pending.created_at.slice(0, 10)))}</p>
+      <Button variant="outline" icon="edit" onClick={() => { setPlan(pending.billing); setEditing(true); }}>{s.planChange}</Button>
+    </> : <>
+      <div className="settings-form">
+        <label>{s.planPick}<select className="field" value={plan} onChange={(event) => setPlan(event.target.value as PlanId)}>
+          {PLANS.map((item) => <option key={item.id} value={item.id}>{name(item.id)} · {price(item.id)}</option>)}
+        </select></label>
+        <label>{s.planPhone}<input className="field" type="tel" value={phone} placeholder="0555 00 00 00" aria-invalid={Boolean(error)}
+          onChange={(event) => { setPhone(event.target.value); setError(""); }} />{error && <span className="field-error">{error}</span>}</label>
+      </div>
+      <p className="form-hint">{s.planHint}</p>
+      <Button icon="check" disabled={busy} onClick={send}>{s.planSend}</Button>
+    </>}
   </Panel>;
 }
 
@@ -202,6 +255,116 @@ function StudentLimit() {
       <p className="form-hint">{s.packHint}</p>
     </>}
   </Panel>;
+}
+
+// "Download my data" and "Delete the school" (0034), director only. Deleting asks for the school's
+// exact name and the director's password again, then leaves 30 days to change one's mind; the
+// export works throughout, read-only school included.
+function DangerZone() {
+  const t = useAppT();
+  const s = t.settings;
+  const { school, isDirector, students, studentById, enrollments, payments, teachers, courses, groups, rooms, notify, reload } = useData();
+  const [confirming, setConfirming] = useState(false);
+  const [exporting, setExporting] = useState(false);
+  if (!isDirector) return null;
+
+  // One CSV per table, the columns as stored, plus the student's name where a row only has an id.
+  const exportAll = async () => {
+    setExporting(true);
+    try {
+      const attendance = await fetchAll<{ student_id: number; group_id: number; session_date: string; status: string }>(
+        () => supabase.from("attendance").select("student_id, group_id, session_date, status"), ["session_date", "group_id", "student_id"]);
+      const enrollmentById = new Map(enrollments.map((item) => [item.id, item]));
+      const table = <T extends object>(rows: T[], extra: (row: T) => Record<string, unknown> = () => ({})) => {
+        const shaped = rows.map((row) => ({ ...extra(row), ...row }) as Record<string, unknown>);
+        const columns = [...new Set(shaped.flatMap((row) => Object.keys(row)))];
+        return toCSV([columns, ...shaped.map((row) => columns.map((column) => {
+          const value = row[column];
+          return Array.isArray(value) ? value.join(" ") : (value as string | number | null);
+        }))]);
+      };
+      const nameOf = (id: number | undefined) => ({ etudiant: id ? studentById.get(id)?.full_name ?? "" : "" });
+      const blob = zipFiles([
+        { name: "etudiants.csv", text: table(students) },
+        { name: "inscriptions.csv", text: table(enrollments, (row) => nameOf(row.student_id)) },
+        { name: "paiements.csv", text: table(payments, (row) => nameOf(enrollmentById.get(row.enrollment_id)?.student_id)) },
+        { name: "presences.csv", text: table(attendance, (row) => nameOf(row.student_id)) },
+        { name: "formateurs.csv", text: table(teachers) },
+        { name: "formations.csv", text: table(courses) },
+        { name: "groupes.csv", text: table(groups) },
+        { name: "salles.csv", text: table(rooms) },
+      ]);
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = `classtra-${school.slug}-${todayISO()}.zip`;
+      link.click();
+      URL.revokeObjectURL(link.href);
+      notify(s.exportDone);
+    } catch (error) {
+      notify(friendlyError(error as { message: string }, t.errors));
+    }
+    setExporting(false);
+  };
+  const cancel = async () => {
+    const { error } = await supabase.rpc("cancel_school_deletion", { p_school_id: school.id });
+    if (error) return notify(friendlyError(error, t.errors));
+    await reload();
+    notify(s.deleteCancelled);
+  };
+
+  return <Panel title={s.dangerTitle}>
+    <div className="danger-row">
+      <div><strong>{s.exportTitle}</strong><p className="form-hint">{s.exportText}</p></div>
+      <Button variant="outline" icon="download" disabled={exporting} onClick={exportAll}>{s.exportTitle}</Button>
+    </div>
+    <div className="danger-row">
+      <div><strong>{s.deleteTitle}</strong><p className="form-hint">{school.delete_after ? s.deletePending(formatDate(school.delete_after, "long")) : s.deleteText}</p></div>
+      {school.delete_after
+        ? <Button variant="outline" icon="check" onClick={cancel}>{t.banner.cancelDeletion}</Button>
+        : <Button variant="danger" icon="trash" onClick={() => setConfirming(true)}>{s.deleteAction}</Button>}
+    </div>
+    {confirming && <DeleteSchoolDialog onClose={() => setConfirming(false)} />}
+  </Panel>;
+}
+
+function DeleteSchoolDialog({ onClose }: { onClose: () => void }) {
+  const t = useAppT();
+  const s = t.settings;
+  const { school, notify, reload } = useData();
+  const [name, setName] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState<{ field: "name" | "password" | "form"; text: string } | null>(null);
+  const [busy, setBusy] = useState(false);
+  const same = (a: string, b: string) => a.trim().toLowerCase() === b.trim().toLowerCase();
+  const submit = async (event: FormEvent) => {
+    event.preventDefault();
+    if (!same(name, school.name)) return setError({ field: "name", text: s.deleteWrongName });
+    setBusy(true);
+    // The password again: an open session on a shared computer is not enough to delete a school.
+    const { data } = await supabase.auth.getUser();
+    const { error: wrong } = await supabase.auth.signInWithPassword({ email: data.user?.email ?? "", password });
+    if (wrong) { setBusy(false); return setError({ field: "password", text: s.deleteWrongPassword }); }
+    const { data: when, error: failed } = await supabase.rpc("request_school_deletion", { p_school_id: school.id, p_confirm_name: name });
+    setBusy(false);
+    if (failed) return setError(failed.code === "CL005" ? { field: "name", text: s.deleteWrongName } : { field: "form", text: friendlyError(failed, t.errors) });
+    onClose();
+    await reload();
+    notify(s.deleteScheduled(formatDate(String(when), "long")));
+  };
+  return <div className="drawer-layer" onClick={onClose}><form className="form-modal" role="alertdialog" aria-label={s.deleteConfirmTitle} onClick={(event) => event.stopPropagation()} onSubmit={submit}>
+    <div className="form-modal-head"><div><span className="eyebrow">{s.dangerTitle}</span><h2>{s.deleteConfirmTitle}</h2></div><button type="button" className="close-button" onClick={onClose} aria-label={t.common.close}><Icon name="close" size={20} /></button></div>
+    <div className="form-modal-body">
+      <p className="danger-warning"><Icon name="warning" size={16} /> {s.deleteText}</p>
+      <label className="form-field full">{s.deleteTypeName(school.name)}
+        <input className="field" value={name} autoComplete="off" aria-invalid={error?.field === "name"} onChange={(event) => { setName(event.target.value); setError(null); }} />
+        {error?.field === "name" && <span className="field-error">{error.text}</span>}</label>
+      <label className="form-field full">{s.deletePassword}
+        <input className="field" type="password" value={password} autoComplete="current-password" aria-invalid={error?.field === "password"} onChange={(event) => { setPassword(event.target.value); setError(null); }} />
+        {error?.field === "password" && <span className="field-error">{error.text}</span>}</label>
+      {error?.field === "form" && <p className="field-error">{error.text}</p>}
+    </div>
+    <div className="form-modal-foot"><Button variant="outline" onClick={onClose}>{t.common.cancel}</Button><Button type="submit" variant="danger" icon="trash" disabled={busy || !name || !password}>{s.deleteConfirm}</Button></div>
+  </form></div>;
 }
 
 async function invokeError(error: unknown, failed: string, unavailable: string) {

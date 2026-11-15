@@ -756,6 +756,8 @@ tbody tr[tabindex]:focus-visible, .class-card:focus-visible, .teacher-card:focus
 .lp-pricing-intro { position: sticky; top: 96px; }
 .lp-pricing-intro > p:not(.lp-eyebrow) { margin: 18px 0 0; color: var(--lp-text); }
 .lp-included { margin-top: 34px; padding-top: 24px; border-top: 1px solid var(--lp-line); }
+.lp-trial { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; margin-top: 22px; }
+.lp-trial span { color: var(--muted); font-size: 14px; }
 .lp-included strong { font-size: 14px; color: var(--ink); }
 .lp-included ul { display: grid; gap: 10px; margin: 14px 0 0; padding: 0; list-style: none; font-size: 15px; color: var(--lp-text); }
 .lp-included li { display: flex; gap: 10px; align-items: flex-start; }
@@ -1329,3 +1331,13 @@ a.auth-submit { margin-top: 18px; text-decoration: none; }
 @media (prefers-reduced-motion: reduce) {
   .auth-tabs-thumb { transition: none; }
 }
+
+/* Settings → danger zone (0034): download everything, delete the school. */
+.danger-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 12px 0; border-top: 1px solid var(--border); }
+.danger-row:first-child { border-top: 0; padding-top: 0; }
+.danger-row > div { min-width: 0; flex: 1; }
+.danger-row strong { display: block; }
+.danger-row .form-hint { margin: 4px 0 0; }
+.danger-warning { display: flex; gap: 8px; align-items: flex-start; margin: 0 0 14px; padding: 10px 12px; border-radius: 10px; background: var(--bad-bg); color: var(--bad-fg); line-height: 1.45; }
+.danger-warning svg { flex-shrink: 0; margin-top: 2px; }
+@media (max-width: 650px) { .danger-row { flex-direction: column; align-items: stretch; } }

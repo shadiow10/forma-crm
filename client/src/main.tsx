@@ -7,8 +7,10 @@ import { supabase } from "./lib/supabase";
 const LEGAL_PATHS = new Set(["/mentions-legales", "/cgv", "/confidentialite"]);
 const Landing = lazy(() => import("./Landing").then((m) => ({ default: m.Landing })));
 const Checkout = lazy(() => import("./Landing").then((m) => ({ default: m.Checkout })));
+const StartTrial = lazy(() => import("./Landing").then((m) => ({ default: m.StartTrial })));
 // Not "/inscriptions": that is the app's enrolments page.
 const SIGNUP_PATH = "/creer-un-compte";
+const TRIAL_PATH = "/essai"; // the 15-day free trial (0033)
 const Legal = lazy(() => import("./Legal").then((m) => ({ default: m.Legal })));
 import Login, { AuthShell, SetPassword } from "./Login";
 // The signed-in app is a separate download: visitors on the landing page never fetch it.
@@ -93,6 +95,7 @@ function Root() {
     if (window.location.pathname === "/") return <Landing />;
     if (window.location.pathname === "/commander") return <Checkout />;
     if (window.location.pathname === SIGNUP_PATH) return <Login initial="signup" />;
+    if (window.location.pathname === TRIAL_PATH) return <Login initial="signup" trial />;
     // /connexion and the app addresses lead to the login; anything else is a wrong address.
     if (window.location.pathname === "/connexion" || PAGE_PATHS.has(window.location.pathname)) return <Login />;
     return <NotFound />;
@@ -100,6 +103,8 @@ function Root() {
   // Signed in with no school: he may still need to send (or resend) his order.
   // A signed-in account opening the sign-up page already has its account: on to the order form.
   if (auth.status === "noAccess" && (window.location.pathname === "/commander" || window.location.pathname === SIGNUP_PATH)) return <Checkout />;
+  // Back from a trial sign-up's confirmation link (or signed in there with no school yet): start it.
+  if (auth.status === "noAccess" && window.location.pathname === TRIAL_PATH) return <AuthShell><StartTrial /></AuthShell>;
   if (auth.status === "setPassword") return <SetPassword email={auth.email} />;
   if (auth.status === "noAccess") return <Waiting email={auth.email} />;
   if (auth.status === "error") return <Message title={t.loadError} text={t.profileError(auth.message)} action={{ label: t.retry, run: () => window.location.reload() }} />;
