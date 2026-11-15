@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { label as labelOf, useAppT } from "../appCopy";
 import { useData } from "../data";
+import { useShowMore } from "../appUI";
 import { courseMonths, monthNumber, monthStatus, monthlyFee, teacherPay, totalPay } from "../lib/finance";
 import type { Payment } from "../lib/queries";
 import { supabase } from "../lib/supabase";
@@ -103,6 +104,11 @@ export function Payments({ openStudent }: { openStudent: (id: number) => void })
     if (sure) await save(() => supabase.from("payments").delete().eq("id", id), p.deleted);
   };
   const stop = (event: { stopPropagation: () => void }) => event.stopPropagation();
+  // Each tab's list shows 15 rows at a time.
+  const moreHistory = useShowMore(filtered);
+  const moreMonthly = useShowMore(monthly);
+  const morePay = useShowMore(payRows);
+  const moreUnpaid = useShowMore(unpaid);
 
   return <>
     <PageHeader eyebrow={p.eyebrow} title={p.title} description={p.description} actionLabel={p.action} onAction={() => setRecording({})}
@@ -137,7 +143,7 @@ export function Payments({ openStudent }: { openStudent: (id: number) => void })
         <p className="muted-copy table-note">{p.shownTotal(money(filtered.reduce((sum, row) => sum + row.payment.amount, 0)))}</p>
         <div className="table-scroll"><table>
           <thead><tr><th>{p.colReceipt}</th><th>{t.common.date}</th><th>{t.common.student}</th><th>{t.common.course}</th><th>{p.colAmount}</th><th>{p.colMethod}</th><th /></tr></thead>
-          <tbody>{filtered.map(({ payment, enrollment, student }) => <tr key={payment.id} onClick={() => student && openStudent(student.id)}>
+          <tbody>{moreHistory.visible.map(({ payment, enrollment, student }) => <tr key={payment.id} onClick={() => student && openStudent(student.id)}>
             <td className="muted-cell">{receiptNumber(payment)}</td>
             <td>{formatDate(payment.paid_on)}</td>
             <td><strong>{student?.full_name ?? "—"}</strong></td>
@@ -150,12 +156,13 @@ export function Payments({ openStudent }: { openStudent: (id: number) => void })
             </span></td>
           </tr>)}</tbody>
         </table></div>
+        {moreHistory.button}
         {!filtered.length && <p className="table-empty">{p.emptyHistory}</p>}
       </> : tab === "monthly" ? monthly.length ? <>
         <p className="muted-copy table-note">{isSoutien ? t.so.sessionsHint : p.monthlyNote}</p>
         <div className="table-scroll"><table>
           <thead><tr><th>{t.common.student}</th><th>{t.common.course}</th><th>{p.colMonthly}</th><th>{isSoutien ? t.so.colCurrent : p.colMonth}</th><th>{p.colDue}</th><th>{t.common.paid}</th><th>{p.colBehind}</th><th /></tr></thead>
-          <tbody>{monthly.map((row) => <tr key={row.enrollment.id} onClick={() => row.student && openStudent(row.student.id)}>
+          <tbody>{moreMonthly.visible.map((row) => <tr key={row.enrollment.id} onClick={() => row.student && openStudent(row.student.id)}>
             <td><strong>{row.student?.full_name ?? "—"}</strong><span className="cell-sub">{[row.student?.level, row.student?.parent_phone ?? row.student?.phone].filter(Boolean).join(" · ")}</span></td>
             <td>{courseName(row.enrollment.course_id)}</td>
             <td><strong>{money(row.fee)}</strong></td>
@@ -168,11 +175,12 @@ export function Payments({ openStudent }: { openStudent: (id: number) => void })
             <td onClick={stop}>{row.behind > 0 && <Button variant="soft" onClick={() => setRecording({ enrollmentId: row.enrollment.id })}>{p.collect}</Button>}</td>
           </tr>)}</tbody>
         </table></div>
+        {moreMonthly.button}
       </> : <EmptyState title={search ? p.emptySearch : p.emptyMonthly} text={search ? "" : p.emptyMonthlyText} />
       : tab === "teachers" ? payRows.length ? <>
         <div className="table-scroll"><table>
           <thead><tr><th>{t.common.teacher}</th><th>{p.colGroups}</th><th>{p.colHours}</th><th>{p.colRate}</th><th>{p.colPay}</th></tr></thead>
-          <tbody>{payRows.map((row) => <tr key={row.teacher.id}>
+          <tbody>{morePay.visible.map((row) => <tr key={row.teacher.id}>
             <td><strong>{row.teacher.full_name}</strong><span className="cell-sub">{labelOf(t.v.contract, row.teacher.contract)}</span></td>
             <td>{row.groups.map((group) => group.name).join(", ")}</td>
             <td>{row.mode === "student" ? <>{t.common.students(row.students)}<span className="cell-sub">{t.groups.monthSessions} {t.groups.sessionsOf(row.held, row.planned)}</span></> : `${row.hours} h`}</td>
@@ -180,11 +188,12 @@ export function Payments({ openStudent }: { openStudent: (id: number) => void })
             <td><strong>{money(row.amount)}</strong></td>
           </tr>)}</tbody>
         </table></div>
+        {morePay.button}
         <p className="muted-copy table-note">{p.payHint}</p>
       </> : <EmptyState title={p.emptyTeachers} text={p.emptyTeachersText} />
-      : unpaid.length ? <div className="table-scroll"><table>
+      : unpaid.length ? <><div className="table-scroll"><table>
         <thead><tr><th>{t.common.student}</th><th>{t.common.course}</th><th>{t.common.total}</th><th>{t.common.paid}</th><th>{t.common.left}</th><th>{p.colLast}</th><th /></tr></thead>
-        <tbody>{unpaid.map((row) => <tr key={row.enrollment.id} onClick={() => row.student && openStudent(row.student.id)}>
+        <tbody>{moreUnpaid.visible.map((row) => <tr key={row.enrollment.id} onClick={() => row.student && openStudent(row.student.id)}>
           <td><strong>{row.student?.full_name ?? "—"}</strong><span className="cell-sub">{row.student?.phone}</span></td>
           <td>{courseName(row.enrollment.course_id)}</td>
           <td>{money(row.enrollment.total)}</td>
@@ -193,7 +202,7 @@ export function Payments({ openStudent }: { openStudent: (id: number) => void })
           <td>{row.last ? formatDate(row.last) : <Badge tone="danger">{p.noneYet}</Badge>}</td>
           <td onClick={stop}><Button variant="soft" onClick={() => setRecording({ enrollmentId: row.enrollment.id })}>{p.collect}</Button></td>
         </tr>)}</tbody>
-      </table></div> : <EmptyState title={search ? p.emptySearch : p.allPaid} text={search ? p.emptySearchText : p.allPaidText} />}
+      </table></div>{moreUnpaid.button}</> : <EmptyState title={search ? p.emptySearch : p.allPaid} text={search ? p.emptySearchText : p.allPaidText} />}
       <p className="form-hint table-note"><Icon name="lock" size={13} /> {isDirector ? p.hintDirector : p.hintOther}</p>
     </Panel>
     {recording && <PaymentForm enrollmentId={recording.enrollmentId} onClose={() => setRecording(null)} />}

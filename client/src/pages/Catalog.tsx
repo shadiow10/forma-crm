@@ -4,7 +4,7 @@ import type { AppCopy } from "../appCopy";
 import { useData } from "../data";
 import type { Course, PayMode, Teacher } from "../lib/queries";
 import { supabase } from "../lib/supabase";
-import { Drawer, FormModal } from "../appUI";
+import { Drawer, FormModal, useShowMore } from "../appUI";
 import { Badge, Button, EmptyState, Icon, PALETTE, PageHeader, Panel, clampPercent, downloadCSV, percent } from "../ui";
 import { timeRange } from "./Groups";
 import { levelOptions } from "./forms";
@@ -66,10 +66,11 @@ export function Courses() {
     && save(() => supabase.from("courses").delete().eq("id", course.id), c.deleted);
   const exportCatalogue = () => downloadCSV(c.csvFile, [c.csv, ...courses.map((course) => { const s = stats(course); return [course.name, t.v.months(monthsOf(course.duration)), course.price, s.active, s.groups]; })]);
 
+  const more = useShowMore(courses);
   return <>
     <PageHeader eyebrow={c.eyebrow} title={c.title} description={c.description} actionLabel={canEdit ? c.action : undefined} onAction={() => setEditing("new")}
       extra={<Button variant="outline" icon="download" onClick={exportCatalogue}>{t.common.export}</Button>} />
-    {courses.length ? <div className="class-cards">{courses.map((course) => {
+    {courses.length ? <><div className="class-cards">{more.visible.map((course) => {
       const s = stats(course);
       const fill = clampPercent(percent(s.filled, s.seats));
       return <div className="class-card" key={course.id}>
@@ -84,7 +85,7 @@ export function Courses() {
           <div className="capacity"><div><span>{c.seats}</span><strong>{s.seats ? `${s.filled}/${s.seats}` : c.noGroup}</strong></div><div className="capacity-track"><i style={{ width: `${fill}%`, background: course.color }} /></div></div>
         </div>
       </div>;
-    })}</div> : <Panel><EmptyState title={c.empty} text={c.emptyText} /></Panel>}
+    })}</div>{more.button}</> : <Panel><EmptyState title={c.empty} text={c.emptyText} /></Panel>}
     {editing && <CourseForm course={editing === "new" ? undefined : editing} onClose={() => setEditing(null)} />}
   </>;
 }
@@ -142,9 +143,11 @@ export function Teachers() {
   const [editing, setEditing] = useState<Teacher | "new" | null>(null);
   const [selected, setSelected] = useState<number | null>(null);
   const maxHours = Math.max(1, ...teachers.map((teacher) => weeklyHours(teacher.id, groups)));
+  const more = useShowMore(teachers);
+  const moreHours = useShowMore(teachers);
   return <>
     <PageHeader eyebrow={w.eyebrow} title={w.title} description={w.description} actionLabel={w.action} onAction={() => setEditing("new")} />
-    {teachers.length ? <div className="teacher-grid">{teachers.map((teacher) => {
+    {teachers.length ? <><div className="teacher-grid">{more.visible.map((teacher) => {
       const count = groups.filter((group) => group.teacher_id === teacher.id && group.status !== "Annulé").length;
       return <div className="teacher-card" key={teacher.id} onClick={() => setSelected(teacher.id)} tabIndex={0} onKeyDown={(event) => event.key === "Enter" && setSelected(teacher.id)}>
         <div className="teacher-top"><span className="teacher-avatar" style={{ background: `${teacher.color}22`, color: teacher.color }}>{teacher.full_name.split(" ").map((part) => part[0]).slice(0, 2).join("")}</span><Badge>{labelOf(t.v.contract, teacher.contract)}</Badge></div>
@@ -153,15 +156,15 @@ export function Teachers() {
         <div className="teacher-details"><span><Icon name="phone" size={14} />{teacher.phone || "—"}</span><span><Icon name="mail" size={14} />{teacher.email || "—"}</span></div>
         <div className="teacher-footer"><span>{w.groupsCount(count)}</span><strong>{payRate(teacher, money, t)}</strong></div>
       </div>;
-    })}</div> : <Panel><EmptyState title={w.empty} text={w.emptyText} /></Panel>}
-    {teachers.length > 0 && <Panel title={w.weekly}><div className="hours-grid">{teachers.map((teacher) => {
+    })}</div>{more.button}</> : <Panel><EmptyState title={w.empty} text={w.emptyText} /></Panel>}
+    {teachers.length > 0 && <Panel title={w.weekly}><div className="hours-grid">{moreHours.visible.map((teacher) => {
       const hours = weeklyHours(teacher.id, groups);
       return <div className="hours-row" key={teacher.id}>
         <span className="hours-name">{teacher.full_name}</span>
         <div className="hours-track"><i style={{ width: `${clampPercent(percent(hours, maxHours))}%`, background: teacher.color }} /></div>
         <strong>{Math.round(hours * 10) / 10} {w.hourShort}</strong>
       </div>;
-    })}</div></Panel>}
+    })}</div>{moreHours.button}</Panel>}
     {selected !== null && <TeacherDrawer teacherId={selected} onClose={() => setSelected(null)} onEdit={(teacher) => setEditing(teacher)} />}
     {editing && <TeacherForm teacher={editing === "new" ? undefined : editing} onClose={() => setEditing(null)} />}
   </>;

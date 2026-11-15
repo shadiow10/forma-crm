@@ -3,7 +3,7 @@ import { label as labelOf, useAppT } from "../appCopy";
 import { friendlyError, useData } from "../data";
 import type { EnrollmentStatus } from "../lib/queries";
 import { supabase } from "../lib/supabase";
-import { Drawer } from "../appUI";
+import { Drawer, ShowMore } from "../appUI";
 import { Badge, Button, EmptyState, Icon, formatDate, initials, statusTone } from "../ui";
 import { EnrollmentForm, PaymentForm, StudentForm } from "./forms";
 import { Receipt, usePrintReceipt } from "./Payments";
@@ -164,7 +164,7 @@ export function StudentDrawer({ studentId, onClose }: { studentId: number; onClo
 
     <div className="drawer-section profile-section">
       <div className="drawer-section-head"><div><h4>{f.enrollments}</h4><span className="section-caption">{f.enrollmentsCaption}</span></div><Button icon="plus" onClick={() => setForm("enroll")}>{t.dash.newEnrollment}</Button></div>
-      {summary.enrollments.length ? <div className="registration-list">{[...summary.enrollments].reverse().map((enrollment) => {
+      {summary.enrollments.length ? <ShowMore items={[...summary.enrollments].reverse()}>{(list) => <div className="registration-list">{list.map((enrollment) => {
         const { paid, balance } = balanceOf(enrollment.id);
         const group = enrollment.group_id ? groupById.get(enrollment.group_id) : undefined;
         const rate = group ? attendanceRate(student.id, group.id) : null;
@@ -184,16 +184,16 @@ export function StudentDrawer({ studentId, onClose }: { studentId: number; onClo
           {enrollment.notes && <p className="muted-copy">{enrollment.notes}</p>}
           {balance > 0 && enrollment.status !== "Abandonné" && <Button variant="soft" icon="wallet" onClick={() => { setPayFor(enrollment.id); setForm("pay"); }}>{t.payments.collect}</Button>}
         </div>;
-      })}</div> : <EmptyState title={f.emptyEnrollments} text={f.emptyEnrollmentsText} />}
+      })}</div>}</ShowMore> : <EmptyState title={f.emptyEnrollments} text={f.emptyEnrollmentsText} />}
     </div>
 
     <div className="drawer-section profile-section">
       {/* Its own small button, apart from the profile's main actions: the newest payment's receipt. */}
       <div className="drawer-section-head"><h4>{f.payments}</h4>{studentPayments.length > 0 && <Button small variant="outline" icon="print" onClick={() => printReceipt([studentPayments[0].id])}>{f.printLastReceipt}</Button>}</div>
-      {studentPayments.length ? <div className="document-list">{studentPayments.map((payment) => <div className="document-row" key={payment.id}>
+      {studentPayments.length ? <ShowMore items={studentPayments}>{(list) => <div className="document-list">{list.map((payment) => <div className="document-row" key={payment.id}>
         <span className="document-icon"><Icon name="wallet" size={16} /></span>
         <div><strong>{money(payment.amount)}</strong><span>{formatDate(payment.paid_on)} · {labelOf(t.v.method, payment.method)} · {courseName(summary.enrollments.find((enrollment) => enrollment.id === payment.enrollment_id)!.course_id)}</span></div>
-      </div>)}</div> : <EmptyState title={f.emptyPayments} text={f.emptyPaymentsText} />}
+      </div>)}</div>}</ShowMore> : <EmptyState title={f.emptyPayments} text={f.emptyPaymentsText} />}
     </div>
 
     <div className="drawer-section profile-section">
@@ -203,20 +203,20 @@ export function StudentDrawer({ studentId, onClose }: { studentId: number; onClo
           <label className="button upload-button"><Icon name="upload" size={15} />{uploading ? f.uploading : t.common.add}<input type="file" accept=".pdf,.jpg,.jpeg,.png" disabled={uploading} onChange={(event) => { void upload(event.target.files?.[0]); event.target.value = ""; }} /></label>
         </div>
       </div>
-      {documents.length ? <div className="document-list">{documents.map((doc) => <div className="document-row" key={doc.id}>
+      {documents.length ? <ShowMore items={documents}>{(list) => <div className="document-list">{list.map((doc) => <div className="document-row" key={doc.id}>
         <span className="document-icon"><Icon name="file" size={16} /></span>
         <div><strong>{labelOf(t.v.docType, doc.type)}</strong><span>{doc.file_path.split("/").pop()?.replace(/^\d+-/, "")}{f.addedOn(formatDate(doc.created_at))}</span></div>
         <button className="badge-button" onClick={() => setDocStatus(doc)} title={f.changeStatus}><Badge tone={doc.status === "Validé" ? "success" : "warning"}>{labelOf(t.v.status, doc.status)}</Badge></button>
         <button className="text-button" onClick={() => openDocument(doc)}>{f.view}</button>
         <button className="row-menu" onClick={() => deleteDocument(doc)} aria-label={t.common.del}><Icon name="trash" size={15} /></button>
-      </div>)}</div> : <EmptyState title={f.emptyDocuments} text={f.emptyDocumentsText} />}
+      </div>)}</div>}</ShowMore> : <EmptyState title={f.emptyDocuments} text={f.emptyDocumentsText} />}
     </div>
 
     <div className="drawer-section">
       <h4>{f.notes}</h4>
       <textarea className="field textarea" value={note} onChange={(event) => setNote(event.target.value)} placeholder={f.notePlaceholder} />
       <div className="drawer-note-footer"><span>{f.noteVisible}</span><Button icon="check" disabled={!note.trim()} onClick={addNote}>{f.addNote}</Button></div>
-      {notes.map((item) => <div className="note-row" key={item.id}><span>{formatDate(item.created_at)}</span><p>{item.body}</p></div>)}
+      <ShowMore items={notes}>{(list) => list.map((item) => <div className="note-row" key={item.id}><span>{formatDate(item.created_at)}</span><p>{item.body}</p></div>)}</ShowMore>
     </div>
 
   </Drawer>

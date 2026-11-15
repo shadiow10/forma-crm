@@ -11,6 +11,24 @@ const optionLabel = (option: Option) => (typeof option === "string" ? option : o
 
 export type Question = { title: string; text?: string; confirmLabel?: string; danger?: boolean };
 
+// Long lists show 15 items, then 15 more per click on "Afficher plus". Only what is drawn is
+// limited: the data is already loaded, so search and filters still look through everything.
+const PAGE = 15;
+export function useShowMore<T>(items: T[]) {
+  const t = useAppT();
+  const [limit, setLimit] = useState(PAGE);
+  const left = items.length - limit;
+  return {
+    visible: left > 0 ? items.slice(0, limit) : items,
+    button: left > 0 ? <div className="show-more"><Button variant="outline" icon="plus" onClick={() => setLimit((count) => count + PAGE)}>{t.common.showMore(left)}</Button></div> : null,
+  };
+}
+// The same, where a hook can't be placed (a list drawn after an early return): the list, then its button.
+export function ShowMore<T>({ items, children }: { items: T[]; children: (visible: T[]) => ReactNode }) {
+  const more = useShowMore(items);
+  return <>{children(more.visible)}{more.button}</>;
+}
+
 export function ConfirmDialog({ question, onAnswer }: { question: Question; onAnswer: (yes: boolean) => void }) {
   const t = useAppT();
   return <div className="drawer-layer confirm-layer" onClick={() => onAnswer(false)}>

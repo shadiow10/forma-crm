@@ -1,6 +1,7 @@
 import { useRef, useState } from "react";
 import { label as labelOf, useAppT } from "../appCopy";
 import { useData } from "../data";
+import { useShowMore } from "../appUI";
 import { readSheet, studentsFromSheet } from "../lib/sheet";
 import { supabase } from "../lib/supabase";
 import { Badge, Button, COLORS, Icon, MetricCard, PageHeader, Panel, clampPercent, downloadCSV, formatDate, initialsBadge, statusTone } from "../ui";
@@ -46,6 +47,7 @@ export function Students({ openStudent }: { openStudent: (id: number) => void })
     && (status === "Tous" || summary.status === status)
     && (course === "Toutes" || summary.enrollments.some((enrollment) => String(enrollment.course_id) === course))
     && (!level || student.level === level));
+  const more = useShowMore(filtered);
   const exportList = () => downloadCSV("etudiants.csv", [
     s.csv,
     ...filtered.map(({ student, summary }) => [student.full_name, student.phone, student.email, labelOf(t.v.status, summary.status), courseName(summary.latest?.course_id), summary.attendance === null ? "" : `${summary.attendance}%`, summary.paid, summary.balance]),
@@ -82,7 +84,7 @@ export function Students({ openStudent }: { openStudent: (id: number) => void })
       </div>
       <div className="table-scroll"><table>
         <thead><tr><th>{t.common.student}</th><th>{t.common.status}</th><th>{t.common.course}</th><th>{s.colAttendance}</th><th>{s.colPayment}</th><th>{t.common.left}</th><th>{t.common.teacher}</th></tr></thead>
-        <tbody>{filtered.map(({ student, summary }) => {
+        <tbody>{more.visible.map(({ student, summary }) => {
           const low = summary.attendance !== null && summary.attendance < 75;
           return <tr key={student.id} onClick={() => openStudent(student.id)} tabIndex={0} onKeyDown={(event) => event.key === "Enter" && openStudent(student.id)}>
             <td><div className="person-cell">{initialsBadge(student.full_name)}<div><strong>{student.full_name}</strong><span>{[student.level, student.phone, student.email].filter(Boolean).join(" · ")}</span></div></div></td>
@@ -95,8 +97,9 @@ export function Students({ openStudent }: { openStudent: (id: number) => void })
           </tr>;
         })}</tbody>
       </table></div>
+      {more.button}
       {!filtered.length && <p className="table-empty">{students.length ? s.emptyFiltered : s.empty}</p>}
-      <div className="table-footer"><span>{s.shown(filtered.length)}</span></div>
+      <div className="table-footer"><span>{s.shown(more.visible.length, filtered.length)}</span></div>
     </Panel>
     {creating && <StudentForm onClose={() => setCreating(false)} onSaved={openStudent} />}
   </>;
@@ -112,6 +115,7 @@ export function Enrollments({ openStudent }: { openStudent: (id: number) => void
   const courseName = (id: number) => courses.find((course) => course.id === id)?.name ?? "—";
   const rows = [...enrollments].reverse().map((enrollment) => ({ enrollment, student: studentById.get(enrollment.student_id), ...balanceOf(enrollment.id) }));
   const filtered = rows.filter(({ enrollment, student }) => matches(query, student?.full_name, courseName(enrollment.course_id)) && (status === "Tous" || enrollment.status === status));
+  const more = useShowMore(filtered);
   const active = enrollments.filter((enrollment) => enrollment.status === "Inscrit" || enrollment.status === "En cours");
 
   return <>
@@ -128,7 +132,7 @@ export function Enrollments({ openStudent }: { openStudent: (id: number) => void
     </div>}>
       <div className="table-scroll"><table>
         <thead><tr><th>{t.common.student}</th><th>{t.common.course}</th><th>{t.common.group}</th><th>{t.common.status}</th><th>{t.common.date}</th><th>{t.common.total}</th><th>{t.common.left}</th></tr></thead>
-        <tbody>{filtered.map(({ enrollment, student, balance }) => <tr key={enrollment.id} onClick={() => openStudent(enrollment.student_id)} tabIndex={0} onKeyDown={(event) => event.key === "Enter" && openStudent(enrollment.student_id)}>
+        <tbody>{more.visible.map(({ enrollment, student, balance }) => <tr key={enrollment.id} onClick={() => openStudent(enrollment.student_id)} tabIndex={0} onKeyDown={(event) => event.key === "Enter" && openStudent(enrollment.student_id)}>
           <td><div className="person-cell">{initialsBadge(student?.full_name ?? "?")}<div><strong>{student?.full_name ?? "—"}</strong><span>{student?.phone}</span></div></div></td>
           <td>{courseName(enrollment.course_id)}</td>
           <td>{enrollment.group_id ? groupById.get(enrollment.group_id)?.name : t.common.noGroup}</td>
@@ -138,8 +142,9 @@ export function Enrollments({ openStudent }: { openStudent: (id: number) => void
           <td className={balance ? "money-danger" : "money-ok"}>{money(balance)}</td>
         </tr>)}</tbody>
       </table></div>
+      {more.button}
       {!filtered.length && <p className="table-empty">{e.empty}</p>}
-      <div className="table-footer"><span>{e.shown(filtered.length)}</span></div>
+      <div className="table-footer"><span>{e.shown(more.visible.length, filtered.length)}</span></div>
     </Panel>
     {creating && <EnrollmentForm onClose={() => setCreating(false)} />}
   </>;

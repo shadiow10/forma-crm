@@ -4,7 +4,7 @@ import { useData } from "../data";
 import type { Room } from "../lib/queries";
 import { groupInRoomAt, sameRoom, weeklyRoomHours } from "../lib/rooms";
 import { supabase } from "../lib/supabase";
-import { FormModal } from "../appUI";
+import { FormModal, useShowMore } from "../appUI";
 import { Badge, COLORS, DAYS, EmptyState, Icon, MetricCard, PageHeader, Panel } from "../ui";
 import { timeRange } from "./Groups";
 
@@ -26,6 +26,7 @@ export function Rooms({ openGroup }: { openGroup: (id: number) => void }) {
   const remove = async (room: Room) => await ask({ title: r.deleteTitle(room.name), danger: true, confirmLabel: t.common.del, text: r.deleteText })
     && save(() => supabase.from("rooms").delete().eq("id", room.id), r.deleted);
 
+  const more = useShowMore(rooms);
   return <>
     <PageHeader eyebrow={r.eyebrow} title={r.title} description={r.description} actionLabel={isDirector ? r.action : undefined} onAction={() => setEditing("new")} />
     {rooms.length > 0 && <div className="metrics-grid metrics-grid-4 rooms-metrics">
@@ -33,7 +34,7 @@ export function Rooms({ openGroup }: { openGroup: (id: number) => void }) {
       <MetricCard label={r.busyNow} value={String(busyCount)} note={r.busyNowNote} icon="users" accent={COLORS.yellow} />
       <MetricCard label={r.freeNow} value={String(rooms.length - busyCount)} note={r.freeNowNote} icon="checkCircle" accent={COLORS.green} />
     </div>}
-    {rooms.length ? <div className="class-cards">{rooms.map((room) => {
+    {rooms.length ? <><div className="class-cards">{more.visible.map((room) => {
       const current = busy.get(room.id);
       const inRoom = groups.filter((group) => group.status !== "Annulé" && sameRoom(group.room, room.name))
         .sort((a, b) => DAYS.indexOf(a.days[0] ?? "") - DAYS.indexOf(b.days[0] ?? "") || (a.start_time ?? "").localeCompare(b.start_time ?? ""));
@@ -57,7 +58,7 @@ export function Rooms({ openGroup }: { openGroup: (id: number) => void }) {
           </div>
         </div>
       </div>;
-    })}</div> : <Panel><EmptyState title={r.empty} text={r.emptyText} /></Panel>}
+    })}</div>{more.button}</> : <Panel><EmptyState title={r.empty} text={r.emptyText} /></Panel>}
     {editing && <RoomForm room={editing === "new" ? undefined : editing} onClose={() => setEditing(null)} />}
   </>;
 }

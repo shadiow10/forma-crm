@@ -6,7 +6,7 @@ import { locale } from "../lang";
 import type { Group } from "../lib/queries";
 import { plannedSessions } from "../lib/finance";
 import { supabase } from "../lib/supabase";
-import { Drawer } from "../appUI";
+import { Drawer, useShowMore } from "../appUI";
 import { Badge, Button, COLORS, DAYS, EmptyState, Icon, MetricCard, PageHeader, Panel, clampPercent, formatTime, initialsBadge, percent, statusTone, todayISO } from "../ui";
 import { GroupForm } from "./forms";
 
@@ -42,6 +42,7 @@ export function Groups({ openGroup }: { openGroup: (id: number) => void }) {
   for (const session of groupSessions) if (session.session_date.startsWith(month)) heldThisMonth.set(session.group_id, (heldThisMonth.get(session.group_id) ?? 0) + 1);
   const statuses = groups.map((group) => groupStatus(group, groupStudentIds(group.id).length));
   const tally = (status: string) => statuses.filter((item) => item === status).length;
+  const more = useShowMore(groups);
   return <>
     <PageHeader eyebrow={g.eyebrow} title={g.title} description={canEdit ? g.description : g.descriptionTeacher} actionLabel={canEdit ? g.action : undefined} onAction={() => setCreating(true)} />
     {groups.length > 0 && <div className="metrics-grid metrics-grid-4">
@@ -50,7 +51,7 @@ export function Groups({ openGroup }: { openGroup: (id: number) => void }) {
       <MetricCard label={g.countFull} value={String(tally("Complet"))} note={g.countFullNote} icon="warning" accent={COLORS.yellow} />
       <MetricCard label={g.countClosed} value={String(tally("Annulé"))} note={g.countClosedNote} icon="lock" accent={COLORS.red} />
     </div>}
-    {groups.length ? <div className="class-cards">{groups.map((group) => {
+    {groups.length ? <><div className="class-cards">{more.visible.map((group) => {
       const count = groupStudentIds(group.id).length;
       const status = groupStatus(group, count);
       const planned = plannedSessions(group, courses.find((course) => course.id === group.course_id), school.sessions_per_month, month);
@@ -66,7 +67,7 @@ export function Groups({ openGroup }: { openGroup: (id: number) => void }) {
           {status !== "Annulé" && planned > 0 && <div className="capacity month-sessions"><div><span>{g.monthSessions}</span><strong>{g.sessionsOf(held, planned)}</strong></div><div className="capacity-track"><i style={{ width: `${clampPercent(percent(held, planned))}%`, background: held >= planned ? COLORS.green : COLORS.teal }} /></div></div>}
         </div>
       </div>;
-    })}</div> : <Panel><EmptyState title={g.empty} text={canEdit ? g.emptyText : g.emptyTextTeacher} /></Panel>}
+    })}</div>{more.button}</> : <Panel><EmptyState title={g.empty} text={canEdit ? g.emptyText : g.emptyTextTeacher} /></Panel>}
     {creating && <GroupForm onClose={() => setCreating(false)} />}
   </>;
 }
@@ -77,6 +78,7 @@ export function GroupDrawer({ groupId, onClose, goTo }: { groupId: number; onClo
   const { groupById, teachers, courses, students, enrollments, groupStudentIds, attendanceRate, canEdit, isDirector, school, save, ask } = useData();
   const group = groupById.get(groupId);
   const roster = useRoster(groupId);
+  const moreRoster = useShowMore(roster);
   const [editing, setEditing] = useState(false);
   const [adding, setAdding] = useState("");
   if (!group) return null;
@@ -137,7 +139,7 @@ export function GroupDrawer({ groupId, onClose, goTo }: { groupId: number; onClo
     </div>
     <div className="drawer-section">
       <div className="drawer-section-head"><h4>{t.nav.students}</h4><span>{g.seats(roster.length, group.capacity)}</span></div>
-      {roster.length ? <div className="roster-list">{roster.map((student) => {
+      {roster.length ? <><div className="roster-list">{moreRoster.visible.map((student) => {
         const rate = attendanceRate(student.id, group.id);
         return <div className="roster-row" key={student.id}>
           {initialsBadge(student.full_name)}
@@ -145,7 +147,7 @@ export function GroupDrawer({ groupId, onClose, goTo }: { groupId: number; onClo
           {rate !== null && <Badge tone={rate < 75 ? "danger" : "success"}>{rate < 75 ? g.watch : g.regular}</Badge>}
           {canEdit && <button className="row-menu" onClick={() => removeStudent(student.id, student.full_name)} aria-label={`${t.common.remove} ${student.full_name}`}><Icon name="close" size={14} /></button>}
         </div>;
-      })}</div> : <EmptyState title={g.emptyRoster} text={g.emptyRosterText} />}
+      })}</div>{moreRoster.button}</> : <EmptyState title={g.emptyRoster} text={g.emptyRosterText} />}
       {/* A full or cancelled group takes no one else (the database refuses it too, 0029). */}
       {canEdit && status === "Complet" && <p className="muted-copy">{t.errors.groupFull}</p>}
       {canEdit && status === "Ouvert" && candidates.length > 0 && <div className="inline-add">

@@ -14,7 +14,7 @@ import type { MemberRow } from "../lib/queries";
 import { fetchAll } from "../lib/queries";
 import { toCSV, zipFiles } from "../lib/zip";
 import { supabase } from "../lib/supabase";
-import { FormModal } from "../appUI";
+import { FormModal, ShowMore } from "../appUI";
 import { Badge, Button, COLORS, EmptyState, Icon, PageHeader, Panel, formatDate, initialsBadge, setTheme, todayISO, useTheme, variants } from "../ui";
 import type { IconName } from "../ui";
 import { BUCKET, shrinkImage, useSignedUrl } from "./StudentCard";
@@ -41,12 +41,12 @@ export function Certificates() {
     <div className="document-layout">
       <Panel>
         <div className="eligibility-banner"><span className="metric-icon" style={{ color: COLORS.teal, background: COLORS.tealLight }}><Icon name="checkCircle" size={17} /></span><div><strong>{c.available(eligible.length)}</strong><span>{c.rule}</span></div></div>
-        {eligible.length ? <div className="certificate-list">{eligible.map((enrollment) => {
+        {eligible.length ? <ShowMore items={eligible}>{(list) => <div className="certificate-list">{list.map((enrollment) => {
           const name = studentById.get(enrollment.student_id)?.full_name ?? "—";
           return <div className={`certificate-row ${enrollment.id === selectedId ? "selected" : ""}`} key={enrollment.id} onClick={() => setSelectedId(enrollment.id)}>
             {initialsBadge(name)}<div><strong>{name}</strong><span>{courses.find((item) => item.id === enrollment.course_id)?.name}</span></div><Badge tone="success">{c.eligible}</Badge>
           </div>;
-        })}</div> : <EmptyState title={c.empty} text={c.emptyText} />}
+        })}</div>}</ShowMore> : <EmptyState title={c.empty} text={c.emptyText} />}
       </Panel>
       <div className="certificate-preview">
         <div className="preview-toolbar"><div><span>{c.preview}</span><strong>{c.previewTitle}</strong></div>{selected && <Button variant="outline" icon="print" onClick={() => window.print()}>{t.common.print}</Button>}</div>
@@ -391,7 +391,7 @@ function UserSettings({ userId }: { userId: string }) {
     && save(() => supabase.from("school_members").delete().eq("school_id", school.id).eq("user_id", member.user_id), s.removed);
 
   return <Panel title={s.users} action={<Button icon="plus" onClick={() => setInviting(true)}>{s.invite}</Button>}>
-    {members.length ? <div className="user-list">{members.map((member) => {
+    {members.length ? <ShowMore items={members}>{(list) => <div className="user-list">{list.map((member) => {
       const teacher = teachers.find((item) => item.id === member.teacher_id);
       const isMe = member.user_id === userId;
       return <div className="user-row" key={member.user_id}>
@@ -400,7 +400,7 @@ function UserSettings({ userId }: { userId: string }) {
         <Badge tone="info">{t.roles[member.role]}</Badge>
         {!isMe && <span className="card-actions"><button className="row-menu" aria-label={t.common.edit} onClick={() => setEditing(member)}><Icon name="edit" size={15} /></button><button className="row-menu" aria-label={t.common.remove} onClick={() => remove(member)}><Icon name="trash" size={15} /></button></span>}
       </div>;
-    })}</div> : <EmptyState title={s.emptyUsers} text={s.emptyUsersText} />}
+    })}</div>}</ShowMore> : <EmptyState title={s.emptyUsers} text={s.emptyUsersText} />}
     <p className="form-hint"><Icon name="mail" size={13} /> {s.inviteHint}</p>
 
     {inviting && <FormModal title={s.inviteTitle} subtitle={s.users} submitLabel={s.inviteSubmit} onClose={() => setInviting(false)}
@@ -501,11 +501,11 @@ function ActivityLog() {
   const time = (at: string) => new Date(at).toLocaleString(locale(), { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
 
   return <Panel title={s.log} action={<select className="select" aria-label={s.logKind} value={kind} onChange={(event) => setKind(event.target.value)}>{LOG_KINDS.map((value) => <option key={value} value={value}>{s.logKinds[value]}</option>)}</select>}>
-    {!rows ? <p className="muted-copy">{t.common.loading}</p> : rows.length ? <div className="activity-log">{rows.map((row) => <div className="activity-log-row" key={row.id}>
+    {!rows ? <p className="muted-copy">{t.common.loading}</p> : rows.length ? <ShowMore items={rows}>{(list) => <div className="activity-log">{list.map((row) => <div className="activity-log-row" key={row.id}>
       <span className="activity-icon" style={{ background: row.action === "DELETE" ? "var(--bad-bg)" : COLORS.tealLight, color: row.action === "DELETE" ? COLORS.red : COLORS.teal }}><Icon name={LOG_ICONS[row.table_name] ?? "file"} size={14} /></span>
       <p><strong>{row.actor_name || (row.actor ? s.someone : s.system)}</strong> {describe(row)}</p>
       <time dateTime={row.at}>{time(row.at)}</time>
-    </div>)}</div> : <EmptyState title={s.emptyLog} text={s.emptyLogText} />}
+    </div>)}</div>}</ShowMore> : <EmptyState title={s.emptyLog} text={s.emptyLogText} />}
     <p className="form-hint"><Icon name="lock" size={13} /> {s.logHint}</p>
   </Panel>;
 }

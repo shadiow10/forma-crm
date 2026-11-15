@@ -32,7 +32,7 @@ const fr = {
   },
   common: {
     search: "Rechercher…", export: "Exporter", cancel: "Annuler", save: "Enregistrer", saving: "Enregistrement…",
-    add: "Ajouter", edit: "Modifier", remove: "Retirer", del: "Supprimer", close: "Fermer", confirm: "Confirmer",
+    add: "Ajouter", edit: "Modifier", remove: "Retirer", del: "Supprimer", close: "Fermer", confirm: "Confirmer", showMore: (left: number) => `Afficher plus (${left} restant${left > 1 ? "s" : ""})`,
     all: "Tous", allF: "Toutes", loading: "Chargement…", required: "Requis", form: "Formulaire",
     numberMin: (min: number) => `Nombre ≥ ${min}`, invalidEmail: "Email invalide",
     detail: "FICHE DÉTAILLÉE", signOut: "Se déconnecter", openMenu: "Ouvrir le menu", closeMenu: "Fermer le menu",
@@ -99,7 +99,7 @@ const fr = {
     colAttendance: "Présence", colPayment: "Paiement", toAssign: "À affecter",
     emptyFiltered: "Aucun étudiant ne correspond à ces filtres.",
     empty: "Aucun étudiant pour l'instant. Cliquez sur « Nouvel étudiant ».",
-    shown: (n: number) => `${n} étudiant${n > 1 ? "s" : ""} affiché${n > 1 ? "s" : ""}`,
+    shown: (shown: number, n: number) => shown < n ? `${shown} affichés sur ${n} étudiants` : `${n} étudiant${n > 1 ? "s" : ""} affiché${n > 1 ? "s" : ""}`,
     csv: ["Nom", "Téléphone", "Email", "Statut", "Formation", "Présence", "Payé", "Reste"],
   },
   enrollments: {
@@ -112,7 +112,7 @@ const fr = {
     balance: "Solde restant", balanceNote: "sur les inscriptions actives",
     panel: "Dossiers d'inscription",
     empty: "Aucune inscription à afficher.",
-    shown: (n: number) => `${n} inscription${n > 1 ? "s" : ""} affichée${n > 1 ? "s" : ""}`,
+    shown: (shown: number, n: number) => shown < n ? `${shown} affichées sur ${n} inscriptions` : `${n} inscription${n > 1 ? "s" : ""} affichée${n > 1 ? "s" : ""}`,
   },
   courses: {
     eyebrow: "Catalogue pédagogique", title: "Formations",
@@ -470,7 +470,7 @@ const en: AppCopy = {
   },
   common: {
     search: "Search…", export: "Export", cancel: "Cancel", save: "Save", saving: "Saving…",
-    add: "Add", edit: "Edit", remove: "Remove", del: "Delete", close: "Close", confirm: "Confirm",
+    add: "Add", edit: "Edit", remove: "Remove", del: "Delete", close: "Close", confirm: "Confirm", showMore: (left: number) => `Show more (${left} left)`,
     all: "All", allF: "All", loading: "Loading…", required: "Required", form: "Form",
     numberMin: (min: number) => `Number ≥ ${min}`, invalidEmail: "Invalid email",
     detail: "RECORD", signOut: "Sign out", openMenu: "Open the menu", closeMenu: "Close the menu",
@@ -537,7 +537,7 @@ const en: AppCopy = {
     colAttendance: "Attendance", colPayment: "Payment", toAssign: "To assign",
     emptyFiltered: "No student matches these filters.",
     empty: "No student yet. Click “New student”.",
-    shown: (n: number) => `${n} student${n > 1 ? "s" : ""} shown`,
+    shown: (shown: number, n: number) => shown < n ? `${shown} shown of ${n} students` : `${n} student${n > 1 ? "s" : ""} shown`,
     csv: ["Name", "Phone", "Email", "Status", "Course", "Attendance", "Paid", "Left"],
   },
   enrollments: {
@@ -550,7 +550,7 @@ const en: AppCopy = {
     balance: "Outstanding balance", balanceNote: "on active enrolments",
     panel: "Enrolment records",
     empty: "No enrolment to show.",
-    shown: (n: number) => `${n} enrolment${n > 1 ? "s" : ""} shown`,
+    shown: (shown: number, n: number) => shown < n ? `${shown} shown of ${n} enrolments` : `${n} enrolment${n > 1 ? "s" : ""} shown`,
   },
   courses: {
     eyebrow: "Course catalogue", title: "Courses",
@@ -902,7 +902,7 @@ const ar: AppCopy = {
   },
   common: {
     search: "بحث…", export: "تصدير", cancel: "إلغاء", save: "حفظ", saving: "جارٍ الحفظ…",
-    add: "إضافة", edit: "تعديل", remove: "إزالة", del: "حذف", close: "إغلاق", confirm: "تأكيد",
+    add: "إضافة", edit: "تعديل", remove: "إزالة", del: "حذف", close: "إغلاق", confirm: "تأكيد", showMore: (left: number) => `عرض المزيد (${left} متبقٍ)`,
     all: "الكل", allF: "الكل", loading: "جارٍ التحميل…", required: "مطلوب", form: "استمارة",
     numberMin: (min: number) => `رقم ≥ ${min}`, invalidEmail: "بريد إلكتروني غير صالح",
     detail: "بطاقة مفصّلة", signOut: "تسجيل الخروج", openMenu: "فتح القائمة", closeMenu: "إغلاق القائمة",
@@ -969,7 +969,7 @@ const ar: AppCopy = {
     colAttendance: "الحضور", colPayment: "الدفع", toAssign: "غير محدّد",
     emptyFiltered: "لا طالب يطابق هذه المرشّحات.",
     empty: "لا طلبة بعد. اضغط « طالب جديد ».",
-    shown: (n: number) => `${n} طالب معروض`,
+    shown: (shown: number, n: number) => shown < n ? `${shown} معروض من ${n} طالب` : `${n} طالب معروض`,
     csv: ["الاسم", "الهاتف", "البريد", "الحالة", "التكوين", "الحضور", "المدفوع", "المتبقّي"],
   },
   enrollments: {
@@ -982,7 +982,7 @@ const ar: AppCopy = {
     balance: "الرصيد المتبقّي", balanceNote: "على التسجيلات النشطة",
     panel: "ملفات التسجيل",
     empty: "لا تسجيلات للعرض.",
-    shown: (n: number) => `${n} تسجيل معروض`,
+    shown: (shown: number, n: number) => shown < n ? `${shown} معروض من ${n} تسجيل` : `${n} تسجيل معروض`,
   },
   courses: {
     eyebrow: "الدليل البيداغوجي", title: "التكوينات",
