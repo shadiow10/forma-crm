@@ -7,6 +7,7 @@ import { Drawer } from "../appUI";
 import { Badge, Button, EmptyState, Icon, formatDate, initials, statusTone } from "../ui";
 import { EnrollmentForm, PaymentForm, StudentForm } from "./forms";
 import { Receipt, usePrintReceipt } from "./Payments";
+import { StudentCardDialog, shrinkImage, useSignedUrl } from "./StudentCard";
 
 type DocumentRow = { id: number; type: string; file_path: string; status: "Validé" | "À vérifier"; created_at: string };
 type NoteRow = { id: number; body: string; created_at: string };
@@ -43,6 +44,9 @@ export function StudentDrawer({ studentId, onClose }: { studentId: number; onClo
   const [docType, setDocType] = useState(DOCUMENT_TYPES[0]);
   const [uploading, setUploading] = useState(false);
   const [receipt, printReceipt] = usePrintReceipt();
+  const [card, setCard] = useState(false);
+  const closeCard = useCallback(() => setCard(false), []);
+  const photo = useSignedUrl(studentById.get(studentId)?.photo_path);
 
   const loadExtras = useCallback(async () => {
     const [docs, notesResult] = await Promise.all([
@@ -104,10 +108,23 @@ export function StudentDrawer({ studentId, onClose }: { studentId: number; onClo
     notify(f.noteAdded);
     void loadExtras();
   };
+  // The photo is a new file each time (the bucket has no "replace" right); the old one is removed after.
+  const uploadPhoto = async (file: File | undefined) => {
+    if (!file || blocked()) return;
+    if (!["image/jpeg", "image/png"].includes(file.type) || !(await looksLikeItsType(file))) return notify(f.photoBad);
+    setUploading(true);
+    const path = `${school.id}/${student.id}/photo-${Date.now()}.jpg`;
+    const stored = await supabase.storage.from(BUCKET).upload(path, await shrinkImage(file, 600, "image/jpeg"), { contentType: "image/jpeg" });
+    if (stored.error) { setUploading(false); return notify(f.uploadFailed(stored.error.message)); }
+    const old = student.photo_path;
+    const ok = await save(() => supabase.from("students").update({ photo_path: path }).eq("id", student.id), f.photoSaved);
+    await supabase.storage.from(BUCKET).remove([ok ? old : path].filter((item): item is string => Boolean(item)));
+    setUploading(false);
+  };
   const deleteStudent = async () => {
     const sure = await ask({ title: f.deleteTitle(student.full_name), danger: true, confirmLabel: f.deleteConfirm, text: f.deleteText });
     if (!sure) return;
-    const paths = documents.map((doc) => doc.file_path);
+    const paths = [...documents.map((doc) => doc.file_path), ...(student.photo_path ? [student.photo_path] : [])];
     if (await save(() => supabase.from("students").delete().eq("id", student.id), f.deleted(student.full_name))) {
       if (paths.length) await supabase.storage.from(BUCKET).remove(paths);
       onClose();
@@ -117,9 +134,13 @@ export function StudentDrawer({ studentId, onClose }: { studentId: number; onClo
   return <>
     <Drawer title={student.full_name} eyebrow={f.drawer} onClose={onClose}>
     <div className="profile-hero">
-      <span className="profile-avatar large">{initials(student.full_name)}</span>
+      <label className={`profile-avatar large profile-photo ${uploading ? "busy" : ""}`} title={student.photo_path ? f.photoChange : f.photoAdd}>
+        {photo ? <img src={photo} alt={student.full_name} /> : initials(student.full_name)}
+        <input type="file" hidden accept="image/jpeg,image/png" aria-label={student.photo_path ? f.photoChange : f.photoAdd} disabled={uploading} onChange={(event) => { void uploadPhoto(event.target.files?.[0]); event.target.value = ""; }} />
+        <i><Icon name="edit" size={12} /></i>
+      </label>
       <div><h2>{student.full_name}</h2><div className="profile-subline"><span>{student.phone}</span><Badge tone={statusTone(summary.status)} dot>{labelOf(t.v.status, summary.status)}</Badge></div></div>
-      <div className="action-stack"><Button variant="outline" icon="edit" onClick={() => setForm("edit")}>{t.common.edit}</Button>{isDirector && <Button variant="danger" icon="trash" onClick={deleteStudent}>{t.common.del}</Button>}</div>
+      <div className="action-stack"><Button variant="outline" icon="edit" onClick={() => setForm("edit")}>{t.common.edit}</Button><Button variant="soft" icon="print" onClick={() => setCard(true)}>{f.card}</Button>{isDirector && <Button variant="danger" icon="trash" onClick={deleteStudent}>{t.common.del}</Button>}</div>
     </div>
 
     <div className="profile-summary-grid">
@@ -203,5 +224,6 @@ export function StudentDrawer({ studentId, onClose }: { studentId: number; onClo
     {form === "enroll" && <EnrollmentForm studentId={student.id} onClose={() => setForm(null)} />}
     {form === "pay" && <PaymentForm enrollmentId={payFor} onClose={() => setForm(null)} />}
     {receipt && <Receipt paymentIds={receipt} />}
+    {card && <StudentCardDialog student={student} onClose={closeCard} />}
   </>;
 }

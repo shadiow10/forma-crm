@@ -86,7 +86,7 @@ export async function readSheet(file: File): Promise<string[][]> {
 
 // ---------------------------------------------------------------- Students from a sheet
 
-export type ImportedStudent = { full_name: string; phone: string; email: string | null; address: string | null; dob: string | null; level: string | null; parent_phone: string | null };
+export type ImportedStudent = { full_name: string; last_name: string | null; first_name: string | null; phone: string; email: string | null; address: string | null; dob: string | null; level: string | null; parent_phone: string | null };
 
 const normalize = (text: string) => text.toLowerCase().normalize("NFD").replace(/[^a-z0-9\u0621-\u064A]/g, "");
 const HEADERS = {
@@ -116,7 +116,8 @@ const toPhone = (value: string) => (/^[567]\d{8}$/.test(value) ? `0${value}` : v
 // "3 AS", "3as", "3ème AS" → "3AS"; anything that is not a school year is left out.
 const toLevel = (value: string) => { const match = value.toUpperCase().replace(/\s|ÈME|EME/g, "").match(/^([1-5])A([PMS])$/); return match ? `${match[1]}A${match[2]}` : null; };
 // Brothers and sisters share a parent's number: a duplicate is the same name on the same number.
-const personKey = (name: string, phone: string) => `${normalize(name)}|${phone.replace(/\D/g, "")}`;
+// Word order does not matter: "Karim Ouali" saved before is the same person as "OUALI Karim" today.
+const personKey = (name: string, phone: string) => `${name.split(/\s+/).map(normalize).filter(Boolean).sort().join(" ")}|${phone.replace(/\D/g, "")}`;
 
 // Maps the header row to columns. Without a recognisable header, the columns are read as name, phone, email.
 export function studentsFromSheet(rows: string[][], existing: { full_name: string; phone: string }[]) {
@@ -136,13 +137,16 @@ export function studentsFromSheet(rows: string[][], existing: { full_name: strin
   const students: ImportedStudent[] = [];
   let incomplete = 0, duplicates = 0;
   for (const row of hasHeader ? rows.slice(1) : rows) {
-    const full_name = (cell(row, "full") || [cell(row, "first"), cell(row, "last")].filter(Boolean).join(" ")).replace(/\s+/g, " ").trim();
+    // Separate columns keep the two names (0032); full_name is then "NOM Prénom", like the form.
+    const split = !cell(row, "full");
+    const last_name = split ? cell(row, "last").trim() || null : null, first_name = split ? cell(row, "first").trim() || null : null;
+    const full_name = (cell(row, "full") || [last_name, first_name].filter(Boolean).join(" ")).replace(/\s+/g, " ").trim();
     const parent_phone = toPhone(cell(row, "parent_phone")) || null;
     const phone = toPhone(cell(row, "phone")) || parent_phone || ""; // a pupil without a phone is reached through the parent
     if (!full_name || !phone) { incomplete++; continue; }
     if (seen.has(personKey(full_name, phone))) { duplicates++; continue; }
     seen.add(personKey(full_name, phone));
-    students.push({ full_name, phone, email: cell(row, "email") || null, address: cell(row, "address") || null, dob: toISODate(cell(row, "dob")), level: toLevel(cell(row, "level")), parent_phone });
+    students.push({ full_name, last_name, first_name, phone, email: cell(row, "email") || null, address: cell(row, "address") || null, dob: toISODate(cell(row, "dob")), level: toLevel(cell(row, "level")), parent_phone });
   }
   return { students, incomplete, duplicates };
 }

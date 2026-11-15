@@ -7,8 +7,8 @@ import { supabase } from "../lib/supabase";
 import { Badge, Button, DAYS, EmptyState, Icon, PageHeader, Panel, downloadCSV, formatDate, initialsBadge, todayISO } from "../ui";
 import { useRoster } from "./Groups";
 
-const CLASSES: Record<AttendanceStatus, string> = { P: "present", L: "late", A: "absent" };
-const SYMBOLS: Record<AttendanceStatus, string> = { P: "✓", L: "~", A: "×" };
+const CLASSES: Record<AttendanceStatus, string> = { P: "present", L: "late", A: "absent", E: "excused" };
+const SYMBOLS: Record<AttendanceStatus, string> = { P: "✓", L: "~", A: "×", E: "E" };
 
 export function Attendance({ initialGroupId }: { initialGroupId?: number }) {
   const t = useAppT();
@@ -63,7 +63,7 @@ export function Attendance({ initialGroupId }: { initialGroupId?: number }) {
   </>;
 
   const weekday = DAYS[new Date(`${date}T00:00:00`).getDay()];
-  const counts = { P: 0, L: 0, A: 0 } as Record<AttendanceStatus, number>;
+  const counts = { P: 0, L: 0, A: 0, E: 0 } as Record<AttendanceStatus, number>;
   for (const student of roster) if (marks[student.id]) counts[marks[student.id]] += 1;
   const unmarked = roster.filter((student) => !marks[student.id]);
 

@@ -16,7 +16,7 @@ export function Dashboard({ goTo, openStudent }: { goTo: (page: PageKey) => void
   const activeStudents = new Set(activeEnrollments.map((enrollment) => enrollment.student_id));
   const openGroups = groups.filter((group) => group.status !== "Annulé");
   const todayGroups = openGroups.filter((group) => group.days.includes(todayName)).sort((a, b) => (a.start_time ?? "").localeCompare(b.start_time ?? ""));
-  const sessions = attendanceStats.reduce((sum, stat) => sum + stat.sessions, 0);
+  const sessions = attendanceStats.reduce((sum, stat) => sum + stat.sessions - (stat.excused ?? 0), 0);
   const presentRate = sessions ? Math.round((attendanceStats.reduce((sum, stat) => sum + stat.present + stat.late, 0) / sessions) * 100) : null;
   const owing = activeEnrollments.filter((enrollment) => balanceOf(enrollment.id).balance > 0);
   const collectedThisMonth = payments.filter((payment) => payment.paid_on.startsWith(monthPrefix)).reduce((sum, payment) => sum + payment.amount, 0);

@@ -12,8 +12,9 @@ import { EXTRA_PACKS } from "../lib/plans";
 import type { MemberRow } from "../lib/queries";
 import { supabase } from "../lib/supabase";
 import { FormModal } from "../appUI";
-import { Badge, Button, COLORS, EmptyState, Icon, PageHeader, Panel, formatDate, initialsBadge, setTheme, todayISO, useTheme } from "../ui";
+import { Badge, Button, COLORS, EmptyState, Icon, PageHeader, Panel, formatDate, initialsBadge, setTheme, todayISO, useTheme, variants } from "../ui";
 import type { IconName } from "../ui";
+import { BUCKET, shrinkImage, useSignedUrl } from "./StudentCard";
 
 // ---------------------------------------------------------------- Certificates
 
@@ -115,7 +116,22 @@ function Preferences() {
 function SchoolSettings() {
   const t = useAppT();
   const s = t.settings;
-  const { school, save, subscription } = useData();
+  const { school, save, subscription, notify, blocked } = useData();
+  const logo = useSignedUrl(school.logo_path);
+  const [uploading, setUploading] = useState(false);
+  // <school>/0/logo-….png: a new file each time, the old one removed once the school points to the new one.
+  const uploadLogo = async (file: File | undefined) => {
+    if (!file || blocked()) return;
+    if (!["image/png", "image/jpeg"].includes(file.type)) return notify(s.logoBad);
+    setUploading(true);
+    const path = `${school.id}/0/logo-${Date.now()}.png`;
+    const stored = await supabase.storage.from(BUCKET).upload(path, await shrinkImage(file, 400, "image/png"), { contentType: "image/png" });
+    if (stored.error) { setUploading(false); return notify(s.logoBad); }
+    const old = school.logo_path;
+    const ok = await save(() => supabase.from("schools").update({ logo_path: path }).eq("id", school.id), s.logoSaved);
+    await supabase.storage.from(BUCKET).remove([ok ? old : path].filter((item): item is string => Boolean(item)));
+    setUploading(false);
+  };
   const [values, setValues] = useState({ name: school.name, phone: school.phone ?? "", email: school.email ?? "", address: school.address ?? "", currency: school.currency });
   const [busy, setBusy] = useState(false);
   const set = (key: keyof typeof values) => (event: { target: { value: string } }) => setValues({ ...values, [key]: event.target.value });
@@ -137,6 +153,12 @@ function SchoolSettings() {
         <label>{s.fEmail}<input className="field" type="email" value={values.email} onChange={set("email")} /></label>
         <label>{s.fAddress}<input className="field" value={values.address} onChange={set("address")} /></label>
         <label>{s.fCurrency}<select className="field" value={values.currency} onChange={set("currency")}>{Object.keys(t.v.currency).map((code) => <option key={code} value={code}>{t.v.currency[code]}</option>)}</select></label>
+      </div>
+      <div className="settings-logo">
+        <span className="settings-logo-box">{logo ? <img src={logo} alt={s.logo} /> : <Icon name="building" size={20} />}</span>
+        <div><strong>{s.logo}</strong><span className="form-hint">{s.logoHint}</span></div>
+        <label className="button small" style={{ ...variants.outline, cursor: "pointer", opacity: uploading ? 0.5 : 1 }}>{school.logo_path ? s.logoChange : s.logoAdd}
+          <input type="file" hidden accept="image/png,image/jpeg" disabled={uploading} onChange={(event) => { void uploadLogo(event.target.files?.[0]); event.target.value = ""; }} /></label>
       </div>
       <p className="form-hint">{s.hint(school.slug)}</p>
       {school.paid_until && <p className="form-hint"><Icon name="calendar" size={13} /> {s.subscription(school.billing === "yearly" ? s.yearly : school.billing === "semester" ? s.semester : s.monthly, subscription.state === "frozen" ? s.expired : s.valid, formatDate(school.paid_until))}</p>}

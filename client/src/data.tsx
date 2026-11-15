@@ -130,7 +130,7 @@ export function DataProvider({ member, children, fallback }: { member: AuthMembe
     };
     const attendanceRate = (studentId: number, groupId?: number) => {
       const stats = (statsByStudent.get(studentId) ?? []).filter((stat) => groupId === undefined || stat.group_id === groupId);
-      const sessions = stats.reduce((sum, stat) => sum + stat.sessions, 0);
+      const sessions = stats.reduce((sum, stat) => sum + stat.sessions - (stat.excused ?? 0), 0); // an excused session is not held against them
       return sessions ? percent(stats.reduce((sum, stat) => sum + stat.present + stat.late, 0), sessions) : null;
     };
     const summaryOf = (studentId: number): StudentSummary => {

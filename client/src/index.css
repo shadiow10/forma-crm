@@ -192,6 +192,7 @@ tbody tr:hover { background: var(--info-bg); }
 .presence.present { color: var(--ok-fg); background: var(--ok-bg); border: 1px solid var(--ok-line); }
 .presence.late { color: var(--warn-fg); background: var(--warn-bg); border: 1px solid var(--warn-line); }
 .presence.absent { color: var(--bad-fg); background: var(--bad-bg); border: 1px solid var(--bad-line); }
+.presence.excused { color: var(--accent); background: var(--accent-soft); border: 1px solid var(--accent); }
 .attendance-panel { padding: 0; }
 .attendance-head { display: flex; align-items: center; justify-content: space-between; padding: 17px 18px; border-bottom: 1px solid var(--border); }
 .attendance-head h3 { margin: 0; font-size: 13px; }
@@ -580,6 +581,41 @@ tbody tr[tabindex]:focus-visible, .class-card:focus-visible, .teacher-card:focus
 
 /* Payment receipt: only exists while printing */
 .print-receipt { display: none; }
+
+/* Student card (StudentCard.tsx): credit-card size, French and Arabic, printed alone. Fixed colours: it is paper. */
+.print-card { display: none; }
+/* The card's preview window, and the camera that reads cards back. */
+.card-dialog, .scan-dialog { max-width: 620px; }
+.card-preview { display: grid; place-items: center; padding: 22px 12px; border-radius: 12px; background: var(--track); overflow: auto; }
+.card-preview .student-card { zoom: 1.5; box-shadow: 0 6px 18px rgba(23, 32, 54, .18); }
+@media (max-width: 650px) { .card-preview .student-card { zoom: 1; } }
+.scan-video { display: block; width: 100%; max-height: 60vh; border-radius: 12px; background: #0b1020; object-fit: cover; }
+.settings-logo { display: flex; align-items: center; gap: 12px; margin: 14px 0 4px; }
+.settings-logo > div { flex: 1; min-width: 0; }
+.settings-logo strong { display: block; }
+.settings-logo-box { display: grid; place-items: center; width: 52px; height: 52px; border: 1px solid var(--border); border-radius: 10px; background: #fff; color: var(--muted); overflow: hidden; }
+.settings-logo-box img { width: 100%; height: 100%; object-fit: contain; }
+.student-card { box-sizing: border-box; width: 85.6mm; height: 54mm; padding: 2.6mm 3mm 2mm; border: .25mm solid #b9bfd0; border-radius: 3mm; overflow: hidden;
+  display: grid; grid-template-rows: auto 1fr auto; gap: 1.6mm; background: linear-gradient(135deg, #ffffff 0%, #f1f3fb 100%); color: #172036; font: 7pt "DM Sans", Arial, sans-serif; }
+.student-card header { display: grid; grid-template-columns: 9mm 1fr auto; align-items: center; gap: 2mm; padding-bottom: 1.4mm; border-bottom: .3mm solid #4338ca; }
+.student-card header img { width: 9mm; height: 9mm; object-fit: contain; }
+.student-card header strong { display: block; font: 800 8.5pt Manrope, Arial, sans-serif; color: #182b49; line-height: 1.1; }
+.student-card header span { display: block; margin-top: .4mm; font-size: 6.5pt; color: #4338ca; font-weight: 700; }
+.student-card header small { font-size: 6pt; color: #5b6475; font-weight: 700; }
+.student-card .card-body { display: grid; grid-template-columns: 17mm 1fr 19mm; gap: 2.4mm; align-items: center; min-height: 0; }
+.student-card .card-qr svg { display: block; width: 17mm; height: 17mm; }
+.student-card .card-fields { display: grid; gap: .9mm; min-width: 0; }
+.student-card .card-field span { display: flex; justify-content: space-between; gap: 2mm; color: #6b7386; font-size: 5.5pt; text-transform: uppercase; letter-spacing: .03em; }
+.student-card .card-field i { font-style: normal; }
+.student-card .card-field strong { display: block; font-size: 7.5pt; line-height: 1.15; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.student-card .card-photo { width: 19mm; height: 24mm; border-radius: 1.5mm; background: #e4e7f1; overflow: hidden; }
+.student-card .card-photo img { width: 100%; height: 100%; object-fit: cover; }
+.student-card footer { font: 700 8pt "Courier New", monospace; letter-spacing: .12em; color: #182b49; text-align: right; }
+/* The photo in the profile: click to add or change it. */
+.profile-photo { position: relative; overflow: hidden; cursor: pointer; }
+.profile-photo img { width: 100%; height: 100%; object-fit: cover; }
+.profile-photo i { position: absolute; right: 2px; bottom: 2px; display: grid; place-items: center; width: 18px; height: 18px; border-radius: 50%; background: var(--paper, #fff); color: var(--accent); box-shadow: 0 1px 3px rgba(0,0,0,.2); }
+.profile-photo.busy { opacity: .5; }
 .print-receipt header { display: flex; justify-content: space-between; gap: 24px; padding-bottom: 14px; border-bottom: 2px solid #182b49; }
 .print-receipt header strong { display: block; font: 800 18pt Manrope, sans-serif; color: #182b49; }
 .print-receipt header span, .print-receipt small { display: block; color: #555; font-size: 9pt; }
@@ -1023,6 +1059,10 @@ html:has(.lp) { scroll-behavior: smooth; }
   /* A receipt prints alone: the app is taken out of the page, not just hidden, so it adds no blank
      pages, and the receipt flows normally instead of being repeated on each page (fixed would). */
   body:has(> .print-receipt) > :not(.print-receipt) { display: none !important; }
+  body:has(> .print-card) > :not(.print-card) { display: none !important; }
+  .print-card { display: block; padding: 10mm; }
+  .print-card, .print-card * { visibility: visible; }
+  .student-card { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
   .print-receipt { display: block; padding: 12mm 14mm; background: #fff; color: #111; font: 11pt "DM Sans", sans-serif; break-inside: avoid; }
   .print-receipt, .print-receipt * { visibility: visible; }
   .formal-document { position: fixed; inset: 0; margin: auto; box-shadow: none; }

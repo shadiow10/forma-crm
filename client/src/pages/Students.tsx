@@ -5,6 +5,7 @@ import { readSheet, studentsFromSheet } from "../lib/sheet";
 import { supabase } from "../lib/supabase";
 import { Badge, Button, COLORS, Icon, MetricCard, PageHeader, Panel, clampPercent, downloadCSV, formatDate, initialsBadge, statusTone } from "../ui";
 import { EnrollmentForm, StudentForm, levelOptions } from "./forms";
+import { CardScanner } from "./StudentCard";
 
 // Stored values: the filter compares them, the label is translated when shown.
 const STATUS_FILTERS = ["Tous", "Inscrit", "En cours", "Terminé", "Abandonné", "Sans inscription"];
@@ -19,6 +20,7 @@ export function Students({ openStudent }: { openStudent: (id: number) => void })
   const [course, setCourse] = useState("Toutes");
   const [level, setLevel] = useState("");
   const [creating, setCreating] = useState(false);
+  const [scanning, setScanning] = useState(false);
   const fileInput = useRef<HTMLInputElement>(null);
 
   // A row needs a name and a phone; a phone already in the school is skipped rather than doubled.
@@ -55,7 +57,13 @@ export function Students({ openStudent }: { openStudent: (id: number) => void })
         <input ref={fileInput} type="file" hidden accept=".xlsx,.csv,.tsv,.txt,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv"
           onChange={(event) => { void importFile(event.target.files?.[0]); event.target.value = ""; }} />
         <Button variant="outline" icon="upload" onClick={() => fileInput.current?.click()}>{s.importAction}</Button>
+        <Button variant="soft" icon="scan" onClick={() => setScanning(true)}>{t.student.scan}</Button>
       </>} />
+    {scanning && <CardScanner onClose={() => setScanning(false)} onFound={(id) => {
+      setScanning(false);
+      // A card from this school whose student was deleted since: say so rather than open nothing.
+      if (students.some((student) => student.id === id)) openStudent(id); else notify(t.student.scanUnknown);
+    }} />}
     <div className="metrics-grid metrics-grid-4">
       <MetricCard label={s.total} value={String(students.length)} note={s.inDirectory} icon="users" accent={COLORS.teal} />
       <MetricCard label={s.running} value={String(rows.filter(({ summary }) => summary.status === "En cours").length)} note={s.started} icon="graduation" accent="#5B8DEF" />

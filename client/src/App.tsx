@@ -61,7 +61,8 @@ export default function App({ member, email, userId, onSignOut }: { member: Memb
   const resolve = (key: PageKey | undefined) => (key && allowed.includes(key) ? key : allowed[0]);
   const [page, setPage] = useState<PageKey>(() => resolve(pageAt(window.location.pathname)));
   const [attendanceGroup, setAttendanceGroup] = useState<number>();
-  const [studentId, setStudentId] = useState<number | null>(null);
+  // A student card's QR code opens /etudiants?eleve=<id>: straight to that student's profile.
+  const [studentId, setStudentId] = useState<number | null>(() => Number(new URLSearchParams(window.location.search).get("eleve")) || null);
   const [groupId, setGroupId] = useState<number | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [search, setSearch] = useState("");
@@ -69,7 +70,7 @@ export default function App({ member, email, userId, onSignOut }: { member: Memb
 
   // Fix the address when it pointed to a page this role cannot open, and follow back/forward.
   useEffect(() => {
-    if (window.location.pathname !== pathOf(page)) window.history.replaceState(null, "", pathOf(page));
+    if (window.location.pathname !== pathOf(page) || window.location.search) window.history.replaceState(null, "", pathOf(page));
     const onPop = () => setPage(resolve(pageAt(window.location.pathname)));
     window.addEventListener("popstate", onPop);
     return () => window.removeEventListener("popstate", onPop);

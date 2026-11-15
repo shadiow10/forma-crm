@@ -26,11 +26,13 @@ export function StudentForm({ student, onClose, onSaved }: { student?: Student; 
   return <FormModal
     title={student ? f.formEdit : f.formNew} subtitle={f.formSubject} submitLabel={student ? t.common.save : f.submitNew} onClose={onClose}
     initial={{
-      full_name: student?.full_name ?? "", phone: student?.phone ?? "", email: student?.email ?? "", dob: student?.dob ?? "", address: student?.address ?? "", source: student?.source ?? "Walk-in",
+      // Saved before names were split: the old full name goes in "Nom", to be divided by hand.
+      last_name: student?.last_name ?? (student?.first_name ? "" : student?.full_name ?? ""), first_name: student?.first_name ?? "", phone: student?.phone ?? "", email: student?.email ?? "", dob: student?.dob ?? "", address: student?.address ?? "", source: student?.source ?? "Walk-in",
       level: student?.level ?? "", filiere: student?.filiere ?? "", parent_name: student?.parent_name ?? "", parent_phone: student?.parent_phone ?? "",
     }}
     fields={(values) => [
-      { key: "full_name", label: f.fName, required: true, full: true, placeholder: f.fNamePlaceholder },
+      { key: "last_name", label: f.fLast, required: true, placeholder: f.fLastPlaceholder },
+      { key: "first_name", label: f.fFirst, required: true, placeholder: f.fFirstPlaceholder },
       { key: "phone", label: t.common.phone, required: true, placeholder: f.fPhonePlaceholder },
       ...(isSoutien ? [
         { key: "parent_phone", label: t.so.fParentPhone, placeholder: f.fPhonePlaceholder },
@@ -45,7 +47,8 @@ export function StudentForm({ student, onClose, onSaved }: { student?: Student; 
     ]}
     onSubmit={async (values) => {
       const row = {
-        full_name: values.full_name.trim(), phone: values.phone.trim(), email: text(values.email), dob: values.dob || null, address: text(values.address), source: values.source,
+        // full_name stays what the app searches and sorts on: "NOM Prénom", as on an Algerian card.
+        last_name: values.last_name.trim(), first_name: values.first_name.trim(), full_name: `${values.last_name.trim()} ${values.first_name.trim()}`, phone: values.phone.trim(), email: text(values.email), dob: values.dob || null, address: text(values.address), source: values.source,
         ...(isSoutien ? { level: values.level || null, filiere: values.level.endsWith("AS") ? values.filiere || null : null, parent_name: text(values.parent_name), parent_phone: text(values.parent_phone) } : {}),
       };
       let id = student?.id;

@@ -16,9 +16,10 @@ const sheet = [
 ];
 const result = studentsFromSheet(sheet, [{ full_name: "Karim  Ouali", phone: "0699 99 99 99" }]);
 assert.equal(result.students.length, 3);
-assert.deepEqual(result.students[0], { full_name: "Lina Haddad", phone: "0555123456", email: "lina@x.dz", address: null, dob: "2004-03-15", level: null, parent_phone: null });
+// Separate Nom / Prénom columns are kept (0032), and the full name reads "NOM Prénom" like the form.
+assert.deepEqual(result.students[0], { full_name: "Haddad Lina", last_name: "Haddad", first_name: "Lina", phone: "0555123456", email: "lina@x.dz", address: null, dob: "2004-03-15", level: null, parent_phone: null });
 assert.equal(result.students[1].dob, "2001-04-19");
-assert.equal(result.students[2].full_name, "Sara Haddad");
+assert.equal(result.students[2].full_name, "Haddad Sara");
 assert.equal(result.incomplete, 1);
 assert.equal(result.duplicates, 2);
 

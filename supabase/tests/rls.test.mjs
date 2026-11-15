@@ -361,6 +361,15 @@ assert.equal((await balanceOf()).months_due, 1, "eight sessions per month: five 
 await db.exec(`set test.uid = ''; update courses set sessions_per_month = 4 where id = ${ids.course}`);
 assert.equal((await balanceOf()).months_due, 2);
 
+// 0031: an excused absence keeps the session for the pupil. Five counted sessions at 4 a month made
+// month 2; excusing the absence of 12/09 leaves four, still month 1. The group still held it.
+await as("D2", `update attendance set status = 'E' where student_id = ${ids.pupil} and session_date = '2026-09-12'`);
+assert.equal((await balanceOf()).months_due, 1, "an excused session is carried over");
+assert.equal((await as("D2", `select count(*)::int n from group_sessions where group_id = ${ids.grp} and session_date = '2026-09-12'`))[0].n, 1, "the teacher still held it");
+assert.equal((await as("D2", `select excused from attendance_stats where student_id = ${ids.pupil}`))[0].excused, 1);
+await as("D2", `update attendance set status = 'A' where student_id = ${ids.pupil} and session_date = '2026-09-12'`);
+assert.equal((await balanceOf()).months_due, 2, "an unexcused absence still counts");
+
 // 0027: the student limit holds for one student and for an import, whatever the role.
 await db.exec("set test.uid = ''; update schools set student_limit = 3 where id = 2");   // two students in school 2
 assert.ok(!(await fails("D2", "insert into students (school_id, full_name, phone) values (2, 'Troisième', '0550000003')")), "up to the limit");

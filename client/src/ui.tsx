@@ -58,6 +58,7 @@ export const ICONS = {
   trash: "M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14M10 11v6M14 11v6",
   edit: "M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z",
   upload: "M12 21V9m0 0-4 4m4-4 4 4M4 3h16",
+  scan: "M4 8V5a1 1 0 0 1 1-1h3m8 0h3a1 1 0 0 1 1 1v3m0 8v3a1 1 0 0 1-1 1h-3m-8 0H5a1 1 0 0 1-1-1v-3M7 12h10",
   sun: "M12 17a5 5 0 1 0 0-10 5 5 0 0 0 0 10M12 1.8v2.1M12 20.1v2.1M4.4 4.4l1.5 1.5M18.1 18.1l1.5 1.5M1.8 12h2.1M20.1 12h2.1M4.4 19.6l1.5-1.5M18.1 5.9l1.5-1.5",
   moon: "M21 12.9A9 9 0 1 1 11.1 3a7 7 0 0 0 9.9 9.9z",
   chart: "M3 20h18M6 16v-5M11 16V6M16 16v-8M21 16v-3",
@@ -116,7 +117,7 @@ export const statusTone = (status: string): Tone =>
     : status === "En cours" ? "info" : "neutral";
 
 type Variant = "primary" | "ghost" | "outline" | "soft" | "danger";
-const variants: Record<Variant, CSSProperties> = {
+export const variants: Record<Variant, CSSProperties> = {
   primary: { background: "var(--btn-primary)", color: "var(--btn-primary-text)", borderColor: "var(--btn-primary)" },
   ghost: { background: "transparent", color: COLORS.muted, borderColor: "transparent" },
   outline: { background: "var(--paper)", color: "var(--ink-2)", borderColor: COLORS.border },
