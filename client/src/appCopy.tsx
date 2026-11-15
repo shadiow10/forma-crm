@@ -41,7 +41,7 @@ const fr = {
     course: "Formation", group: "Groupe", teacher: "Formateur", status: "Statut", date: "Date", total: "Total",
     paid: "Payé", left: "Reste", phone: "Téléphone", email: "Email", address: "Adresse", room: "Salle",
     noGroup: "Sans groupe", noRoom: "Salle à définir", noTime: "Horaire à définir", noDays: "Jours à définir",
-    unassigned: "Formateur à affecter", none: "—", synced: "Données synchronisées avec le serveur",
+    unassigned: "Formateur à affecter", none: "—", synced: "Données synchronisées avec le serveur", syncing: "Synchronisation…",
     actions: "Actions", print: "Imprimer",
   },
   banner: {
@@ -479,7 +479,7 @@ const en: AppCopy = {
     course: "Course", group: "Group", teacher: "Teacher", status: "Status", date: "Date", total: "Total",
     paid: "Paid", left: "Left", phone: "Phone", email: "Email", address: "Address", room: "Room",
     noGroup: "No group", noRoom: "Room to be set", noTime: "Time to be set", noDays: "Days to be set",
-    unassigned: "Teacher to assign", none: "—", synced: "Data synced with the server",
+    unassigned: "Teacher to assign", none: "—", synced: "Data synced with the server", syncing: "Syncing…",
     actions: "Actions", print: "Print",
   },
   banner: {
@@ -911,7 +911,7 @@ const ar: AppCopy = {
     course: "التكوين", group: "الفوج", teacher: "المكوّن", status: "الحالة", date: "التاريخ", total: "المجموع",
     paid: "المدفوع", left: "المتبقّي", phone: "الهاتف", email: "البريد الإلكتروني", address: "العنوان", room: "القاعة",
     noGroup: "بدون فوج", noRoom: "القاعة غير محدّدة", noTime: "التوقيت غير محدّد", noDays: "الأيام غير محدّدة",
-    unassigned: "مكوّن غير محدّد", none: "—", synced: "البيانات متزامنة مع الخادم",
+    unassigned: "مكوّن غير محدّد", none: "—", synced: "البيانات متزامنة مع الخادم", syncing: "جارٍ المزامنة…",
     actions: "إجراءات", print: "طباعة",
   },
   banner: {

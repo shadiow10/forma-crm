@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import type { Member as AuthMember } from "./auth";
 import { supabase } from "./lib/supabase";
 import { loadSchoolData } from "./lib/queries";
+import { readSchoolCache, writeSchoolCache } from "./lib/schoolCache";
 import type { Enrollment, EnrollmentStatus, Group, SchoolData, Student } from "./lib/queries";
 import { setSchoolKind, useAppT } from "./appCopy";
 import type { AppCopy } from "./appCopy";
@@ -24,6 +25,7 @@ export type StudentSummary = {
 
 type Store = SchoolData & {
   me: AuthMember;
+  syncing: boolean; // shown from this tab's memory while the server's copy is on its way
   subscription: Subscription;
   canEdit: boolean; // director or secretaire
   readOnly: boolean; // demo school, or subscription past its grace period: the database refuses every change
@@ -91,7 +93,8 @@ export function friendlyError(error: { code?: string; message: string }, e: AppC
 
 export function DataProvider({ member, children, fallback }: { member: AuthMember; children: ReactNode; fallback: (state: { error?: string; retry: () => void }) => ReactNode }) {
   const t = useAppT();
-  const [data, setData] = useState<SchoolData>();
+  const [data, setData] = useState<SchoolData | undefined>(() => readSchoolCache(member.school.id));
+  const [syncing, setSyncing] = useState(data !== undefined);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [question, setQuestion] = useState<(Question & { answer: (yes: boolean) => void }) | null>(null);
@@ -99,7 +102,10 @@ export function DataProvider({ member, children, fallback }: { member: AuthMembe
   const reload = useCallback(async () => {
     try {
       const started = performance.now();
-      setData(await loadSchoolData(supabase, member.school.id));
+      const fresh = await loadSchoolData(supabase, member.school.id);
+      setData(fresh);
+      setSyncing(false);
+      writeSchoolCache(member.school.id, fresh);
       console.info(`Données de l'école chargées en ${Math.round(performance.now() - started)} ms`);
       setError("");
     } catch (caught) {
@@ -156,6 +162,7 @@ export function DataProvider({ member, children, fallback }: { member: AuthMembe
     return {
       ...data,
       me: member,
+      syncing,
       subscription,
       canEdit: member.role !== "teacher",
       readOnly: frozen,
@@ -183,7 +190,7 @@ export function DataProvider({ member, children, fallback }: { member: AuthMembe
       groupStudentIds: (groupId: number) => studentsByGroup.get(groupId) ?? [],
       attendanceRate,
     };
-  }, [data, member, notice, reload, t]);
+  }, [data, member, notice, reload, syncing, t]);
 
   if (!store) return <>{fallback({ error: error || undefined, retry: reload })}</>;
   return <DataContext.Provider value={store}>

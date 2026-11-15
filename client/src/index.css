@@ -331,6 +331,9 @@ tbody tr:hover { background: var(--info-bg); }
 .toast button { display: grid; place-items: center; margin-inline-start: 6px; border: 0; background: transparent; color: var(--muted-2); }
 .app-footer { display: flex; justify-content: space-between; gap: 10px; padding: 0 36px 19px; color: var(--muted-2); font-size: 9px; }
 .status-live { display: inline-block; width: 6px; height: 6px; margin-inline-end: 4px; border-radius: 50%; background: var(--accent); }
+/* While the server copy is on its way after a refresh: the dot pulses softly. */
+.status-live.syncing { background: #E8A33D; animation: syncing 1.2s ease-in-out infinite alternate; }
+@keyframes syncing { from { opacity: .35; } to { opacity: 1; } }
 .sidebar-overlay { display: none; }
 @keyframes fade-in { from { opacity: 0 } to { opacity: 1 } }
 @keyframes drawer-in { from { opacity: 0; transform: translateX(22px) } to { opacity: 1; transform: translateX(0) } }

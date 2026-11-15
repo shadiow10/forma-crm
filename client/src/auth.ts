@@ -1,6 +1,7 @@
 import type { Session } from "@supabase/supabase-js";
 import { useEffect, useState } from "react";
 import { arrivedToSetPassword, supabase } from "./lib/supabase";
+import { clearSchoolCache } from "./lib/schoolCache";
 
 export type Role = "director" | "secretaire" | "teacher";
 export type PageKey = "dashboard" | "students" | "enrollments" | "formations" | "teachers" | "groups" | "planning" | "attendance" | "payments" | "rooms" | "analytics" | "certificates" | "settings";
@@ -78,4 +79,5 @@ export function useAuth(): AuthState {
   return { status: "ready", member: members[0], email, userId: session.user.id };
 }
 
-export const signOut = () => supabase.auth.signOut();
+// The school data this tab remembered for quick refreshes goes with the session.
+export const signOut = () => { clearSchoolCache(); return supabase.auth.signOut(); };

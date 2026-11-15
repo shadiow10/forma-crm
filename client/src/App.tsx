@@ -71,7 +71,7 @@ function SubscriptionBanner({ onChoose }: { onChoose: () => void }) {
 }
 
 export default function App({ member, email, userId, onSignOut }: { member: Member; email: string; userId: string; onSignOut: () => void }) {
-  const { school, students, groups, canEdit, readOnly, notice, clearNotice, isSoutien } = useData();
+  const { school, students, groups, canEdit, readOnly, notice, clearNotice, isSoutien, syncing } = useData();
   const t = useAppT();
   const page_ = usePage();
   // An école de soutien hands out no certificates.
@@ -158,7 +158,7 @@ export default function App({ member, email, userId, onSignOut }: { member: Memb
         ? <div className="demo-banner" role="note"><Icon name="lock" size={15} /><span><strong>{t.banner.demo}</strong> {t.banner.demoText}</span><button className="text-button" onClick={onSignOut}>{t.banner.demoLeave}</button></div>
         : <SubscriptionBanner onChoose={() => goTo("settings")} />}
       <div className="content-wrap">{renderPage()}</div>
-      <footer className="app-footer"><span>Classtra · {school.name}</span><span><span className="status-live" /> {t.common.synced}</span></footer>
+      <footer className="app-footer"><span>Classtra · {school.name}</span><span role="status"><span className={syncing ? "status-live syncing" : "status-live"} /> {syncing ? t.common.syncing : t.common.synced}</span></footer>
     </main>
     {studentId !== null && <StudentDrawer key={studentId} studentId={studentId} onClose={() => setStudentId(null)} />}
     {groupId !== null && <GroupDrawer key={groupId} groupId={groupId} onClose={() => setGroupId(null)} goTo={goTo} />}
