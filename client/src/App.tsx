@@ -56,7 +56,8 @@ function SubscriptionBanner({ onChoose }: { onChoose: () => void }) {
       {isDirector && <button className="text-button" onClick={cancel}>{t.cancelDeletion}</button>}</div>;
   }
   const renew = isDirector ? "" : t.renewTeam;
-  const choose = isDirector && <button className="text-button" onClick={onChoose}>{t.choosePlan}</button>;
+  // Choosing a plan only once one is needed: a free trial, or a subscription that has ended.
+  const choose = isDirector && subscription.state !== "active" && <button className="text-button" onClick={onChoose}>{t.choosePlan}</button>;
   const left = (days: number, zero: string) => (days === 0 ? zero : t.days(days));
   if (subscription.state === "trial")
     return <div className="demo-banner trial-banner" role="note"><Icon name="spark" size={15} /><span><strong>{t.trialTitle}</strong> {t.trialText(subscription.daysLeft)}{renew}</span>{choose}</div>;

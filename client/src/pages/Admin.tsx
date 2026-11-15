@@ -176,7 +176,7 @@ function SchoolSettings() {
 function Subscription() {
   const t = useAppT();
   const s = t.settings;
-  const { school, money, notify, reload, isDirector } = useData();
+  const { school, money, notify, reload, isDirector, subscription } = useData();
   const [pending, setPending] = useState<{ billing: PlanId; created_at: string } | null>(null);
   const [editing, setEditing] = useState(false);
   const [plan, setPlan] = useState<PlanId>("yearly");
@@ -188,7 +188,10 @@ function Subscription() {
   const load = () => supabase.rpc("pending_renewal", { p_school_id: school.id })
     .then(({ data, error: failed }) => { if (failed) notify(friendlyError(failed, t.errors)); else setPending((data as { billing: PlanId; created_at: string }[] | null)?.[0] ?? null); });
   useEffect(() => { if (isDirector) void load(); }, [school.id]); // eslint-disable-line react-hooks/exhaustive-deps
-  if (!isDirector) return null;
+  // Only when a plan has to be chosen: a free trial, or a subscription that has ended (grace days,
+  // then read-only). A school with a running plan sees nothing, unless a request is still pending.
+  const needed = subscription.state === "trial" || subscription.state === "grace" || subscription.state === "frozen";
+  if (!isDirector || (!needed && !pending)) return null;
   const name = (id: PlanId) => ({ monthly: s.monthly, semester: s.semester, yearly: s.yearly })[id];
   const price = (id: PlanId) => money(PLANS.find((item) => item.id === id)!.price);
   const send = async () => {
