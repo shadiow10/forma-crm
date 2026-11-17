@@ -1347,3 +1347,23 @@ a.auth-submit { margin-top: 18px; text-decoration: none; }
 
 /* "Afficher plus" under a long list (appUI useShowMore). */
 .show-more { display: flex; justify-content: center; padding: 16px 0 4px; }
+
+/* update buttons of phone version */
+@media (max-width: 650px) {
+  /* stop forcing the table to be wide */
+  .attendance-table, .attendance-table tbody { display: block; width: 100%; min-width: 0; }
+  .attendance-table thead { display: none; }
+
+  /* each student = one line: name on the left, P A L E on the right */
+  .attendance-table tbody tr { display: flex; align-items: center; gap: 8px; padding: 10px 12px; border-top: 1px solid var(--line); }
+  .attendance-table td { padding: 0; border-top: 0; white-space: normal; }
+  .attendance-table td:first-child { flex: 1 1 0; min-width: 0; }
+  .attendance-table td:nth-child(2) { flex: 0 0 auto; }
+
+  /* the attendance-rate column has no room on a phone */
+  .attendance-table td:nth-child(3) { display: none; }
+
+  .attendance-table .person-cell, .attendance-table .person-cell > div { min-width: 0; }
+  .presence-choices { gap: 4px; }
+  .presence-choices .presence { width: 30px; height: 30px; }
+}
