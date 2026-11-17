@@ -1347,3 +1347,21 @@ a.auth-submit { margin-top: 18px; text-decoration: none; }
 
 /* "Afficher plus" under a long list (appUI useShowMore). */
 .show-more { display: flex; justify-content: center; padding: 16px 0 4px; }
+
+@media (max-width: 650px) {
+  .attendance-table, .attendance-table tbody { display: block; width: 100%; min-width: 0; }
+  .attendance-table thead { display: none; }
+
+  .attendance-table tbody tr { display: flex; align-items: center; gap: 8px; padding: 10px 12px; border-top: 1px solid var(--line); }
+  .attendance-table td { padding: 0; border-top: 0; white-space: normal; }
+  .attendance-table td:first-child { flex: 1 1 0; min-width: 0; }
+  .attendance-table td:nth-child(2) { flex: 0 0 auto; }
+  .attendance-table td:nth-child(3) { display: none; }
+
+  .attendance-table .person-cell, .attendance-table .person-cell > div { min-width: 0; }
+  .presence-choices { gap: 4px; }
+  .presence-choices .presence { width: 30px; height: 30px; }
+
+  .attendance-head { flex-direction: column; align-items: stretch; gap: 10px; }
+  .attendance-head .button { width: 100%; }
+}
