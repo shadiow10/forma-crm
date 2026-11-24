@@ -133,7 +133,7 @@ export default function App({ member, email, userId, onSignOut }: { member: Memb
 
   return <div className="app-shell" {...page_}>
     <aside className={`sidebar ${sidebarOpen ? "open" : ""}`}>
-      <div className="brand"><BrandMark /><div><strong dir="ltr">CLASSTRA<span>.</span></strong><small>{t.tagline}</small></div><button className="mobile-close" onClick={() => setSidebarOpen(false)} aria-label={t.common.closeMenu}><Icon name="close" size={18} /></button></div>
+      <div className="brand"><BrandMark /><div><strong className="wm" dir="ltr">Classtra</strong><small>{t.tagline}</small></div><button className="mobile-close" onClick={() => setSidebarOpen(false)} aria-label={t.common.closeMenu}><Icon name="close" size={18} /></button></div>
       <div className="school-switcher"><span className="school-avatar">{initials(school.name)}</span><div><strong>{school.name}</strong><span>{t.roles[member.role]}</span></div></div>
       <nav className="nav-groups" aria-label={t.navGroup}><div className="nav-group"><span className="nav-label">{t.navGroup}</span>
         {PAGES.filter((item) => allowed.includes(item.key)).map((item) => <a key={item.key} href={item.path} className={`nav-item ${page === item.key ? "active" : ""}`} aria-current={page === item.key ? "page" : undefined}

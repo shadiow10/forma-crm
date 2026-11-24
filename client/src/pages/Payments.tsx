@@ -117,7 +117,7 @@ export function Payments({ openStudent }: { openStudent: (id: number) => void })
         {isSoutien && <Button variant="soft" icon="wallet" onClick={() => setMulti(true)}>{t.so.multiAction}</Button>}
       </>} />
     <div className={`metrics-grid finance-metrics ${isDirector ? "five" : ""}`}>
-      <MetricCard label={p.collected} value={money(thisMonth)} note={p.collectedNote(money(total))} icon="wallet" accent={COLORS.teal} />
+      <MetricCard label={p.collected} value={money(thisMonth)} note={p.collectedNote(money(total))} icon="wallet" accent={COLORS.teal} highlight />
       {isDirector && <MetricCard label={p.teacherPay} value={money(payTotal)} note={p.teacherPayNote(pay.size)} icon="teacher" accent="#6A63B8" />}
       {isDirector && <MetricCard label={p.profit} value={money(thisMonth - payTotal)} note={p.profitNote} icon="spark" accent={thisMonth - payTotal < 0 ? COLORS.red : COLORS.green} />}
       <MetricCard label={p.outstanding} value={money(outstanding)} note={p.outstandingNote(owing.length)} icon="clock" accent={COLORS.yellow} />

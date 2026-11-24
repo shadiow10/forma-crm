@@ -1,5 +1,6 @@
 import { useState, useSyncExternalStore } from "react";
 import { locale } from "./lang";
+import { Mark } from "./Logo";
 import type { CSSProperties, ReactNode } from "react";
 
 // Shared building blocks for every page: colors, icons, badges, buttons, panels, forms and drawers.
@@ -9,10 +10,10 @@ import type { CSSProperties, ReactNode } from "react";
 export const COLORS = {
   ink: "var(--ink-2)",
   navy: "var(--navy)",
-  navy2: "#233B61",
+  navy2: "var(--umber)",
   teal: "var(--accent)",
   tealLight: "var(--accent-soft)",
-  coral: "var(--warn-fg)",
+  coral: "var(--sun)",          // charte: saffron = alert (full group, low attendance)
   coralLight: "var(--warn-bg)",
   sand: "var(--sand)",
   paper: "var(--paper)",
@@ -20,7 +21,7 @@ export const COLORS = {
   muted: "var(--muted)",
   green: "var(--ok-fg)",
   yellow: "var(--warn-fg)",
-  red: "var(--bad-fg)",
+  red: "var(--sun)",            // charte: alerts are saffron fills; text stays umber (--bad-fg)
 };
 
 export const ICONS = {
@@ -63,6 +64,8 @@ export const ICONS = {
   moon: "M21 12.9A9 9 0 1 1 11.1 3a7 7 0 0 0 9.9 9.9z",
   chart: "M3 20h18M6 16v-5M11 16V6M16 16v-8M21 16v-3",
   globe: "M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18M3.5 9h17M3.5 15h17M12 3a14 14 0 0 1 0 18 14 14 0 0 1 0-18",
+  shield: "M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z M8.5 12l2.5 2.5 4.5-5", // charte, annexe D
+  userplus: "M10 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8z M3 20c0-3.5 3-6 7-6 M18 8v6 M15 11h6", // charte, annexe D
 } as const;
 
 export type IconName = keyof typeof ICONS;
@@ -72,6 +75,13 @@ export const Icon = ({ name, size = 18, stroke = "currentColor" }: { name: IconN
 );
 
 export const PALETTE = ["#5B8DEF", "#E4A853", "#B56FCE", "#2A9D8F", "#E57865", "#6A63B8"];
+// Charte Classtra: four colours only. The colour a group, course or teacher was given (stored as
+// one of PALETTE above) is shown as one of the charte's three accents; the stored value is untouched.
+const TINTS = ["#1F6B4F", "#F2A104", "#2A1B12"];
+export const tint = (stored?: string | null) => {
+  const index = PALETTE.findIndex((colour) => colour.toLowerCase() === (stored ?? "").toLowerCase());
+  return TINTS[(index < 0 ? 0 : index) % TINTS.length];
+};
 export const DAYS = ["Dim", "Lun", "Mar", "Mer", "Jeu", "Ven", "Sam"]; // stored values, never displayed raw
 const avatarColors = ["#D9E9E6", "#FBE0D6", "#E2E4F2", "#F5E8C9", "#DCE8F8"];
 
@@ -98,13 +108,15 @@ export const downloadCSV = (filename: string, rows: (string | number | null)[][]
 };
 
 type Tone = "neutral" | "success" | "warning" | "danger" | "info" | "purple";
+// Charte status pills: paid = palm + sand, partial = saffron + umber, late/unpaid = umber + saffron,
+// anything else outlined. The label is always written: a state is never told by colour alone.
 const tones: Record<Tone, CSSProperties> = {
-  neutral: { background: "var(--surface-2)", color: "var(--muted)" },
-  success: { background: "var(--ok-bg)", color: "var(--ok-fg)" },
-  warning: { background: "var(--warn-bg)", color: "var(--warn-fg)" },
-  danger: { background: "var(--bad-bg)", color: "var(--bad-fg)" },
-  info: { background: "var(--info-bg)", color: "var(--info-fg)" },
-  purple: { background: "var(--accent-soft)", color: "var(--accent)" },
+  neutral: { background: "transparent", color: "var(--ink-2)", boxShadow: "inset 0 0 0 1.5px var(--border)" },
+  success: { background: "var(--palm)", color: "#F3EBDD" },
+  warning: { background: "var(--sun)", color: "var(--umber)" },
+  danger: { background: "var(--umber)", color: "var(--sun)" },
+  info: { background: "transparent", color: "var(--ink-2)", boxShadow: "inset 0 0 0 1.5px var(--ink-2)" },
+  purple: { background: "transparent", color: "var(--ink-2)", boxShadow: "inset 0 0 0 1.5px var(--ink-2)" },
 };
 export const Badge = ({ children, tone = "neutral", dot = false }: { children: ReactNode; tone?: Tone; dot?: boolean }) => (
   <span className="badge" style={tones[tone]}>{dot && <span className="badge-dot" />} {children}</span>
@@ -118,32 +130,29 @@ export const statusTone = (status: string): Tone =>
 
 type Variant = "primary" | "ghost" | "outline" | "soft" | "danger";
 export const variants: Record<Variant, CSSProperties> = {
-  primary: { background: "var(--btn-primary)", color: "var(--btn-primary-text)", borderColor: "var(--btn-primary)" },
-  ghost: { background: "transparent", color: COLORS.muted, borderColor: "transparent" },
-  outline: { background: "var(--paper)", color: "var(--ink-2)", borderColor: COLORS.border },
-  soft: { background: COLORS.tealLight, color: COLORS.teal, borderColor: "transparent" },
-  danger: { background: "var(--bad-bg)", color: "var(--bad-fg)", borderColor: "transparent" },
+  // Charte: one saffron primary per screen; the other actions are outlined or plain text.
+  primary: { background: "var(--sun)", color: "var(--umber)", borderColor: "var(--umber)" },
+  ghost: { background: "transparent", color: "var(--ink-2)", borderColor: "transparent" },
+  outline: { background: "transparent", color: "var(--ink-2)", borderColor: "var(--ink-2)" },
+  soft: { background: "transparent", color: "var(--ink-2)", borderColor: "var(--border)" },
+  danger: { background: "transparent", color: "var(--ink-2)", borderColor: "var(--ink-2)" },
 };
-// The logo: a graduation cap on a screen, drawn once and reused everywhere.
-export const BrandMark = ({ size = 32 }: { size?: number }) => (
-  <span className="brand-mark" style={{ width: size, height: size }} aria-hidden="true">
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-      <rect x="1.7" y="2.6" width="20.6" height="14.6" rx="2.4" fill="var(--brand-screen)" stroke="var(--brand-ink)" strokeWidth="1.9" />
-      <path d="M12 18.4v2.1M8.6 21.4h6.8" stroke="var(--brand-ink)" strokeWidth="1.9" strokeLinecap="round" />
-      <path d="M12 6.2 18.4 8.7 12 11.2 5.6 8.7z" fill="var(--brand-ink)" />
-      <path d="M8.6 9.9v2.2c0 .9 1.5 1.6 3.4 1.6s3.4-.7 3.4-1.6V9.9" stroke="var(--brand-ink)" strokeWidth="1.7" strokeLinejoin="round" />
-      <path d="M18.4 8.7v3.6" stroke="var(--brand-ink)" strokeWidth="1.2" strokeLinecap="round" />
-    </svg>
-  </span>
-);
+// The logo (charte): the umber tile on light backgrounds, the saffron tile on dark ones.
+// It follows the theme unless the caller knows its background (onDark).
+export const BrandMark = ({ size = 32, onDark }: { size?: number; onDark?: boolean }) => {
+  const dark = useTheme() === "dark";
+  return <span className="brand-mark" style={{ width: size, height: size }} aria-hidden="true"><Mark size={size} onDark={onDark ?? dark} /></span>;
+};
 
 export const Button = ({ children, variant = "primary", icon, onClick, type = "button", disabled = false, small = false }: { children: ReactNode; variant?: Variant; icon?: IconName; onClick?: () => void; type?: "button" | "submit"; disabled?: boolean; small?: boolean }) => (
-  <button type={type} disabled={disabled} onClick={onClick} className={small ? "button small" : "button"} style={variants[variant]}>{icon && <Icon name={icon} size={small ? 13 : 15} />}{children}</button>
+  <button type={type} disabled={disabled} onClick={onClick} className={`button button-${variant}${small ? " small" : ""}`} style={variants[variant]}>{icon && <Icon name={icon} size={small ? 13 : 15} />}{children}</button>
 );
 
-export const MetricCard = ({ label, value, note, icon, accent }: { label: string; value: string; note: string; icon: IconName; accent: string }) => (
-  <div className="metric-card">
-    <div className="metric-top"><span className="metric-label">{label}</span><span className="metric-icon" style={{ color: accent, background: `${accent}16` }}><Icon name={icon} size={17} /></span></div>
+// Charte KPI card: umber 1.5px border, figure in Fraunces. The key figure of a screen is
+// highlighted (umber fill, sand text). `accent` is kept for the callers but no longer paints.
+export const MetricCard = ({ label, value, note, icon, highlight = false }: { label: string; value: string; note: string; icon: IconName; accent?: string; highlight?: boolean }) => (
+  <div className={`metric-card${highlight ? " hi" : ""}`}>
+    <div className="metric-top"><span className="metric-label">{label}</span><span className="metric-icon"><Icon name={icon} size={17} /></span></div>
     <div className="metric-value">{value}</div>
     <div className="metric-note">{note}</div>
   </div>

@@ -5,7 +5,7 @@ import type { Room } from "../lib/queries";
 import { groupInRoomAt, sameRoom, weeklyRoomHours } from "../lib/rooms";
 import { supabase } from "../lib/supabase";
 import { FormModal, useShowMore } from "../appUI";
-import { Badge, COLORS, DAYS, EmptyState, Icon, MetricCard, PageHeader, Panel } from "../ui";
+import { Badge, COLORS, DAYS, tint, EmptyState, Icon, MetricCard, PageHeader, Panel } from "../ui";
 import { timeRange } from "./Groups";
 
 // The school's rooms (0028): who studies where, and which rooms are in use right now.
@@ -53,7 +53,7 @@ export function Rooms({ openGroup }: { openGroup: (id: number) => void }) {
           <div className="room-groups">
             <span>{r.groups}</span>
             {inRoom.length ? inRoom.map((group) => <button key={group.id} className="room-group" aria-label={group.name} onClick={() => openGroup(group.id)}>
-              <i style={{ background: group.color }} /><strong>{group.name}</strong><em>{group.days.map((day) => t.v.day[day]).join(" · ")} {timeRange(group, "")}</em>
+              <i style={{ background: tint(group.color) }} /><strong>{group.name}</strong><em>{group.days.map((day) => t.v.day[day]).join(" · ")} {timeRange(group, "")}</em>
             </button>) : <em className="muted-copy">{r.noGroups}</em>}
           </div>
         </div>

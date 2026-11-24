@@ -5,7 +5,7 @@ import { useData } from "../data";
 import type { Course, PayMode, Teacher } from "../lib/queries";
 import { supabase } from "../lib/supabase";
 import { Drawer, FormModal, useShowMore } from "../appUI";
-import { Badge, Button, EmptyState, Icon, PALETTE, PageHeader, Panel, clampPercent, downloadCSV, percent } from "../ui";
+import { Badge, Button, EmptyState, Icon, PALETTE, tint, PageHeader, Panel, clampPercent, downloadCSV, percent } from "../ui";
 import { timeRange } from "./Groups";
 import { levelOptions } from "./forms";
 
@@ -74,7 +74,7 @@ export function Courses() {
       const s = stats(course);
       const fill = clampPercent(percent(s.filled, s.seats));
       return <div className="class-card" key={course.id}>
-        <div className="class-color" style={{ background: course.color }} />
+        <div className="class-color" style={{ background: tint(course.color) }} />
         <div className="class-card-main">
           <div className="class-card-top"><Badge tone={s.active ? "success" : "neutral"} dot>{s.active ? c.active : c.inactive}</Badge>
             {canEdit && <span className="card-actions"><button className="row-menu" aria-label={t.common.edit} onClick={() => setEditing(course)}><Icon name="edit" size={15} /></button>{isDirector && <button className="row-menu" aria-label={t.common.del} onClick={() => remove(course)}><Icon name="trash" size={15} /></button>}</span>}
@@ -150,7 +150,7 @@ export function Teachers() {
     {teachers.length ? <><div className="teacher-grid">{more.visible.map((teacher) => {
       const count = groups.filter((group) => group.teacher_id === teacher.id && group.status !== "Annulé").length;
       return <div className="teacher-card" key={teacher.id} onClick={() => setSelected(teacher.id)} tabIndex={0} onKeyDown={(event) => event.key === "Enter" && setSelected(teacher.id)}>
-        <div className="teacher-top"><span className="teacher-avatar" style={{ background: `${teacher.color}22`, color: teacher.color }}>{teacher.full_name.split(" ").map((part) => part[0]).slice(0, 2).join("")}</span><Badge>{labelOf(t.v.contract, teacher.contract)}</Badge></div>
+        <div className="teacher-top"><span className="teacher-avatar" style={{ background: `${tint(teacher.color)}22`, color: "var(--umber)" }}>{teacher.full_name.split(" ").map((part) => part[0]).slice(0, 2).join("")}</span><Badge>{labelOf(t.v.contract, teacher.contract)}</Badge></div>
         <h3>{teacher.full_name}</h3>
         <p className="teacher-subject">{teacher.subject || w.noSubject}</p>
         <div className="teacher-details"><span><Icon name="phone" size={14} />{teacher.phone || "—"}</span><span><Icon name="mail" size={14} />{teacher.email || "—"}</span></div>
@@ -161,7 +161,7 @@ export function Teachers() {
       const hours = weeklyHours(teacher.id, groups);
       return <div className="hours-row" key={teacher.id}>
         <span className="hours-name">{teacher.full_name}</span>
-        <div className="hours-track"><i style={{ width: `${clampPercent(percent(hours, maxHours))}%`, background: teacher.color }} /></div>
+        <div className="hours-track"><i style={{ width: `${clampPercent(percent(hours, maxHours))}%`, background: tint(teacher.color) }} /></div>
         <strong>{Math.round(hours * 10) / 10} {w.hourShort}</strong>
       </div>;
     })}</div>{moreHours.button}</Panel>}

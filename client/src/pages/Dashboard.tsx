@@ -2,7 +2,7 @@ import type { PageKey } from "../auth";
 import { label, useAppT } from "../appCopy";
 import { useData } from "../data";
 import { locale } from "../lang";
-import { Badge, Button, COLORS, DAYS, EmptyState, Icon, MetricCard, PageHeader, Panel, formatDate, formatTime, initialsBadge, statusTone, todayISO } from "../ui";
+import { Badge, Button, COLORS, tint, DAYS, EmptyState, Icon, MetricCard, PageHeader, Panel, formatDate, formatTime, initialsBadge, statusTone, todayISO } from "../ui";
 
 export function Dashboard({ goTo, openStudent }: { goTo: (page: PageKey) => void; openStudent: (id: number) => void }) {
   const { students, enrollments, groups, payments, attendanceStats, courses, teachers, studentById, groupStudentIds, summaryOf, balanceOf, money, canEdit, isSoutien } = useData();
@@ -50,7 +50,7 @@ export function Dashboard({ goTo, openStudent }: { goTo: (page: PageKey) => void
       <MetricCard label={d.openGroups} value={String(openGroups.length)} note={d.onPlanning} icon="users" accent={COLORS.coral} />
       <MetricCard label={d.todayCourses} value={String(todayGroups.length)} note={d.scheduledOn(t.v.day[todayName])} icon="calendar" accent="#6A63B8" />
       <MetricCard label={d.avgAttendance} value={presentRate === null ? "—" : `${presentRate}%`} note={d.overSessions(sessions)} icon="checkCircle" accent={COLORS.green} />
-      <MetricCard label={d.collected} value={money(collectedThisMonth)} note={d.withBalance(owing.length)} icon="wallet" accent={COLORS.yellow} />
+      <MetricCard label={d.collected} value={money(collectedThisMonth)} note={d.withBalance(owing.length)} icon="wallet" accent={COLORS.yellow} highlight />
     </div>
     {canEdit && !enrollments.length && <Panel title={d.setup} className="setup-panel">
       <p className="setup-intro">{d.setupIntro}</p>
@@ -63,7 +63,7 @@ export function Dashboard({ goTo, openStudent }: { goTo: (page: PageKey) => void
     <div className="dashboard-grid top-grid">
       <Panel title={d.todayCourses} action={<Button variant="ghost" icon="arrow" onClick={() => goTo("planning")}>{d.seePlanning}</Button>}>
         {todayGroups.length ? <div className="activity-list">{todayGroups.map((group) => <div className="activity-row" key={group.id}>
-          <span className="activity-icon" style={{ background: `${group.color}18`, color: group.color }}><Icon name="calendar" size={15} /></span>
+          <span className="activity-icon" style={{ color: tint(group.color) }}><Icon name="calendar" size={15} /></span>
           <div><strong>{group.name}</strong><span>{formatTime(group.start_time)}–{formatTime(group.end_time)} · {group.room || t.common.noRoom}</span></div>
           <Badge tone="info">{groupStudentIds(group.id).length}/{group.capacity}</Badge>
         </div>)}</div> : <EmptyState title={d.emptyToday} text={d.emptyTodayText} />}
@@ -113,7 +113,7 @@ export function Dashboard({ goTo, openStudent }: { goTo: (page: PageKey) => void
           const count = groupStudentIds(group.id).length;
           const status = count >= group.capacity ? "Complet" : "Ouvert";
           return <div className="activity-row" key={group.id}>
-            <span className="activity-icon" style={{ background: `${group.color}18`, color: group.color }}><Icon name="users" size={15} /></span>
+            <span className="activity-icon" style={{ color: tint(group.color) }}><Icon name="users" size={15} /></span>
             <div><strong>{group.name}</strong><span>{count}/{group.capacity} {t.common.student.toLowerCase()} · {group.days.map((day) => t.v.day[day]).join(" ") || t.common.noDays}</span></div>
             <Badge tone={statusTone(status)}>{label(t.v.status, status)}</Badge>
           </div>;

@@ -1,6 +1,13 @@
 /* Fonts served from our own domain: one variable file each, all weights, no Google round trip. */
 @font-face { font-family: "DM Sans"; src: url("/fonts/dm-sans-latin.woff2") format("woff2"); font-weight: 100 1000; font-style: normal; font-display: swap; }
 @font-face { font-family: "Manrope"; src: url("/fonts/manrope-latin.woff2") format("woff2"); font-weight: 200 800; font-style: normal; font-display: swap; }
+/* Charte Classtra: Fraunces (titles, figures, the name), Karla (text), Cairo (Arabic). Self-hosted:
+   the site's CSP only allows fonts from our own domain. Cairo only covers Arabic letters; Latin
+   inside Arabic text stays in Karla. */
+@font-face { font-family: "Fraunces"; src: url("/fonts/fraunces-latin-wght-normal.woff2") format("woff2"); font-weight: 100 900; font-style: normal; font-display: swap; }
+@font-face { font-family: "Karla"; src: url("/fonts/karla-latin-wght-normal.woff2") format("woff2"); font-weight: 200 800; font-style: normal; font-display: swap; }
+@font-face { font-family: "Cairo"; src: url("/fonts/cairo-arabic-wght-normal.woff2") format("woff2"); font-weight: 200 1000; font-style: normal; font-display: swap;
+  unicode-range: U+0600-06FF, U+0750-077F, U+0870-088E, U+0890-0891, U+0898-08E1, U+08E3-08FF, U+200C-200E, U+2010-2011, U+204F, U+2E41, U+FB50-FDFF, U+FE70-FE74, U+FE76-FEFC; }
 @import "tailwindcss";
 
 :root {
@@ -14,7 +21,12 @@
   --navy: #15163a;        /* brand navy: stays a surface colour in both themes */
   --ink: #15163a;         /* public-site text: flips in dark mode, --navy does not */
   --navy-2: #262a63;
-  --sand: #f7f5f0;
+  --sand: #f3ebdd;        /* charte: page background (~60 %) */
+  /* Charte Classtra: four colours, no more. Shades are transparencies of these four. */
+  --umber: #2a1b12;       /* text, dark surfaces, borders (~25 %) */
+  --sun: #f2a104;         /* the primary action, accents (~10 %): always a fill with umber text */
+  --palm: #1f6b4f;        /* reassurance, icons, "paid" (~5 %) */
+  --soft: rgba(42, 27, 18, .72); /* secondary text */
   --paper: #fffefb;
   --border: #e5e7ea;
   --muted: #6f7b89;
@@ -658,7 +670,7 @@ tbody tr[tabindex]:focus-visible, .class-card:focus-visible, .teacher-card:focus
 .lp-nav a { font-size: 15px; font-weight: 600; text-decoration: none; color: var(--lp-text); }
 .lp-login { padding: 9px 16px; border: 1px solid var(--ink); border-radius: 999px; font-size: 15px; font-weight: 700; text-decoration: none; color: var(--ink); }
 .lp-brand { display: inline-flex; align-items: center; gap: 10px; text-decoration: none; }
-.lp-brand strong { font: 800 19px Manrope, sans-serif; letter-spacing: -.03em; color: var(--ink); background: linear-gradient(100deg, var(--ink) 10%, var(--accent) 90%); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+.lp-brand .wm { font-family: Fraunces, Georgia, serif; font-size: 1.55rem; color: var(--ink); }
 .lp-brand strong span { color: var(--accent); }
 
 /* Buttons and links */
@@ -1122,7 +1134,6 @@ html:has(.lp) { scroll-behavior: smooth; }
 :root[data-theme="dark"] .lp { --lp-ink: #eef1fb; --lp-text: #aab3ca; --lp-line: #262c44; color: var(--lp-ink); }
 :root[data-theme="dark"] .lp-header { background: rgba(13,16,31,.88); }
 :root[data-theme="dark"] .lp-btn.primary { background: var(--accent); color: #14162e !important; }
-:root[data-theme="dark"] .lp-brand strong { background: linear-gradient(100deg, #fff 10%, var(--accent) 90%); -webkit-background-clip: text; background-clip: text; }
 :root[data-theme="dark"] .lp-tile.dark { background: #1b2039; }
 :root[data-theme="dark"] .lp-tile.sand { background: #221f33; border-color: #322e47; }
 :root[data-theme="dark"] .lp-plan.featured { background: #1e2340; box-shadow: 0 24px 60px rgba(0,0,0,.4); }
@@ -1170,7 +1181,7 @@ html:has(.lp) { scroll-behavior: smooth; }
 /* ================================================================
    Arabic: no Latin-display fonts, no negative tracking, no forced capitals.
    ================================================================ */
-[lang="ar"] { font-family: "Noto Kufi Arabic", "Segoe UI", Tahoma, "DM Sans", sans-serif; }
+[lang="ar"] { font-family: Cairo, Karla, "Segoe UI", Tahoma, sans-serif; }
 [lang="ar"] h1, [lang="ar"] h2, [lang="ar"] h3 { font-family: inherit; letter-spacing: 0; line-height: 1.25; }
 /* The product stills show the French app: they keep the Latin type. */
 [lang="ar"] .lp-app, [lang="ar"] .lp-shot { font-family: "DM Sans", sans-serif; }
@@ -1365,3 +1376,601 @@ a.auth-submit { margin-top: 18px; text-decoration: none; }
   .attendance-head { flex-direction: column; align-items: stretch; gap: 10px; }
   .attendance-head .button { width: 100%; }
 }
+/* ================================================================
+   Charte Classtra — shared foundation (logo name, focus). The pages pick it up step by step.
+   ================================================================ */
+.wm { font-family: Fraunces, Georgia, serif; font-weight: 800; letter-spacing: -.02em; line-height: 1; }
+.brand .wm { font-family: Fraunces, Georgia, serif; font-size: 1.3rem; color: #fff; letter-spacing: -.02em; }
+.auth-brand .wm { font-family: Fraunces, Georgia, serif; font-size: 1.55rem; color: var(--ink); letter-spacing: -.02em; }
+.logo { display: inline-flex; align-items: center; gap: 10px; }
+.logo.stack { flex-direction: column; align-items: flex-start; gap: 10px; }
+.logo .wm { font-size: 1.55rem; color: var(--umber); }
+.logo.stack .wm { font-size: 1.7rem; }
+.logo.on-dark .wm { color: var(--sand); }
+.mark { display: block; flex: none; }
+
+/* ================================================================
+   Landing page — charte Classtra (model: classtra_redesign). Everything is under .cl so the
+   app, the checkout and the sign-in screens keep their own styles until their own step.
+   Logical properties throughout: the page mirrors in Arabic.
+   ================================================================ */
+.cl {
+  /* The app's dark theme repaints --sand in navy; the landing page keeps the charte's sand. */
+  --sand: #f3ebdd;
+  --c-bg: var(--sand); --c-ink: var(--umber); --c-soft: var(--soft); --c-line: rgba(42,27,18,.25); --c-nav: rgba(243,235,221,.9);
+  position: relative; isolation: isolate; overflow-x: clip;
+  background: var(--c-bg); color: var(--c-ink);
+  font: 18px/1.65 Karla, system-ui, sans-serif;
+}
+:root[data-theme="dark"] .cl {
+  --c-bg: var(--umber); --c-ink: var(--sand); --c-soft: rgba(243,235,221,.72); --c-line: rgba(243,235,221,.22); --c-nav: rgba(42,27,18,.9);
+}
+.cl-bg { position: fixed; inset: 0; width: 100%; height: 100%; z-index: -1; pointer-events: none; }
+.cl h1, .cl h2, .cl h3 { font-family: Fraunces, Georgia, serif; font-weight: 800; letter-spacing: -.015em; color: var(--c-ink); margin: 0; }
+.cl p { margin: 0; }
+.cl :focus-visible { outline: 3px solid var(--sun); outline-offset: 3px; }
+.cl-wrap { width: 100%; padding-inline: 50px; }
+.cl-between { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+
+/* Nav: logo | 3 links | language, theme and the secondary action */
+.cl-nav { position: sticky; top: 0; z-index: 20; display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 16px; padding: 16px 24px; background: var(--c-nav); backdrop-filter: blur(8px); border-block-end: 1px solid rgba(42,27,18,.15); }
+:root[data-theme="dark"] .cl-nav { border-color: rgba(243,235,221,.15); }
+.cl-home { justify-self: start; text-decoration: none; color: inherit; }
+.cl .logo .wm { color: var(--c-ink); }
+.cl-links { display: flex; gap: clamp(20px, 4.4vw, 76px); font-weight: 700; font-size: .95rem; }
+.cl-links a { color: var(--c-soft); text-decoration: none; transition: color .2s; }
+.cl-links a:hover, .cl-links a.active { color: var(--c-ink); }
+.cl-end { justify-self: end; display: flex; align-items: center; gap: 10px; }
+.cl .lang-picker, .cl .pref-button { background: transparent; border: 1.5px solid var(--c-line); color: var(--c-ink); }
+.cl .lang-picker button { color: var(--c-soft); }
+.cl .lang-picker button.on { background: var(--sun); color: var(--umber); }
+.cl .pref-button:hover { background: var(--c-ink); color: var(--c-bg); }
+.cl-burger { display: none; place-items: center; width: 44px; height: 44px; border: 1.5px solid var(--c-line); border-radius: 999px; background: transparent; color: var(--c-ink); }
+.cl-menu { position: absolute; top: 100%; inset-inline: 12px; display: grid; padding: 8px; border: 2px solid var(--umber); border-radius: 18px; background: var(--c-bg); box-shadow: 0 20px 50px rgba(42,27,18,.18); }
+.cl-menu a { padding: 14px 16px; border-radius: 12px; font-size: 17px; font-weight: 700; color: var(--c-ink); text-decoration: none; }
+.cl-menu .lp-prefs { justify-content: space-between; padding: 12px 16px 6px; margin-top: 4px; border-block-start: 1px solid var(--c-line); }
+@media (min-width: 901px) { .cl-menu { display: none; } }
+
+/* Buttons: one primary (saffron fill, umber text, solid shadow), the rest outlined */
+.cl-btn { display: inline-flex; align-items: center; justify-content: center; gap: 10px; font: 700 1rem Karla, sans-serif; padding: 14px 26px; border-radius: 999px; border: 2px solid var(--c-ink); color: var(--c-ink); background: none; text-decoration: none; cursor: pointer; transition: transform .2s, background .2s, color .2s, box-shadow .2s; }
+.cl-btn.primary { background: var(--sun); color: var(--umber); border-color: var(--umber); font-size: 1.1rem; padding: 17px 32px; box-shadow: 0 4px 0 var(--umber); }
+.cl-btn.primary:hover { transform: translateY(3px); box-shadow: 0 1px 0 var(--umber); }
+:root[data-theme="dark"] .cl-btn.primary { border-color: var(--sand); box-shadow: 0 4px 0 var(--sand); }
+:root[data-theme="dark"] .cl-btn.primary:hover { box-shadow: 0 1px 0 var(--sand); }
+.cl-btn.outline { padding: 8px 18px; font-size: .92rem; min-height: 44px; }
+.cl-btn { white-space: nowrap; }
+/* Mid-size screens: the language switch drops its globe so the nav keeps one line. */
+@media (max-width: 1200px) { .cl-end .lang-picker > svg { display: none; } .cl-end { gap: 8px; } }
+.cl-btn.outline:hover { background: var(--c-ink); color: var(--c-bg); }
+.cl-btn:active { transform: translateY(2px); }
+[dir="rtl"] .cl-btn svg { transform: scaleX(-1); }
+
+/* Hero: text on one side, the one visual on the other */
+.cl-hero { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: clamp(32px, 3.5vw, 60px); align-items: center; padding-top: 90px; }
+.cl-hero h1 { font-size: clamp(40px, 5.3vw, 76px); line-height: 1.02; }
+.cl .cl-lead { font-size: 1.25rem; color: var(--c-soft); margin-top: 22px; max-width: 30em; }
+.cl .cl-offer { margin: 26px 0 32px; padding-inline-start: 16px; border-inline-start: 5px solid var(--sun); font-size: 1.15rem; max-width: 30em; }
+.cl-offer b { font-weight: 700; }
+.cl-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 14px; }
+.cl-actions .lp-demo { display: inline-flex; flex-direction: column; gap: 4px; }
+.cl .cl-micro { margin-top: 22px; font-size: .9rem; color: var(--c-soft); }
+
+.cl-visual { position: relative; padding: 60px 0 30px; margin-inline-end: clamp(0px, calc((100vw - 1100px) * .14), 90px); margin-inline-start: clamp(0px, calc((100vw - 1100px) * .32), 200px); }
+.cl-arch { position: absolute; inset-inline-start: 8%; inset-inline-end: -4%; top: 0; bottom: 60px; background: var(--sun); border-radius: 999px 999px 14px 14px; animation: cl-rise 1.2s ease backwards; }
+@keyframes cl-rise { from { transform: translateY(24px); opacity: 0; } }
+/* The still is a picture of the light app: it stays sand in both themes. */
+.cl-dash { position: relative; background: var(--sand); color: var(--umber); border: 2px solid var(--umber); border-radius: 18px; padding: 22px; margin-inline-end: 12%; box-shadow: 0 26px 50px rgba(42,27,18,.2); font-size: 16px; line-height: 1.5; text-align: left; }
+.cl-dash small { font-size: .8rem; color: var(--soft); }
+.cl-kpis { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin: 14px 0; }
+.cl-kpis > div { border: 1.5px solid var(--umber); border-radius: 10px; padding: 8px 12px; min-width: 0; }
+.cl-kpis small { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cl-kpis b { display: block; font: 800 1.9rem/1.1 Fraunces, Georgia, serif; letter-spacing: -.015em; }
+.cl-kpis .hi { background: var(--umber); color: var(--sand); }
+.cl-kpis .hi small { color: rgba(243,235,221,.8); }
+.cl-bars { display: flex; align-items: flex-end; gap: 8px; height: 64px; margin-bottom: 8px; }
+.cl-bars i { flex: 1; border-radius: 4px 4px 0 0; background: rgba(42,27,18,.2); transform-origin: bottom; animation: cl-grow .9s ease backwards; }
+.cl-bars i.on { background: var(--palm); }
+@keyframes cl-grow { from { transform: scaleY(0); } }
+.cl .cl-ln { display: flex; justify-content: space-between; align-items: center; font-size: .92rem; padding: 9px 0; border-top: 1px solid rgba(42,27,18,.18); animation: cl-fade .6s ease backwards; }
+@keyframes cl-fade { from { opacity: 0; transform: translateX(-8px); } }
+.cl-chip { font-size: .72rem; font-weight: 700; padding: 3px 10px; border-radius: 999px; }
+.cl-chip.ok { background: var(--palm); color: var(--sand); }
+.cl-chip.mid { background: var(--sun); color: var(--umber); }
+.cl-chip.late { background: var(--umber); color: var(--sun); }
+.cl-note { position: absolute; right: -6%; top: -34px; display: flex; gap: 8px; align-items: center; background: var(--umber); color: var(--sand); padding: 10px 16px; border-radius: 999px; font-weight: 700; font-size: .85rem; box-shadow: 0 12px 30px rgba(42,27,18,.3); animation: cl-bob 5s ease-in-out infinite; }
+.cl-note svg { color: var(--sun); }
+@keyframes cl-bob { 50% { transform: translateY(-6px); } }
+.cl-ex { position: absolute; inset-inline-start: 0; bottom: 0; font-size: .8rem; color: var(--c-soft); }
+
+/* Arabic: Fraunces has no Arabic letters; titles take Cairo, without the negative tracking. */
+.cl[lang="ar"] h1, .cl[lang="ar"] h2, .cl[lang="ar"] h3 { font-family: Cairo, Fraunces, serif; letter-spacing: 0; line-height: 1.2; }
+.cl[lang="ar"], .cl[lang="ar"] .cl-btn { font-family: Cairo, Karla, sans-serif; }
+.cl[lang="ar"] .cl-dash { font-family: Karla, sans-serif; }
+
+@media (max-width: 1400px) { .cl-dash { margin-inline-end: 5%; } }
+@media (max-width: 1000px) {
+  .cl-hero { grid-template-columns: minmax(0, 1fr); gap: 40px; padding-top: 50px; }
+  .cl-visual { margin-inline: 0; padding-top: 40px; }
+  .cl-dash { margin-inline-end: 0; }
+}
+@media (max-width: 900px) {
+  .cl-nav { grid-template-columns: 1fr auto; }
+  .cl-links, .cl-end > .lp-prefs { display: none; }
+  .cl-burger { display: grid; }
+  .cl-menu .lang-picker { flex: 1; justify-content: center; height: 42px; }
+}
+@media (max-width: 520px) {
+  .cl-wrap { padding-inline: 16px; }
+  .cl-nav { padding: 12px 16px; gap: 8px; }
+  .cl .logo .mark { width: 32px; height: 32px; }
+  .cl .logo .wm { font-size: 1.3rem; }
+  .cl-actions > * { width: 100%; }
+  .cl-btn.primary { width: 100%; }
+  .cl-dash { padding: 16px; }
+  .cl-kpis { gap: 6px; }
+  .cl-kpis > div { padding: 8px; }
+  .cl-kpis b { font-size: 1.5rem; }
+  .cl-note { top: -26px; right: 0; padding: 8px 12px; font-size: .78rem; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .cl *, .cl *::before, .cl *::after { animation: none !important; transition: none !important; }
+}
+
+/* Landing — proof band, problems → solutions, steps (charte, model classtra_redesign) */
+.cl-sec { padding-top: 140px; }
+.cl h2 { font-size: clamp(30px, 4vw, 52px); line-height: 1.08; max-width: 18em; }
+.cl-proof { list-style: none; margin: 90px 0 0; padding: 26px 42px; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 20px; border-block: 1px solid var(--c-line); font-weight: 700; font-size: .95rem; }
+.cl-proof li { display: flex; gap: 12px; align-items: center; }
+.cl-proof svg { color: var(--palm); flex: none; }
+:root[data-theme="dark"] .cl-proof svg, :root[data-theme="dark"] .cl-row > svg, :root[data-theme="dark"] .cl-plus svg { color: var(--sun); }
+
+.cl-rows { margin-top: 48px; }
+.cl-row { display: grid; grid-template-columns: 44px minmax(0, 1fr) minmax(0, 1fr); gap: 24px; align-items: center; padding: 28px 0; border-top: 1px solid var(--c-line); }
+.cl-row:last-child { border-bottom: 1px solid var(--c-line); }
+.cl-row > svg { color: var(--palm); }
+.cl .cl-row h3 { font-size: clamp(20px, 2.3vw, 28px); color: var(--c-soft); }
+/* A flat saffron bar drawn as a background so it follows the text over two lines. */
+.cl-strike { background: linear-gradient(var(--sun), var(--sun)) no-repeat left 0 top 58% / 0 3px; transition: background-size .8s .2s ease; }
+[dir="rtl"] .cl-strike { background-position: right 0 top 58%; }
+.cl-row.in .cl-strike { background-size: 100% 3px; }
+.cl .cl-row p { font-size: 1.25rem; font-weight: 700; opacity: 0; transform: translateX(-10px); transition: opacity .6s .7s, transform .6s .7s; }
+[dir="rtl"] .cl .cl-row p { transform: translateX(10px); }
+.cl .cl-row.in p { opacity: 1; transform: none; }
+.cl .cl-plus { display: flex; gap: 10px; align-items: center; margin-top: 26px; color: var(--c-soft); }
+.cl-plus svg { color: var(--palm); flex: none; }
+
+.cl-steps { list-style: none; padding: 0; margin: 50px 0 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 40px; }
+.cl-steps b { display: grid; place-items: center; width: 52px; height: 52px; border-radius: 50%; background: var(--sun); color: var(--umber); border: 2px solid var(--umber); font: 800 1.5rem Fraunces, serif; margin-bottom: 14px; }
+.cl .cl-steps h3 { font-size: 1.4rem; margin-bottom: 6px; }
+.cl-steps p { color: var(--c-soft); }
+
+@media (max-width: 900px) {
+  .cl-sec { padding-top: 90px; }
+  .cl-proof { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .cl-row, .cl-steps { grid-template-columns: minmax(0, 1fr); }
+  .cl-row { gap: 10px; }
+  .cl-steps { gap: 28px; }
+}
+@media (max-width: 520px) {
+  .cl-proof { grid-template-columns: minmax(0, 1fr); padding: 22px 16px; margin-top: 60px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .cl .cl-row p { opacity: 1; transform: none; }
+  .cl-strike { background-size: 100% 3px; }
+}
+
+/* Landing — pricing band, FAQ, contact card, footer (charte, model classtra_redesign) */
+.cl-band { background: var(--umber); color: var(--sand); margin-top: 140px; padding: 100px 0; }
+:root[data-theme="dark"] .cl-band { background: rgba(243,235,221,.06); border-block: 1px solid rgba(243,235,221,.15); }
+.cl .cl-band h2 { color: var(--sand); }
+.cl-offer-grid { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: clamp(32px, 3.5vw, 60px); align-items: center; }
+.cl .cl-band-text { margin-top: 18px; max-width: 30em; color: rgba(243,235,221,.8); }
+.cl-tabs { display: inline-flex; flex-wrap: wrap; gap: 4px; padding: 4px; margin: 28px 0 18px; border: 1.5px solid rgba(243,235,221,.35); border-radius: 999px; }
+.cl-tabs button { font: 700 .95rem Karla, sans-serif; min-height: 44px; padding: 10px 20px; border: 0; border-radius: 999px; background: none; color: var(--sand); cursor: pointer; transition: background .2s, color .2s; }
+.cl-tabs button:not([aria-selected="true"]):hover { background: rgba(243,235,221,.12); }
+.cl-tabs [aria-selected="true"] { background: var(--sun); color: var(--umber); }
+.cl-best { display: inline-block; font-size: .8rem; font-weight: 700; background: var(--sun); color: var(--umber); padding: 4px 12px; border-radius: 999px; }
+.cl-best.off { visibility: hidden; }
+.cl .cl-amount { margin: 8px 0 6px; }
+.cl-amount b { display: inline-block; font: 800 clamp(52px, 7vw, 96px)/1 Fraunces, Georgia, serif; letter-spacing: -.015em; color: var(--sun); animation: cl-pop .35s ease; }
+@keyframes cl-pop { from { opacity: 0; transform: translateY(6px); } }
+.cl .cl-save { color: rgba(243,235,221,.8); margin-bottom: 30px; }
+.cl-band .cl-btn.primary { border-color: var(--sand); box-shadow: 0 4px 0 var(--sand); }
+.cl-band .cl-btn.primary:hover { box-shadow: 0 1px 0 var(--sand); }
+.cl-band .cl-btn.outline { border-color: var(--sand); color: var(--sand); }
+.cl-band .cl-btn.outline:hover { background: var(--sand); color: var(--umber); }
+.cl .cl-incl-title { font-weight: 700; margin-bottom: 14px; }
+.cl-incl { list-style: none; padding: 0; margin: 0; display: grid; gap: 14px; font-size: 1.1rem; }
+.cl-incl li { display: flex; gap: 12px; align-items: center; padding-bottom: 14px; border-bottom: 1px solid rgba(243,235,221,.2); }
+.cl-incl svg { color: var(--sun); flex: none; }
+.cl .cl-extras { margin-top: 18px; font-size: .9rem; color: rgba(243,235,221,.8); }
+
+.cl-faq { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: clamp(40px, 9vw, 158px); }
+.cl .cl-faq h2 { align-self: start; position: sticky; top: 110px; }
+.cl-faq details { border-bottom: 1px solid var(--c-line); }
+.cl-faq details:first-child { border-top: 1px solid var(--c-line); }
+.cl-faq summary { cursor: pointer; padding: 22px 4px; min-height: 44px; font: 800 1.15rem Fraunces, Georgia, serif; letter-spacing: -.015em; list-style: none; display: flex; justify-content: space-between; align-items: center; gap: 16px; }
+.cl-faq summary::-webkit-details-marker { display: none; }
+.cl-faq summary svg { color: var(--palm); flex: none; transition: transform .3s; }
+:root[data-theme="dark"] .cl-faq summary svg { color: var(--sun); }
+.cl-faq details[open] summary svg { transform: rotate(45deg); }
+.cl .cl-faq details p { padding: 0 4px 22px; color: var(--c-soft); max-width: 56ch; }
+.cl[lang="ar"] .cl-faq summary { font-family: Cairo, sans-serif; letter-spacing: 0; }
+
+.cl-contact { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: clamp(32px, 3.2vw, 56px); align-items: center; }
+.cl-card { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; background: var(--sand); color: var(--umber); border: 2px solid var(--umber); border-radius: 20px; padding: 30px; box-shadow: 0 20px 50px rgba(42,27,18,.15); margin-inline-end: clamp(0px, 5.8vw, 100px); }
+:root[data-theme="dark"] .cl-card { border-color: var(--sand); }
+.cl-card { align-items: end; }
+.cl-card label { display: grid; gap: 6px; font-weight: 700; font-size: .9rem; }
+.cl-card input { font: inherit; font-weight: 400; padding: 12px 14px; border: 1.5px solid var(--umber); border-radius: 10px; background: #fff8ea; color: var(--umber); min-width: 0; }
+.cl-card input:focus { outline: 3px solid var(--sun); outline-offset: 0; }
+.cl-card .cl-btn { grid-column: 1 / -1; margin-top: 6px; }
+:root[data-theme="dark"] .cl-card .cl-btn.primary { border-color: var(--umber); box-shadow: 0 4px 0 var(--umber); }
+
+.cl-foot { padding-top: 130px; padding-bottom: 40px; display: grid; gap: 16px; font-size: .9rem; }
+.cl-foot-links { display: flex; flex-wrap: wrap; gap: 6px 22px; color: var(--c-soft); }
+.cl-foot-links a { color: inherit; text-decoration: none; }
+.cl-foot-links a:hover { color: var(--c-ink); text-decoration: underline; }
+
+@media (max-width: 900px) {
+  .cl-offer-grid, .cl-faq, .cl-contact { grid-template-columns: minmax(0, 1fr); gap: 36px; }
+  .cl .cl-faq h2 { position: static; }
+  .cl-card { margin-inline-end: 0; }
+  .cl-band { margin-top: 90px; padding: 70px 0; }
+  .cl-foot { padding-top: 90px; }
+}
+@media (max-width: 520px) {
+  .cl-tabs button { padding: 10px 14px; }
+  .cl-card { grid-template-columns: minmax(0, 1fr); padding: 22px; }
+}
+
+/* ================================================================
+   Public screens around the landing page (sign-in, sign-up, trial, messages, order form,
+   legal pages): charte Classtra. .cs repaints the shared tokens these screens already read,
+   then gives the pieces the charte's shapes. ":root:root" lifts each rule above the old
+   dark-theme overrides without !important.
+   ================================================================ */
+:root:root .cs {
+  --sand: #f3ebdd; --c-bg: #f3ebdd; --c-ink: var(--umber); --card: #f3ebdd;
+  --ink: var(--umber); --ink-2: var(--umber); --text: rgba(42,27,18,.8);
+  --muted: rgba(42,27,18,.72); --muted-2: rgba(42,27,18,.55); --lp-ink: var(--umber); --lp-text: rgba(42,27,18,.72);
+  --border: rgba(42,27,18,.25); --lp-line: rgba(42,27,18,.2); --line: rgba(42,27,18,.18); --surface-2: rgba(42,27,18,.05);
+  --paper: #f3ebdd; --field-bg: #fff8ea; --accent: var(--palm); --accent-soft: rgba(31,107,79,.12); --accent-deep: var(--palm);
+  --btn-primary: var(--sun); --btn-primary-text: var(--umber); --shadow: 0 20px 50px rgba(42,27,18,.15);
+  background: var(--c-bg); color: var(--c-ink);
+  font-family: Karla, system-ui, sans-serif;
+}
+:root:root[data-theme="dark"] .cs {
+  --c-bg: var(--umber); --c-ink: #f3ebdd; --card: rgba(243,235,221,.06);
+  --ink: #f3ebdd; --ink-2: #f3ebdd; --text: rgba(243,235,221,.8);
+  --muted: rgba(243,235,221,.72); --muted-2: rgba(243,235,221,.55); --lp-ink: #f3ebdd; --lp-text: rgba(243,235,221,.72);
+  --border: rgba(243,235,221,.25); --lp-line: rgba(243,235,221,.2); --line: rgba(243,235,221,.18); --surface-2: rgba(243,235,221,.06);
+  --paper: rgba(243,235,221,.06); --accent: var(--sun); --accent-soft: rgba(242,161,4,.14); --accent-deep: var(--sun);
+  --shadow: 0 20px 50px rgba(0,0,0,.35);
+}
+:root:root .cs :focus-visible { outline: 3px solid var(--sun); outline-offset: 3px; }
+:root:root .cs h1, :root:root .cs h2, :root:root .cs legend, :root:root .cs .lp-total strong, :root:root .cs .lp-method strong {
+  font-family: Fraunces, Georgia, serif; font-weight: 800; letter-spacing: -.015em; color: var(--c-ink);
+}
+.cs[lang="ar"], :root:root .cs[lang="ar"] h1, :root:root .cs[lang="ar"] h2, :root:root .cs[lang="ar"] legend,
+:root:root .cs[lang="ar"] .lp-total strong, :root:root .cs[lang="ar"] .lp-method strong { font-family: Cairo, Karla, sans-serif; letter-spacing: 0; }
+
+/* Sign-in card */
+:root:root .cs.auth-page { background: var(--c-bg); }
+:root:root .cs .auth-card { max-width: 420px; padding: 32px 30px; background: var(--card); border: 2px solid var(--c-ink); border-radius: 20px; box-shadow: var(--shadow); }
+:root:root .cs .auth-card h1 { font-size: 1.7rem; line-height: 1.15; }
+:root:root .cs .auth-muted { color: var(--muted); font-size: 15px; }
+:root:root .cs .auth-form label, :root:root .cs .lp-checkout label { color: var(--c-ink); font-size: 14px; font-weight: 700; }
+:root:root .cs .auth-tabs { border: 1.5px solid var(--border); border-radius: 999px; background: none; }
+:root:root .cs .auth-tabs-thumb { background: var(--sun); border-radius: 999px; box-shadow: none; }
+:root:root .cs .auth-tabs button { border-radius: 999px; color: var(--muted); font-size: 14px; min-height: 40px; }
+:root:root .cs .auth-tabs button[aria-selected="true"] { color: var(--umber); }
+:root:root .cs .auth-foot .text-button, :root:root .cs .text-button { color: var(--c-ink); font-size: 14px; text-decoration: underline; text-underline-offset: 3px; }
+
+/* Fields: #fff8ea, umber 1.5px, saffron focus ring; an error is said in words, not only in colour */
+:root:root .cs .field { min-height: 46px; padding: 10px 14px; border: 1.5px solid var(--umber); border-radius: 10px; background: #fff8ea; color: var(--umber); font-size: 16px; box-shadow: none; }
+:root:root .cs .field:focus { outline: 3px solid var(--sun); outline-offset: 0; border-color: var(--umber); box-shadow: none; }
+:root:root .cs .field[aria-invalid="true"] { border-width: 2.5px; border-color: var(--umber); }
+:root:root .cs .field-error { color: var(--c-ink); font-size: 13px; font-weight: 700; }
+:root:root .cs .auth-error { background: var(--umber); color: var(--sand); border-radius: 10px; }
+:root[data-theme="dark"]:root .cs .auth-error { background: var(--sand); color: var(--umber); }
+:root:root .cs .auth-error svg { color: var(--sun); }
+:root:root .cs .auth-success { background: var(--palm); color: var(--sand); border-radius: 10px; }
+
+/* One primary button per screen: saffron, umber text and border, solid shadow */
+:root:root .cs .auth-submit, :root:root .cs .lp-btn.primary {
+  min-height: 52px; padding: 0 28px; background: var(--sun); color: var(--umber) !important; border: 2px solid var(--umber); border-radius: 999px;
+  font: 700 1.05rem Karla, sans-serif; box-shadow: 0 4px 0 var(--umber); transition: transform .2s, box-shadow .2s;
+}
+:root:root .cs .auth-submit:hover, :root:root .cs .lp-btn.primary:hover { transform: translateY(3px); box-shadow: 0 1px 0 var(--umber); }
+:root:root[data-theme="dark"] .cs .auth-submit, :root:root[data-theme="dark"] .cs .lp-btn.primary { border-color: var(--sand); box-shadow: 0 4px 0 var(--sand); }
+:root:root .cs .auth-form .auth-submit { margin-top: 10px; }
+:root:root .cs .lp-login { border: 2px solid var(--c-ink); color: var(--c-ink); padding: 8px 18px; font-size: .92rem; }
+:root:root .cs .lp-login:hover { background: var(--c-ink); color: var(--c-bg) !important; }
+
+/* Order form and legal pages: the charte nav, sand cards with an umber border */
+:root:root .cs .lp-header { max-width: none; background: rgba(243,235,221,.9); border-block-end: 1px solid rgba(42,27,18,.15); backdrop-filter: blur(8px); }
+:root:root[data-theme="dark"] .cs .lp-header { background: rgba(42,27,18,.9); border-color: rgba(243,235,221,.15); }
+:root:root .cs .lp-checkout-form, :root:root .cs .lp-summary, :root:root .cs .lp-done { background: var(--card); border: 2px solid var(--c-ink); border-radius: 20px; box-shadow: var(--shadow); }
+:root:root .cs .lp-checkout .lp-method { background: none; border: 1.5px solid var(--border); border-radius: 14px; }
+:root:root .cs .lp-checkout .lp-method.active { border: 2px solid var(--c-ink); background: rgba(242,161,4,.14); }
+:root:root .cs .lp-method input { accent-color: var(--umber); }
+:root:root .cs .lp-done-icon { background: var(--palm); color: var(--sand); }
+:root:root .cs .lp-next li { background: var(--umber); color: rgba(243,235,221,.8); }
+:root:root[data-theme="dark"] .cs .lp-next li { background: rgba(243,235,221,.08); }
+:root:root .cs .lp-next li::before { background: var(--sun); color: var(--umber); font-family: Fraunces, serif; }
+:root:root .cs .lp-next strong { color: var(--sand); }
+:root:root .cs .lp-demo-banner, :root:root .cs .lp-todo { background: var(--sun); color: var(--umber); }
+:root:root .cs .lp-eyebrow { color: var(--c-ink); }
+:root:root .cs .lp-footer { max-width: none; border-color: var(--lp-line); }
+:root:root .cs .lp-footer nav a { color: var(--muted); }
+:root:root .cs select.field { background-color: #fff8ea; }
+@media (max-width: 520px) {
+  :root:root .cs .auth-card { padding: 24px 20px; }
+}
+
+/* ================================================================
+   Dashboard (signed-in app) — charte Classtra, E6a: shell and shared components.
+   .app-shell repaints the shared tokens, so every page that reads them follows. ":root:root"
+   lifts these rules above the older ones (and the old dark overrides) without !important.
+   Density (validated): bigger and airier. The shell's zoom carries it: the app was drawn at
+   9–13px; 1.34 brings its smallest labels to 12px, buttons to 48px and margins to ~48px.
+   ================================================================ */
+:root:root .app-shell {
+  --sand: #f3ebdd; --card: rgba(255,248,234,.55);
+  --ink: var(--umber); --ink-2: var(--umber); --text: rgba(42,27,18,.82);
+  --muted: rgba(42,27,18,.72); --muted-2: rgba(42,27,18,.6);
+  --border: rgba(42,27,18,.22); --line: rgba(42,27,18,.18); --surface-2: rgba(42,27,18,.05);
+  --track: rgba(42,27,18,.12); --track-2: rgba(42,27,18,.25);
+  --paper: #f3ebdd; --paper-blur: rgba(243,235,221,.9); --field-bg: #fff8ea;
+  --accent: var(--palm); --accent-soft: rgba(31,107,79,.12); --accent-deep: var(--palm); --navy: var(--umber);
+  --ok-bg: rgba(31,107,79,.14); --ok-line: rgba(31,107,79,.45); --ok-fg: var(--palm);
+  --warn-bg: rgba(242,161,4,.2); --warn-line: rgba(242,161,4,.7); --warn-fg: var(--umber);
+  --bad-bg: rgba(42,27,18,.1); --bad-line: rgba(42,27,18,.5); --bad-fg: var(--umber);
+  --info-bg: rgba(42,27,18,.06); --info-line: rgba(42,27,18,.25); --info-fg: var(--umber);
+  --green: var(--palm); --red: var(--umber);
+  --btn-primary: var(--sun); --btn-primary-text: var(--umber);
+  --shadow: none;
+  --ui: 1.34;
+  background: var(--sand); color: var(--umber);
+  font-family: Karla, system-ui, sans-serif;
+}
+@media (min-width: 1800px) { :root:root .app-shell { --ui: 1.45; } }
+@media (min-width: 2300px) { :root:root .app-shell { --ui: 1.6; } }
+/* With the sidebar beside it, a laptop width leaves less room: a smaller step there. */
+@media (min-width: 951px) and (max-width: 1279px) { :root:root .app-shell { --ui: 1.15; } }
+@media (max-width: 950px) { :root:root .app-shell { --ui: 1.22; } }
+@media (max-width: 520px) { :root:root .app-shell { --ui: 1.12; } }
+
+:root:root .app-shell :focus-visible { outline: 3px solid var(--sun); outline-offset: 2px; }
+:root:root .app-shell h1, :root:root .app-shell h2, :root:root .app-shell .metric-value,
+:root:root .app-shell .drawer-head h2, :root:root .app-shell .form-modal-head h2, :root:root .app-shell .confirm-box h2 {
+  font-family: Fraunces, Georgia, serif; font-weight: 800; letter-spacing: -.015em; color: var(--ink);
+}
+:root:root .app-shell h3, :root:root .app-shell h4, :root:root .app-shell strong, :root:root .app-shell .panel-header h3,
+:root:root .app-shell .inline-title, :root:root .app-shell .tabs button, :root:root .app-shell .setup-steps strong { font-family: Karla, sans-serif; letter-spacing: 0; }
+.app-shell[lang="ar"], :root:root .app-shell[lang="ar"] h1, :root:root .app-shell[lang="ar"] h2, :root:root .app-shell[lang="ar"] h3,
+:root:root .app-shell[lang="ar"] strong, :root:root .app-shell[lang="ar"] .metric-value { font-family: Cairo, Karla, sans-serif; letter-spacing: 0; }
+
+/* Sidebar: sand, an umber rule on the content side; the open page in umber with sand text */
+:root:root .app-shell .sidebar { background: var(--sand); color: var(--umber); border-inline-end: 1.5px solid var(--umber); }
+:root:root .app-shell .brand .wm { color: var(--umber); }
+:root:root .app-shell .brand small, :root:root .app-shell .nav-label { color: var(--muted); }
+:root:root .app-shell .mobile-close { color: var(--umber); }
+:root:root .app-shell .school-switcher { background: none; border: 1.5px solid var(--border); }
+:root:root .app-shell .school-switcher span:not(.school-avatar) { color: var(--muted); }
+:root:root .app-shell .school-avatar { background: var(--sun); color: var(--umber); font-family: Karla, sans-serif; }
+:root:root .app-shell .nav-item { color: var(--muted); font-size: 12px; font-weight: 700; border-radius: 999px; }
+:root:root .app-shell .nav-item:hover { background: rgba(42,27,18,.07); color: var(--umber); }
+:root:root .app-shell .nav-item.active, :root:root [dir="rtl"] .app-shell .nav-item.active, :root:root .app-shell[dir="rtl"] .nav-item.active { background: var(--umber); color: var(--sand); box-shadow: none; }
+:root:root .app-shell .nav-item em { background: rgba(42,27,18,.1); color: inherit; }
+:root:root .app-shell .sidebar-overlay { background: rgba(42,27,18,.35); }
+
+/* Top bar */
+:root:root .app-shell .topbar { background: var(--paper-blur); border-bottom: 1px solid rgba(42,27,18,.15); }
+:root:root .app-shell .global-search:focus-within { border-color: var(--sun); }
+:root:root .app-shell .search-results { background: var(--sand); border: 2px solid var(--umber); }
+:root:root .app-shell .search-results button:hover, :root:root .app-shell .search-results button:focus-visible { background: rgba(42,27,18,.07); }
+
+/* Banners are alerts: umber badge, sand text, saffron icon */
+:root:root .app-shell .demo-banner { background: var(--umber); color: var(--sand); border: 0; }
+:root:root .app-shell .demo-banner svg { color: var(--sun); }
+:root:root .app-shell .demo-banner .text-button { color: var(--sun); text-decoration: underline; }
+:root:root .app-shell .toast { background: var(--umber); color: var(--sand); border: 0; }
+:root:root .app-shell .toast-check { background: var(--palm); color: var(--sand); }
+:root:root .app-shell .toast button { color: rgba(243,235,221,.8); }
+:root:root .app-shell .status-live { background: var(--palm); }
+:root:root .app-shell .status-live.syncing { background: var(--sun); }
+
+/* Page header, panels, KPI cards */
+:root:root .app-shell .eyebrow { color: var(--muted); }
+:root:root .app-shell .page-header p { color: var(--muted); }
+:root:root .app-shell .panel { background: var(--card); border: 1.5px solid var(--border); border-radius: 14px; box-shadow: none; }
+:root:root .app-shell .metrics-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+@media (max-width: 950px) { :root:root .app-shell .metrics-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 520px) { :root:root .app-shell .metrics-grid { grid-template-columns: minmax(0, 1fr); } }
+:root:root .app-shell .metric-card { background: none; border: 1.5px solid var(--umber); border-radius: 10px; box-shadow: none; }
+:root:root .app-shell .metric-icon { background: none; color: var(--palm); }
+:root:root .app-shell .metric-value { font-size: 1.9rem; letter-spacing: -.015em; }
+:root:root .app-shell .metric-card.hi { background: var(--umber); color: var(--sand); }
+:root:root .app-shell .metric-card.hi .metric-value { color: var(--sand); }
+:root:root .app-shell .metric-card.hi .metric-label, :root:root .app-shell .metric-card.hi .metric-note { color: rgba(243,235,221,.8); }
+:root:root .app-shell .metric-card.hi .metric-icon { color: var(--sun); }
+:root:root .app-shell .empty-state { background: none; border: 1.5px dashed var(--border); }
+:root:root .app-shell .empty-state .activity-icon { color: var(--palm); }
+
+/* Buttons: pills; the primary is saffron with a solid umber shadow */
+:root:root .app-shell .button { border-width: 2px; border-radius: 999px; font-weight: 700; }
+:root:root .app-shell .button:hover { box-shadow: none; }
+:root:root .app-shell .button-primary { box-shadow: 0 3px 0 var(--umber); }
+:root:root .app-shell .button-primary:hover { transform: translateY(2px); box-shadow: 0 1px 0 var(--umber); }
+:root:root .app-shell .button-outline:hover, :root:root .app-shell .button-danger:hover { background: var(--umber) !important; color: var(--sand) !important; }
+:root:root .app-shell .button-ghost:hover { background: rgba(42,27,18,.07) !important; }
+:root:root .app-shell .text-button { color: var(--umber); text-decoration: underline; text-underline-offset: 3px; }
+:root:root .app-shell .badge { font-size: 9px; }
+:root:root .app-shell .tabs { background: none; border: 1.5px solid var(--border); border-radius: 999px; }
+:root:root .app-shell .tabs button { border-radius: 999px; color: var(--muted); }
+:root:root .app-shell .tabs button.active { background: var(--sun); color: var(--umber); box-shadow: none; }
+
+/* Fields: #fff8ea, umber 1.5px, saffron focus ring */
+:root:root .app-shell .field, :root:root .app-shell .select, :root:root .app-shell .compact-select { border: 1.5px solid var(--umber); border-radius: 10px; background-color: #fff8ea; color: var(--umber); }
+:root:root .app-shell .field:focus, :root:root .app-shell .select:focus, :root:root .app-shell .compact-select:focus { outline: 3px solid var(--sun); outline-offset: 0; border-color: var(--umber); box-shadow: none; }
+:root:root .app-shell .search-box { border: 1.5px solid var(--umber); border-radius: 999px; background: #fff8ea; color: var(--muted); }
+:root:root .app-shell .search-box:focus-within { outline: 3px solid var(--sun); }
+:root:root .app-shell .search-box input { color: var(--umber); }
+
+/* Tables: few lines, airy rows, no coloured zebra; they scroll inside their own frame */
+:root:root .app-shell th { background: none; color: var(--muted); border-bottom: 1px solid var(--line); }
+:root:root .app-shell td { border-top: 1px solid var(--line); }
+:root:root .app-shell tbody tr:nth-child(even) { background: none; }
+:root:root .app-shell tbody tr:hover { background: rgba(42,27,18,.04); }
+:root:root .app-shell .table-scroll { overflow-x: auto; max-width: 100%; }
+
+/* Drawers, modals, confirmations: sand cards with an umber border */
+:root:root .app-shell .drawer, :root:root .app-shell .form-modal, :root:root .app-shell .confirm-box { background: var(--sand); border: 2px solid var(--umber); box-shadow: 0 30px 80px rgba(42,27,18,.25); }
+:root:root .app-shell .drawer { border-width: 0; border-inline-start: 2px solid var(--umber); }
+:root:root .app-shell .form-modal-foot { background: none; }
+:root:root .app-shell .form-modal-head .eyebrow { color: var(--muted); }
+:root:root .app-shell .drawer-layer, :root:root .app-shell .confirm-layer { background: rgba(42,27,18,.35); }
+:root:root .app-shell .close-button { background: none; border: 1.5px solid var(--umber); color: var(--umber); border-radius: 999px; }
+:root:root .app-shell .app-footer { color: var(--muted); }
+
+/* Dashboard — E6b/E6c: the pages. Icons palm, alerts saffron, no other colour. */
+:root:root .app-shell .activity-icon { background: none !important; color: var(--palm) !important; }
+:root:root .app-shell .avatar, :root:root .app-shell .profile-avatar { background: rgba(42,27,18,.08) !important; color: var(--umber) !important; font-family: Karla, sans-serif; }
+:root:root .app-shell .risk-score { color: var(--umber); font-family: Fraunces, serif; }
+:root:root .app-shell .risk-row:hover, :root:root .app-shell .certificate-row:hover, :root:root .app-shell .certificate-row.selected { background: rgba(42,27,18,.05); }
+:root:root .app-shell .count-chip { background: rgba(42,27,18,.1); color: var(--umber); }
+
+/* Progress and capacity tracks: umber 12 % track */
+:root:root .app-shell .capacity-track, :root:root .app-shell .hours-track, :root:root .app-shell .inline-progress > div { background: var(--track); }
+:root:root .app-shell .inline-progress > span.low, :root:root .app-shell .money-danger, :root:root .app-shell .text-danger { color: var(--umber) !important; text-decoration: underline wavy var(--sun); text-underline-offset: 3px; }
+:root:root .app-shell .money-ok, :root:root .app-shell .text-teal { color: var(--palm); }
+
+/* Setup steps for a new school */
+:root:root .app-shell .setup-steps li { background: none; border: 1.5px solid var(--border); }
+:root:root .app-shell .setup-steps li.done { background: rgba(31,107,79,.08); border-color: var(--palm); }
+:root:root .app-shell .setup-number { background: var(--sun); color: var(--umber); border: 2px solid var(--umber); font-family: Fraunces, serif; }
+:root:root .app-shell .setup-steps li.done .setup-number { background: var(--palm); color: var(--sand); border-color: var(--palm); }
+:root:root .app-shell .setup-cta { background: none; color: var(--umber); border: 2px solid var(--umber); border-radius: 999px; }
+:root:root .app-shell .setup-cta:hover { background: var(--umber); color: var(--sand); }
+:root:root .app-shell .setup-done { color: var(--palm); font-family: Karla, sans-serif; }
+
+/* Attendance: P / L / A / E keep their letter or symbol; colour only adds to it */
+:root:root .app-shell .attendance-controls { background: none; border: 1.5px solid var(--border); }
+:root:root .app-shell .presence { border-radius: 999px; }
+:root:root .app-shell .presence.present { background: var(--palm); color: var(--sand); border-color: var(--palm); }
+:root:root .app-shell .presence.late { background: var(--sun); color: var(--umber); border-color: var(--umber); }
+:root:root .app-shell .presence.absent { background: var(--umber); color: var(--sun); border-color: var(--umber); }
+:root:root .app-shell .presence.excused { background: none; color: var(--umber); border: 1.5px dashed var(--umber); }
+:root:root .app-shell .attendance-table tfoot td { background: rgba(31,107,79,.1); color: var(--palm); border-top-color: var(--palm); }
+
+/* Groups, courses, teachers, rooms */
+:root:root .app-shell .class-card, :root:root .app-shell .teacher-card { background: var(--card); border: 1.5px solid var(--border); box-shadow: none; }
+:root:root .app-shell .class-card:hover, :root:root .app-shell .teacher-card:hover { border-color: var(--umber); box-shadow: none; }
+:root:root .app-shell .teacher-subject { color: var(--palm); }
+:root:root .app-shell .teacher-avatar { font-family: Karla, sans-serif; }
+:root:root .app-shell .week-switch button { background: none; border: 1.5px solid var(--umber); color: var(--umber); border-radius: 999px; }
+:root:root .app-shell .calendar-event strong { color: var(--umber); }
+:root:root .app-shell .eligibility-banner { background: rgba(31,107,79,.1); border-color: var(--palm); }
+:root:root .app-shell .eligibility-banner strong, :root:root .app-shell .eligibility-banner span { color: var(--palm); }
+
+/* Statistics: palm for the current month, umber 20 % for the others, saffron for a loss */
+:root:root .app-shell .bar { background: rgba(42,27,18,.2); }
+:root:root .app-shell .bar.now { background: var(--palm); }
+:root:root .app-shell .bar.negative { background: var(--sun); }
+:root:root .app-shell .bar-col:hover .bar { filter: none; outline: 2px solid var(--umber); }
+
+/* Settings */
+:root:root .app-shell .settings-nav { background: none; border: 1.5px solid var(--border); }
+:root:root .app-shell .settings-nav button { border-radius: 999px; color: var(--muted); }
+:root:root .app-shell .settings-nav button.active { background: var(--umber); color: var(--sand); }
+:root:root .app-shell .settings-nav .settings-logout { color: var(--umber); text-decoration: underline; }
+:root:root .app-shell .settings-nav .settings-logout:hover { background: rgba(42,27,18,.07); }
+:root:root .app-shell .switch { background: var(--track-2); }
+:root:root .app-shell .switch.on { background: var(--palm); }
+:root:root .app-shell .switch i { background: var(--sand); }
+
+/* Certificates and receipts are paper: they keep their own light look */
+:root:root .app-shell .certificate-preview { background: rgba(42,27,18,.06); }
+
+:root:root .app-shell .presence-choices .presence.selected { outline: 2.5px solid var(--umber); outline-offset: 2px; }
+
+/* Dashboard — E6d: dark theme, built from the same four colours (umber page, sand text,
+   saffron accents). Palm is too dark to read on umber, so icons take saffron here. */
+:root:root[data-theme="dark"] .app-shell {
+  --ink: #f3ebdd; --ink-2: #f3ebdd; --text: rgba(243,235,221,.82);
+  --muted: rgba(243,235,221,.72); --muted-2: rgba(243,235,221,.6);
+  --border: rgba(243,235,221,.22); --line: rgba(243,235,221,.16); --surface-2: rgba(243,235,221,.06);
+  --track: rgba(243,235,221,.14); --track-2: rgba(243,235,221,.3);
+  --card: rgba(243,235,221,.05); --paper-blur: rgba(42,27,18,.92);
+  --accent: var(--sun); --accent-soft: rgba(242,161,4,.14); --accent-deep: var(--sun);
+  --ok-bg: rgba(243,235,221,.1); --ok-line: rgba(243,235,221,.4); --ok-fg: #f3ebdd;
+  --warn-bg: rgba(242,161,4,.2); --warn-line: rgba(242,161,4,.6); --warn-fg: #f3ebdd;
+  --bad-bg: rgba(243,235,221,.1); --bad-line: rgba(243,235,221,.4); --bad-fg: #f3ebdd;
+  --info-bg: rgba(243,235,221,.06); --info-line: rgba(243,235,221,.25); --info-fg: #f3ebdd;
+  --green: #f3ebdd; --red: #f3ebdd;
+  background: var(--umber); color: #f3ebdd; color-scheme: dark;
+}
+:root:root[data-theme="dark"] .app-shell .sidebar { background: var(--umber); color: #f3ebdd; border-inline-end-color: rgba(243,235,221,.3); }
+:root:root[data-theme="dark"] .app-shell .brand .wm { color: #f3ebdd; }
+:root:root[data-theme="dark"] .app-shell .mobile-close { color: #f3ebdd; }
+:root:root[data-theme="dark"] .app-shell .nav-item:hover { background: rgba(243,235,221,.08); color: #f3ebdd; }
+:root:root[data-theme="dark"] .app-shell .nav-item.active { background: #f3ebdd; color: var(--umber); }
+:root:root[data-theme="dark"] .app-shell .topbar { border-bottom-color: rgba(243,235,221,.15); }
+:root:root[data-theme="dark"] .app-shell .search-results,
+:root:root[data-theme="dark"] .app-shell .drawer,
+:root:root[data-theme="dark"] .app-shell .form-modal,
+:root:root[data-theme="dark"] .app-shell .confirm-box { background: var(--umber); border-color: #f3ebdd; }
+:root:root[data-theme="dark"] .app-shell .search-results button:hover { background: rgba(243,235,221,.08); }
+:root:root[data-theme="dark"] .app-shell .demo-banner,
+:root:root[data-theme="dark"] .app-shell .toast { background: #f3ebdd; color: var(--umber); }
+:root:root[data-theme="dark"] .app-shell .demo-banner .text-button { color: var(--umber); }
+:root:root[data-theme="dark"] .app-shell .toast button { color: rgba(42,27,18,.75); }
+:root:root[data-theme="dark"] .app-shell .metric-card { border-color: rgba(243,235,221,.6); }
+:root:root[data-theme="dark"] .app-shell .metric-icon,
+:root:root[data-theme="dark"] .app-shell .activity-icon,
+:root:root[data-theme="dark"] .app-shell .empty-state .activity-icon,
+:root:root[data-theme="dark"] .app-shell .teacher-subject,
+:root:root[data-theme="dark"] .app-shell .money-ok,
+:root:root[data-theme="dark"] .app-shell .text-teal { color: var(--sun) !important; }
+:root:root[data-theme="dark"] .app-shell .metric-card.hi { background: #f3ebdd; color: var(--umber); border-color: #f3ebdd; }
+:root:root[data-theme="dark"] .app-shell .metric-card.hi .metric-value { color: var(--umber); }
+:root:root[data-theme="dark"] .app-shell .metric-card.hi .metric-label,
+:root:root[data-theme="dark"] .app-shell .metric-card.hi .metric-note { color: rgba(42,27,18,.75); }
+:root:root[data-theme="dark"] .app-shell .metric-card.hi .metric-icon { color: var(--palm) !important; }
+:root:root[data-theme="dark"] .app-shell .avatar,
+:root:root[data-theme="dark"] .app-shell .profile-avatar { background: rgba(243,235,221,.12) !important; color: #f3ebdd !important; }
+:root:root[data-theme="dark"] .app-shell .risk-score { color: #f3ebdd; }
+:root:root[data-theme="dark"] .app-shell .count-chip { background: rgba(243,235,221,.14); color: #f3ebdd; }
+:root:root[data-theme="dark"] .app-shell .button-primary { border-color: #f3ebdd !important; box-shadow: 0 3px 0 #f3ebdd; }
+:root:root[data-theme="dark"] .app-shell .button-outline:hover,
+:root:root[data-theme="dark"] .app-shell .button-danger:hover { background: #f3ebdd !important; color: var(--umber) !important; }
+:root:root[data-theme="dark"] .app-shell .button-ghost:hover { background: rgba(243,235,221,.08) !important; }
+:root:root[data-theme="dark"] .app-shell .text-button { color: #f3ebdd; }
+:root:root[data-theme="dark"] .app-shell tbody tr:hover { background: rgba(243,235,221,.05); }
+:root:root[data-theme="dark"] .app-shell .close-button,
+:root:root[data-theme="dark"] .app-shell .week-switch button,
+:root:root[data-theme="dark"] .app-shell .setup-cta { border-color: #f3ebdd; color: #f3ebdd; }
+:root:root[data-theme="dark"] .app-shell .setup-cta:hover { background: #f3ebdd; color: var(--umber); }
+:root:root[data-theme="dark"] .app-shell .setup-done { color: var(--sun); }
+:root:root[data-theme="dark"] .app-shell .presence.absent { border-color: rgba(243,235,221,.5); }
+:root:root[data-theme="dark"] .app-shell .presence.excused { color: #f3ebdd; border-color: #f3ebdd; }
+:root:root[data-theme="dark"] .app-shell .presence-choices .presence.selected { outline-color: #f3ebdd; }
+:root:root[data-theme="dark"] .app-shell .attendance-table tfoot td,
+:root:root[data-theme="dark"] .app-shell .eligibility-banner { background: rgba(243,235,221,.08); color: #f3ebdd; border-color: rgba(243,235,221,.3); }
+:root:root[data-theme="dark"] .app-shell .eligibility-banner strong,
+:root:root[data-theme="dark"] .app-shell .eligibility-banner span { color: #f3ebdd; }
+:root:root[data-theme="dark"] .app-shell .class-card:hover,
+:root:root[data-theme="dark"] .app-shell .teacher-card:hover { border-color: #f3ebdd; }
+:root:root[data-theme="dark"] .app-shell .calendar-event strong { color: #f3ebdd; }
+:root:root[data-theme="dark"] .app-shell .bar { background: rgba(243,235,221,.2); }
+:root:root[data-theme="dark"] .app-shell .bar.now { background: var(--palm); box-shadow: inset 0 0 0 1.5px #f3ebdd; }
+:root:root[data-theme="dark"] .app-shell .bar-col:hover .bar { outline-color: #f3ebdd; }
+:root:root[data-theme="dark"] .app-shell .settings-nav button.active { background: #f3ebdd; color: var(--umber); }
+:root:root[data-theme="dark"] .app-shell .settings-nav .settings-logout { color: #f3ebdd; }
+:root:root[data-theme="dark"] .app-shell .settings-nav .settings-logout:hover { background: rgba(243,235,221,.08); }
+:root:root[data-theme="dark"] .app-shell .drawer-layer,
+:root:root[data-theme="dark"] .app-shell .confirm-layer,
+:root:root[data-theme="dark"] .app-shell .sidebar-overlay { background: rgba(0,0,0,.55); }
+:root:root[data-theme="dark"] .app-shell .certificate-preview { background: rgba(243,235,221,.08); }

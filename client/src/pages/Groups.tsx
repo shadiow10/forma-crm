@@ -7,7 +7,7 @@ import type { Group } from "../lib/queries";
 import { plannedSessions } from "../lib/finance";
 import { supabase } from "../lib/supabase";
 import { Drawer, useShowMore } from "../appUI";
-import { Badge, Button, COLORS, DAYS, EmptyState, Icon, MetricCard, PageHeader, Panel, clampPercent, formatTime, initialsBadge, percent, statusTone, todayISO } from "../ui";
+import { Badge, Button, COLORS, DAYS, tint, EmptyState, Icon, MetricCard, PageHeader, Panel, clampPercent, formatTime, initialsBadge, percent, statusTone, todayISO } from "../ui";
 import { GroupForm } from "./forms";
 
 export const groupStatus = (group: Group, count: number) => (group.status === "Annulé" ? "Annulé" : count >= group.capacity ? "Complet" : "Ouvert");
@@ -57,13 +57,13 @@ export function Groups({ openGroup }: { openGroup: (id: number) => void }) {
       const planned = plannedSessions(group, courses.find((course) => course.id === group.course_id), school.sessions_per_month, month);
       const held = heldThisMonth.get(group.id) ?? 0;
       return <div className="class-card" key={group.id} onClick={() => openGroup(group.id)} tabIndex={0} onKeyDown={(event) => event.key === "Enter" && openGroup(group.id)}>
-        <div className="class-color" style={{ background: group.color }} />
+        <div className="class-color" style={{ background: tint(group.color) }} />
         <div className="class-card-main">
           <div className="class-card-top"><Badge tone={statusTone(status)} dot>{labelOf(t.v.status, status)}</Badge><span className="muted-copy">{courses.find((course) => course.id === group.course_id)?.name ?? ""}</span></div>
           <h3>{group.name}</h3>
           <p><Icon name="teacher" size={14} /> {teachers.find((teacher) => teacher.id === group.teacher_id)?.full_name ?? t.common.unassigned} · {group.room || t.common.noRoom}</p>
           <p><Icon name="calendar" size={14} /> {group.days.map((day) => t.v.day[day]).join(" · ") || t.common.noDays}, {timeRange(group, t.common.noTime)}</p>
-          {canEdit && <div className="capacity"><div><span>{g.capacity}</span><strong>{count}/{group.capacity}</strong></div><div className="capacity-track"><i style={{ width: `${clampPercent(percent(count, group.capacity))}%`, background: count >= group.capacity ? COLORS.coral : group.color }} /></div></div>}
+          {canEdit && <div className="capacity"><div><span>{g.capacity}</span><strong>{count}/{group.capacity}</strong></div><div className="capacity-track"><i style={{ width: `${clampPercent(percent(count, group.capacity))}%`, background: count >= group.capacity ? COLORS.coral : tint(group.color) }} /></div></div>}
           {status !== "Annulé" && planned > 0 && <div className="capacity month-sessions"><div><span>{g.monthSessions}</span><strong>{g.sessionsOf(held, planned)}</strong></div><div className="capacity-track"><i style={{ width: `${clampPercent(percent(held, planned))}%`, background: held >= planned ? COLORS.green : COLORS.teal }} /></div></div>}
         </div>
       </div>;
@@ -130,7 +130,7 @@ export function GroupDrawer({ groupId, onClose, goTo }: { groupId: number; onClo
       {canEdit && <Button small variant="outline" icon="edit" onClick={() => setEditing(true)}>{t.common.edit}</Button>}
     </>}>
     <div className="class-drawer-head">
-      <span className="class-color-large" style={{ background: group.color }} />
+      <span className="class-color-large" style={{ background: tint(group.color) }} />
       <div>
         <Badge tone={statusTone(status)} dot>{labelOf(t.v.status, status)}</Badge>
         <p>{teachers.find((teacher) => teacher.id === group.teacher_id)?.full_name ?? t.common.unassigned} · {group.room || t.common.noRoom}</p>
@@ -224,7 +224,7 @@ export function Planning({ openGroup }: { openGroup: (id: number) => void }) {
               const { from, to } = span(group);
               const top = clampPercent(((from - GRID_START) / GRID_HOURS) * 100);
               const height = Math.max(8, clampPercent(((to - GRID_START) / GRID_HOURS) * 100) - top);
-              return <div className="calendar-event" key={group.id} style={{ top: `${top}%`, height: `${height}%`, insetInlineStart: `calc(${(lane / lanes) * 100}% + 3px)`, width: `calc(${100 / lanes}% - 6px)`, background: `${group.color}18`, borderInlineStartColor: group.color }} onClick={() => openGroup(group.id)} title={group.name}>
+              return <div className="calendar-event" key={group.id} style={{ top: `${top}%`, height: `${height}%`, insetInlineStart: `calc(${(lane / lanes) * 100}% + 3px)`, width: `calc(${100 / lanes}% - 6px)`, background: `${tint(group.color)}1f`, borderInlineStartColor: tint(group.color) }} onClick={() => openGroup(group.id)} title={group.name}>
                 <strong>{group.name.split(" — ")[0]}</strong><span>{timeRange(group, t.common.noTime)} · {group.room || "—"}</span>
               </div>;
             })}
