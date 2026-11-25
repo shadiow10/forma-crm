@@ -26,6 +26,10 @@
   --umber: #2a1b12;       /* text, dark surfaces, borders (~25 %) */
   --sun: #f2a104;         /* the primary action, accents (~10 %): always a fill with umber text */
   --palm: #1f6b4f;        /* reassurance, icons, "paid" (~5 %) */
+<<<<<<< Updated upstream
+=======
+  --alert: #b23a2b;       /* exception (validated): alerts only — unpaid, late, cancelled */
+>>>>>>> Stashed changes
   --soft: rgba(42, 27, 18, .72); /* secondary text */
   --paper: #fffefb;
   --border: #e5e7ea;
@@ -1765,6 +1769,10 @@ a.auth-submit { margin-top: 18px; text-decoration: none; }
 :root:root .app-shell .nav-item.active, :root:root [dir="rtl"] .app-shell .nav-item.active, :root:root .app-shell[dir="rtl"] .nav-item.active { background: var(--umber); color: var(--sand); box-shadow: none; }
 :root:root .app-shell .nav-item em { background: rgba(42,27,18,.1); color: inherit; }
 :root:root .app-shell .sidebar-overlay { background: rgba(42,27,18,.35); }
+<<<<<<< Updated upstream
+=======
+@media (max-width: 950px) { :root:root .app-shell .sidebar:not(.open) { box-shadow: none; } }
+>>>>>>> Stashed changes
 
 /* Top bar */
 :root:root .app-shell .topbar { background: var(--paper-blur); border-bottom: 1px solid rgba(42,27,18,.15); }
@@ -1785,13 +1793,25 @@ a.auth-submit { margin-top: 18px; text-decoration: none; }
 /* Page header, panels, KPI cards */
 :root:root .app-shell .eyebrow { color: var(--muted); }
 :root:root .app-shell .page-header p { color: var(--muted); }
+<<<<<<< Updated upstream
+=======
+:root:root .app-shell .page-header { flex-wrap: wrap; row-gap: 16px; }
+@media (min-width: 651px) { :root:root .app-shell .page-header > div:first-child { flex: 1 1 280px; min-width: 0; } }
+:root:root .app-shell .page-actions { flex-wrap: wrap; }
+>>>>>>> Stashed changes
 :root:root .app-shell .panel { background: var(--card); border: 1.5px solid var(--border); border-radius: 14px; box-shadow: none; }
 :root:root .app-shell .metrics-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 @media (max-width: 950px) { :root:root .app-shell .metrics-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 520px) { :root:root .app-shell .metrics-grid { grid-template-columns: minmax(0, 1fr); } }
 :root:root .app-shell .metric-card { background: none; border: 1.5px solid var(--umber); border-radius: 10px; box-shadow: none; }
 :root:root .app-shell .metric-icon { background: none; color: var(--palm); }
+<<<<<<< Updated upstream
 :root:root .app-shell .metric-value { font-size: 1.9rem; letter-spacing: -.015em; }
+=======
+:root:root .app-shell .metric-value { font-size: clamp(1.25rem, 2.1vw, 1.9rem); letter-spacing: -.015em; white-space: normal; overflow-wrap: anywhere; line-height: 1.1; }
+:root:root .app-shell .panel-header h3 { flex: 1; min-width: 0; }
+:root:root .app-shell .panel-header .button { flex-shrink: 0; }
+>>>>>>> Stashed changes
 :root:root .app-shell .metric-card.hi { background: var(--umber); color: var(--sand); }
 :root:root .app-shell .metric-card.hi .metric-value { color: var(--sand); }
 :root:root .app-shell .metric-card.hi .metric-label, :root:root .app-shell .metric-card.hi .metric-note { color: rgba(243,235,221,.8); }
@@ -1857,7 +1877,12 @@ a.auth-submit { margin-top: 18px; text-decoration: none; }
 :root:root .app-shell .setup-done { color: var(--palm); font-family: Karla, sans-serif; }
 
 /* Attendance: P / L / A / E keep their letter or symbol; colour only adds to it */
+<<<<<<< Updated upstream
 :root:root .app-shell .attendance-controls { background: none; border: 1.5px solid var(--border); }
+=======
+:root:root .app-shell .attendance-controls { background: none; border: 1.5px solid var(--border); flex-wrap: wrap; }
+:root:root .app-shell .attendance-legend { flex-wrap: wrap; }
+>>>>>>> Stashed changes
 :root:root .app-shell .presence { border-radius: 999px; }
 :root:root .app-shell .presence.present { background: var(--palm); color: var(--sand); border-color: var(--palm); }
 :root:root .app-shell .presence.late { background: var(--sun); color: var(--umber); border-color: var(--umber); }
@@ -1974,3 +1999,414 @@ a.auth-submit { margin-top: 18px; text-decoration: none; }
 :root:root[data-theme="dark"] .app-shell .confirm-layer,
 :root:root[data-theme="dark"] .app-shell .sidebar-overlay { background: rgba(0,0,0,.55); }
 :root:root[data-theme="dark"] .app-shell .certificate-preview { background: rgba(243,235,221,.08); }
+<<<<<<< Updated upstream
+=======
+
+/* ================================================================
+   Dashboard — easier to read (redesign for older users). Only boxes, sizes and order; the
+   colours are the charte's, unchanged. Sizes are in the app's own px: the shell's zoom
+   (1.15–1.6) multiplies them, so 12px here reads as ~16px on a laptop.
+   ================================================================ */
+/* Sidebar: three titled sections, Settings alone at the bottom, taller entries */
+:root:root .app-shell .nav-groups { gap: 20px; }
+:root:root .app-shell .nav-group { gap: 4px; }
+:root:root .app-shell .nav-label { padding: 0 14px 6px; font-size: 10.5px; letter-spacing: .06em; text-transform: uppercase; }
+:root:root .app-shell[lang="ar"] .nav-label { text-transform: none; letter-spacing: 0; }
+:root:root .app-shell .nav-item { min-height: 40px; padding: 10px 14px; font-size: 13px; gap: 12px; }
+:root:root .app-shell .nav-group-settings { margin-top: auto; padding-top: 14px; border-top: 1px solid var(--line); }
+
+/* Page header: title, one sentence, the one action */
+:root:root .app-shell .page-header { margin-bottom: 26px; }
+:root:root .app-shell .page-header p { font-size: 13px; line-height: 1.5; max-width: 46em; }
+:root:root .app-shell .eyebrow { font-size: 10.5px; }
+
+/* Key figures: at most three per line, label above, figure big, one line of context */
+:root:root .app-shell .metrics-grid { gap: 16px; margin-bottom: 24px; }
+:root:root .app-shell .metric-card { padding: 18px 20px; }
+:root:root .app-shell .metric-label { font-size: 12px; font-weight: 700; color: var(--ink-2); }
+:root:root .app-shell .metric-card.hi .metric-label { color: rgba(243,235,221,.9); }
+:root:root .app-shell .metric-value { margin-top: 12px; }
+:root:root .app-shell .metric-note { margin-top: 8px; font-size: 11px; white-space: normal; }
+
+/* Home: today across the whole width, then two blocks side by side (one under the other on smaller screens) */
+:root:root .app-shell .home-today { margin-bottom: 20px; }
+:root:root .app-shell .dashboard-grid { gap: 20px; }
+:root:root .app-shell .home-pair { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+@media (max-width: 1279px) { :root:root .app-shell .home-pair { grid-template-columns: minmax(0, 1fr); } }
+
+/* Blocks: more room inside, a clear title */
+:root:root .app-shell .panel { padding: 22px 24px; }
+:root:root .app-shell .panel-header { margin-bottom: 14px; }
+:root:root .app-shell .panel-header h3, :root:root .app-shell .inline-title { font-size: 15px; font-weight: 700; }
+:root:root .app-shell .panel-header .button { min-height: 36px; font-size: 12px; padding-inline: 12px; }
+
+/* Lists: one item per tall line, name first and bigger, detail underneath */
+:root:root .app-shell .activity-row, :root:root .app-shell .risk-row { min-height: 58px; padding-block: 12px; border-bottom: 1px solid var(--line); }
+:root:root .app-shell .activity-list > :last-child, :root:root .app-shell .risk-list > :last-child { border-bottom: 0; }
+:root:root .app-shell .activity-row strong, :root:root .app-shell .task-copy strong { font-size: 13px; }
+:root:root .app-shell .activity-row > div span, :root:root .app-shell .task-copy span { font-size: 11px; margin-top: 4px; }
+:root:root .app-shell .activity-icon { width: 34px; height: 34px; }
+:root:root .app-shell .risk-score { font-size: 15px; }
+:root:root .app-shell .risk-score span { font-size: 10.5px; }
+:root:root .app-shell .badge { font-size: 10.5px; padding: 6px 11px; }
+:root:root .app-shell .empty-state { padding: 18px; }
+:root:root .app-shell .empty-state strong { font-size: 12.5px; }
+:root:root .app-shell .empty-state div span { font-size: 11px; }
+
+/* Tables: taller rows, bigger names; search and filters on their own line above */
+:root:root .app-shell .toolbar { padding: 18px 20px; gap: 12px; }
+:root:root .app-shell .search-box { width: min(100%, 340px); padding: 10px 14px; }
+:root:root .app-shell .search-box input { font-size: 12.5px; }
+:root:root .app-shell th { padding: 13px 18px; font-size: 11px; }
+:root:root .app-shell td { padding: 16px 18px; font-size: 12px; }
+:root:root .app-shell .person-cell { gap: 12px; }
+:root:root .app-shell .person-cell strong { font-size: 13px; }
+:root:root .app-shell .person-cell span { font-size: 11px; }
+:root:root .app-shell .avatar { width: 32px; height: 32px; font-size: 10px; }
+:root:root .app-shell .table-footer { font-size: 11px; padding: 14px 20px; }
+:root:root .app-shell .inline-progress > span { font-size: 12px; }
+:root:root .app-shell .tabs button { font-size: 12.5px; padding: 9px 14px; }
+
+/* Forms, drawers and dialogs: labels readable, sections well apart, big buttons at the bottom */
+:root:root .app-shell .field, :root:root .app-shell .select, :root:root .app-shell .compact-select { min-height: 40px; font-size: 12.5px; }
+:root:root .app-shell .settings-form label, :root:root .app-shell .form-field label, :root:root .app-shell .attendance-controls label { font-size: 11.5px; }
+:root:root .app-shell .form-modal-grid { gap: 18px; }
+:root:root .app-shell .form-hint, :root:root .app-shell .muted-copy { font-size: 11px; }
+:root:root .app-shell .drawer { padding: 28px; }
+:root:root .app-shell .drawer-section { padding: 22px 0; }
+:root:root .app-shell .drawer-section h4 { font-size: 13px; }
+:root:root .app-shell .info-grid { gap: 16px 20px; }
+:root:root .app-shell .info-grid span { font-size: 11px; }
+:root:root .app-shell .info-grid strong { font-size: 12.5px; white-space: normal; }
+:root:root .app-shell .drawer-actions .button, :root:root .app-shell .form-modal-foot .button, :root:root .app-shell .confirm-actions .button { min-height: 42px; font-size: 12.5px; }
+:root:root .app-shell .action-stack strong { font-size: 12.5px; }
+:root:root .app-shell .action-stack span:not(.activity-icon) { font-size: 11px; }
+
+/* Cards and calendar: the smallest labels made readable */
+:root:root .app-shell .class-card h3, :root:root .app-shell .teacher-card h3 { font-size: 14px; }
+:root:root .app-shell .class-card p, :root:root .app-shell .capacity > div:first-child, :root:root .app-shell .teacher-subject,
+:root:root .app-shell .teacher-footer, :root:root .app-shell .user-row div span, :root:root .app-shell .certificate-row > div span { font-size: 11px; }
+:root:root .app-shell .teacher-details { font-size: 11px; }
+:root:root .app-shell .user-row strong, :root:root .app-shell .certificate-row strong, :root:root .app-shell .hours-name, :root:root .app-shell .hours-row > strong { font-size: 12.5px; }
+:root:root .app-shell .calendar-event strong { font-size: 10.5px; }
+:root:root .app-shell .calendar-event span { font-size: 9.5px; }
+:root:root .app-shell .time-col span, :root:root .app-shell .day-head { font-size: 10.5px; }
+:root:root .app-shell .settings-nav button { font-size: 12.5px; min-height: 40px; }
+:root:root .app-shell .breadcrumb, :root:root .app-shell .global-search input { font-size: 12.5px; }
+:root:root .app-shell .demo-banner { font-size: 12.5px; }
+:root:root .app-shell .app-footer { font-size: 11px; }
+
+/* ================================================================
+   Dashboard — the same four colours, each with one job (charte 60/25/10/5):
+   sand = the page; umber = text and structure, borders kept light so the page is calm;
+   saffron = the one action of the screen and alerts only; palm = good news only
+   (paid, present, current period). Decorative icons are plain soft umber.
+   ================================================================ */
+/* Icons are decoration: soft umber, not palm */
+:root:root .app-shell .activity-icon,
+:root:root .app-shell .empty-state .activity-icon { color: var(--muted) !important; }
+:root:root .app-shell .metric-icon { color: var(--muted); }
+:root:root .app-shell .metric-card.hi .metric-icon { color: var(--sun); }
+:root:root .app-shell .nav-item svg { opacity: .85; }
+
+/* Saffron is kept for the one primary button and for alerts: selections and badges move to umber */
+:root:root .app-shell .tabs button.active { background: var(--umber); color: var(--sand); }
+:root:root .app-shell .school-avatar { background: rgba(42,27,18,.1); color: var(--umber); }
+:root:root .app-shell .setup-number { background: none; color: var(--umber); border-color: var(--umber); }
+:root:root .app-shell .count-chip { background: rgba(42,27,18,.08); }
+
+/* Structure: lighter lines, so the content stands out and not the boxes */
+:root:root .app-shell .panel { border-color: rgba(42,27,18,.14); }
+:root:root .app-shell .metric-card { border-color: rgba(42,27,18,.35); }
+:root:root .app-shell .metric-card.hi { border-color: var(--umber); }
+:root:root .app-shell .field, :root:root .app-shell .select, :root:root .app-shell .compact-select,
+:root:root .app-shell .search-box { border-color: rgba(42,27,18,.4); }
+:root:root .app-shell .field:hover, :root:root .app-shell .select:hover, :root:root .app-shell .compact-select:hover { border-color: var(--umber); }
+:root:root .app-shell .button-outline, :root:root .app-shell .button-danger { border-color: rgba(42,27,18,.45) !important; }
+:root:root .app-shell .sidebar { border-inline-end-color: rgba(42,27,18,.2); }
+:root:root .app-shell .class-card, :root:root .app-shell .teacher-card,
+:root:root .app-shell .attendance-controls, :root:root .app-shell .settings-nav { border-color: rgba(42,27,18,.14); }
+
+/* Palm says "good": paid, present, this month — and nothing decorative */
+:root:root .app-shell .bar.now { background: var(--palm); }
+:root:root .app-shell .money-ok { color: var(--palm); font-weight: 700; }
+
+/* ================================================================
+   Dashboard "simple et guidé" (validated) — R1: one page template, record cards, phone bar.
+   Same four colours and identity; only places, sizes and shapes change.
+   ================================================================ */
+/* Page template: title, one sentence of help, the one big action — stacked, read top to bottom */
+:root:root .app-shell .content-wrap { max-width: 1180px; }
+:root:root .app-shell .page-header { display: flex; flex-direction: column; align-items: flex-start; gap: 0; margin-bottom: 28px; }
+:root:root .app-shell .page-header > div:first-child { flex: none; width: 100%; }
+:root:root .app-shell .page-header h1 { font-size: 30px; line-height: 1.1; }
+:root:root .app-shell .page-header p { margin-top: 10px; font-size: 14px; max-width: 40em; }
+:root:root .app-shell .page-actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 18px; }
+:root:root .app-shell .page-actions .button { min-height: 46px; padding-inline: 22px; font-size: 13.5px; }
+:root:root .app-shell .page-actions .button-primary { order: -1; }
+
+/* Search and choices: the search box across the whole width, choices as big visible buttons */
+:root:root .app-shell .toolbar, :root:root .app-shell .filter-bar { flex-direction: column; align-items: stretch; gap: 14px; padding: 20px; border-bottom: 0; }
+:root:root .app-shell .toolbar-right { flex-wrap: wrap; gap: 10px; }
+:root:root .app-shell .toolbar .search-box, :root:root .app-shell .filter-bar .search-box { width: 100%; min-height: 48px; }
+:root:root .app-shell .tabs { flex-wrap: wrap; border: 0; padding: 0; gap: 8px; overflow: visible; }
+:root:root .app-shell .tabs button { min-height: 42px; padding: 0 18px; border: 1.5px solid rgba(42,27,18,.3); }
+:root:root .app-shell .tabs button.active { border-color: var(--umber); }
+:root:root .app-shell .table-panel { overflow: visible; }
+
+/* Record cards: name big, two short lines, the status, one clear "Open" button */
+:root:root .app-shell .record-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; padding: 4px 20px 20px; }
+@media (max-width: 1279px) { :root:root .app-shell .record-list { grid-template-columns: minmax(0, 1fr); } }
+:root:root .app-shell .record-card { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; grid-template-areas: "avatar main side" "open open open"; align-items: center; gap: 10px 14px; padding: 18px 20px; background: #fff8ea; border: 1.5px solid rgba(42,27,18,.18); border-radius: 16px; }
+:root:root .app-shell .record-card.clickable { cursor: pointer; }
+:root:root .app-shell .record-card.clickable:hover { border-color: var(--umber); }
+:root:root .app-shell .record-avatar { grid-area: avatar; }
+:root:root .app-shell .record-avatar .avatar { width: 44px; height: 44px; border-radius: 50%; font-size: 13px; }
+:root:root .app-shell .record-main { grid-area: main; min-width: 0; }
+:root:root .app-shell .record-title { margin: 0; font: 700 15px Karla, sans-serif; color: var(--umber); overflow-wrap: anywhere; }
+:root:root .app-shell .record-line { margin: 4px 0 0; font-size: 12.5px; color: var(--muted); overflow-wrap: anywhere; }
+:root:root .app-shell .record-side { grid-area: side; display: flex; flex-direction: column; align-items: flex-end; gap: 6px; text-align: end; }
+:root:root .app-shell .record-side strong { font: 800 16px Fraunces, Georgia, serif; color: var(--umber); }
+:root:root .app-shell .record-open { grid-area: open; justify-self: stretch; display: flex; align-items: center; justify-content: center; gap: 6px; min-height: 42px; border: 1.5px solid rgba(42,27,18,.35); border-radius: 999px; background: none; color: var(--umber); font: 700 13px Karla, sans-serif; }
+:root:root .app-shell .record-open:hover { background: var(--umber); color: var(--sand); border-color: var(--umber); }
+[dir="rtl"] .app-shell .record-open svg { transform: scaleX(-1); }
+:root:root .app-shell .record-card .badge { font-size: 11px; }
+
+/* Phone bar: the everyday pages and the menu, always at the bottom of the screen */
+:root:root .app-shell .tabbar { display: none; }
+@media (max-width: 950px) {
+  :root:root .app-shell .tabbar { position: fixed; inset-inline: 0; bottom: 0; z-index: 24; display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); background: var(--sand); border-top: 1.5px solid rgba(42,27,18,.2); padding: 6px 4px calc(6px + env(safe-area-inset-bottom)); }
+  :root:root .app-shell .tabbar a, :root:root .app-shell .tabbar button { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; min-height: 56px; padding: 4px; border: 0; border-radius: 14px; background: none; color: var(--muted); font: 700 11px Karla, sans-serif; text-decoration: none; }
+  :root:root .app-shell .tabbar span { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  :root:root .app-shell .tabbar .active { background: var(--umber); color: var(--sand); }
+  :root:root .app-shell .main-area { padding-bottom: 84px; }
+  :root:root .app-shell .toast { bottom: 90px; }
+}
+
+/* R2 — Home: "What would you like to do?" as four big task buttons, first on the page */
+:root:root .app-shell .home-tasks { margin-bottom: 30px; }
+:root:root .app-shell .home-tasks h2 { margin: 0 0 14px; font-size: 21px; }
+:root:root .app-shell .task-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }
+@media (max-width: 1279px) { :root:root .app-shell .task-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+:root:root .app-shell .task-button { display: flex; flex-direction: column; align-items: flex-start; justify-content: space-between; gap: 18px; min-height: 120px; padding: 18px 18px 16px; border: 1.5px solid rgba(42,27,18,.3); border-radius: 18px; background: #fff8ea; color: var(--umber); font: 700 15px/1.25 Karla, sans-serif; text-align: start; cursor: pointer; transition: border-color .15s, transform .15s; }
+:root:root .app-shell .task-button:hover { border-color: var(--umber); transform: translateY(-2px); }
+:root:root .app-shell .task-icon { display: grid; place-items: center; width: 48px; height: 48px; border-radius: 50%; background: rgba(42,27,18,.08); color: var(--umber); }
+:root:root .app-shell[lang="ar"] .task-button { font-family: Cairo, Karla, sans-serif; }
+@media (prefers-reduced-motion: reduce) { :root:root .app-shell .task-button:hover { transform: none; } }
+
+/* R3 — Students, enrollments, the student panel */
+:root:root .app-shell .student-filter-main { display: flex; flex-direction: column; align-items: stretch; gap: 12px; width: 100%; }
+:root:root .app-shell .student-filter-main .select { width: 100%; max-width: 420px; min-height: 46px; }
+:root:root .app-shell .choice-row { margin: 0; }
+:root:root .app-shell .record-amount { display: flex; flex-direction: column; align-items: flex-end; line-height: 1.2; }
+:root:root .app-shell .record-amount small { font-size: 11px; color: var(--muted); }
+:root:root .app-shell .record-line b { font-weight: 700; color: var(--umber); }
+:root:root .app-shell .table-empty { padding: 24px; text-align: center; font-size: 13px; color: var(--muted); }
+:root:root .app-shell .table-footer { border-top: 0; }
+:root:root .app-shell .show-more { display: flex; justify-content: center; padding: 6px 20px 20px; }
+:root:root .app-shell .show-more .button { min-height: 46px; padding-inline: 26px; }
+
+/* The student panel: wider, its actions big and on top, each section its own block */
+:root:root .app-shell .drawer { width: min(760px, 100%); padding: 30px 32px; }
+:root:root .app-shell .drawer-head { flex-wrap: wrap; padding-bottom: 22px; border-bottom: 0; }
+:root:root .app-shell .drawer-head h2 { font-size: 28px; }
+:root:root .app-shell .drawer-head-actions { gap: 10px; margin-top: 16px; }
+:root:root .app-shell .drawer-head-actions .button, :root:root .app-shell .drawer-actions .button { min-height: 46px; padding-inline: 18px; font-size: 13px; }
+:root:root .app-shell .drawer .close-button { width: 46px; height: 46px; }
+:root:root .app-shell .drawer-actions { flex-wrap: wrap; gap: 10px; }
+:root:root .app-shell .drawer-section { margin-top: 16px; padding: 20px 22px; border: 1.5px solid rgba(42,27,18,.14); border-radius: 16px; background: #fff8ea; }
+:root:root .app-shell .drawer-section h4 { font: 800 17px Fraunces, Georgia, serif; margin-bottom: 14px; }
+:root:root .app-shell[lang="ar"] .drawer-section h4 { font-family: Cairo, sans-serif; }
+:root:root .app-shell .section-caption { display: block; margin-top: 2px; font-size: 11.5px; color: var(--muted); }
+:root:root .app-shell .info-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+@media (max-width: 650px) {
+  :root:root .app-shell .drawer { padding: 22px 18px; }
+  :root:root .app-shell .info-grid { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* R4 — Card actions, payments, attendance */
+:root:root .app-shell .record-actions { grid-area: open; display: flex; flex-wrap: wrap; gap: 10px; }
+:root:root .app-shell .record-actions > * { flex: 1 1 160px; }
+:root:root .app-shell .record-actions .button { min-height: 42px; font-size: 12.5px; }
+:root:root .app-shell .finance-metrics, :root:root .app-shell .finance-metrics.five, :root:root .app-shell .metrics-grid-4 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+@media (max-width: 950px) { :root:root .app-shell .finance-metrics, :root:root .app-shell .finance-metrics.five, :root:root .app-shell .metrics-grid-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 520px) { :root:root .app-shell .finance-metrics, :root:root .app-shell .finance-metrics.five, :root:root .app-shell .metrics-grid-4 { grid-template-columns: minmax(0, 1fr); } }
+:root:root .app-shell .table-note { padding: 0 20px 12px; font-size: 12px; }
+:root:root .app-shell .money-due { color: var(--umber); font-weight: 800; }
+
+/* Attendance: pick the group and the day in two big fields, then one block per student */
+:root:root .app-shell .attendance-controls { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; padding: 20px; }
+:root:root .app-shell .attendance-controls .select { width: 100%; min-width: 0; min-height: 48px; font-size: 13px; }
+:root:root .app-shell .attendance-legend { grid-column: 1 / -1; margin: 0; gap: 10px 18px; font-size: 12px; }
+@media (max-width: 650px) { :root:root .app-shell .attendance-controls { grid-template-columns: minmax(0, 1fr); } }
+:root:root .app-shell .attendance-head { flex-wrap: wrap; gap: 12px; padding: 20px; border-bottom: 0; }
+:root:root .app-shell .attendance-head h3 { font-size: 18px; }
+:root:root .app-shell .attendance-head p { font-size: 12px; }
+:root:root .app-shell .roll-list { display: grid; gap: 12px; padding: 0 20px 20px; }
+:root:root .app-shell .roll-card { display: grid; gap: 14px; padding: 16px 18px; background: #fff8ea; border: 1.5px solid rgba(42,27,18,.18); border-radius: 16px; }
+:root:root .app-shell .roll-who { display: flex; align-items: center; gap: 12px; }
+:root:root .app-shell .roll-who .avatar { width: 44px; height: 44px; border-radius: 50%; font-size: 13px; }
+:root:root .app-shell .roll-who strong { display: block; font-size: 15px; }
+:root:root .app-shell .roll-who > div span { display: block; margin-top: 3px; font-size: 12px; color: var(--muted); }
+:root:root .app-shell .roll-who b { color: var(--umber); }
+:root:root .app-shell .roll-choices { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+@media (max-width: 650px) { :root:root .app-shell .roll-choices { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+:root:root .app-shell .roll-choice { display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 48px; padding: 6px 10px; border: 1.5px solid rgba(42,27,18,.3); border-radius: 999px; background: none; color: var(--umber); font: 700 13px Karla, sans-serif; cursor: pointer; }
+:root:root .app-shell[lang="ar"] .roll-choice { font-family: Cairo, Karla, sans-serif; }
+:root:root .app-shell .roll-choice:hover:not(:disabled) { border-color: var(--umber); }
+:root:root .app-shell .roll-symbol { font-weight: 800; }
+:root:root .app-shell .roll-choice.present.selected { background: var(--palm); color: var(--sand); border-color: var(--palm); }
+:root:root .app-shell .roll-choice.late.selected { background: var(--sun); color: var(--umber); border-color: var(--umber); }
+:root:root .app-shell .roll-choice.absent.selected { background: var(--umber); color: var(--sun); border-color: var(--umber); }
+:root:root .app-shell .roll-choice.excused.selected { background: rgba(42,27,18,.1); border: 2px dashed var(--umber); }
+:root:root .app-shell .roll-choice.selected { box-shadow: 0 0 0 3px rgba(42,27,18,.12); }
+
+/* R5 — Timetable as a list of days, and the card pages (groups, courses, teachers, rooms) */
+:root:root .app-shell .planning-panel .panel-header { flex-wrap: wrap; gap: 12px; }
+:root:root .app-shell .week-switch { gap: 12px; font-size: 13px; }
+:root:root .app-shell .week-switch button:not(.text-button) { width: 42px; height: 42px; font-size: 18px; }
+:root:root .app-shell .planning-view-switch { display: flex; justify-content: flex-end; margin-bottom: 10px; }
+:root:root .app-shell .planning-view-switch .button { min-height: 42px; font-size: 12.5px; }
+:root:root .app-shell .day-list { display: grid; gap: 22px; }
+:root:root .app-shell .day-block h3 { display: flex; align-items: baseline; gap: 10px; margin: 0 0 4px; padding-inline: 4px; font: 800 19px Fraunces, Georgia, serif; color: var(--umber); }
+:root:root .app-shell .day-block h3 span::first-letter { text-transform: uppercase; }
+:root:root .app-shell .day-block h3 small { font: 400 12.5px Karla, sans-serif; color: var(--muted); }
+:root:root .app-shell[lang="ar"] .day-block h3 { font-family: Cairo, sans-serif; }
+:root:root .app-shell .day-block .record-list { padding: 8px 0 0; }
+:root:root .app-shell .day-block .record-title { font: 800 18px Fraunces, Georgia, serif; }
+:root:root .app-shell .day-dot { display: block; width: 14px; height: 44px; border-radius: 999px; }
+
+/* Groups, courses, teachers, rooms: fewer, larger cards per line */
+:root:root .app-shell .class-cards { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+:root:root .app-shell .teacher-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+@media (max-width: 1279px) { :root:root .app-shell .class-cards, :root:root .app-shell .teacher-grid { grid-template-columns: minmax(0, 1fr); } }
+:root:root .app-shell .class-card { min-height: 0; border-radius: 16px; background: #fff8ea; }
+:root:root .app-shell .class-color { width: 10px; }
+:root:root .app-shell .class-card-main { padding: 18px 20px; }
+:root:root .app-shell .class-card h3 { margin: 12px 0 8px; font-size: 17px; }
+:root:root .app-shell .class-card p { font-size: 12.5px; margin: 8px 0; }
+:root:root .app-shell .capacity { margin-top: 16px; }
+:root:root .app-shell .capacity-track, :root:root .app-shell .hours-track { height: 8px; }
+:root:root .app-shell .teacher-card { padding: 20px; border-radius: 16px; background: #fff8ea; }
+:root:root .app-shell .teacher-card h3 { font-size: 16px; }
+:root:root .app-shell .teacher-avatar { width: 52px; height: 52px; border-radius: 50%; font-size: 15px; }
+:root:root .app-shell .teacher-details { font-size: 12px; gap: 9px; }
+:root:root .app-shell .teacher-footer { font-size: 12px; }
+
+/* R6 — Statistics, certificates, settings, forms */
+:root:root .app-shell .analytics-grid { grid-template-columns: minmax(0, 1fr); }
+:root:root .app-shell .bar-area { height: 200px; }
+:root:root .app-shell .bar-label { font-size: 11px; }
+:root:root .app-shell .document-layout { grid-template-columns: minmax(0, 1fr); }
+
+/* Settings: the sections as a list of big buttons, then one section at a time */
+:root:root .app-shell .settings-layout { grid-template-columns: minmax(0, 1fr); gap: 20px; }
+:root:root .app-shell .settings-nav { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; padding: 12px; }
+@media (max-width: 650px) { :root:root .app-shell .settings-nav { grid-template-columns: minmax(0, 1fr); } }
+:root:root .app-shell .settings-nav button { justify-content: flex-start; min-height: 52px; padding: 0 18px; border: 1.5px solid rgba(42,27,18,.2); font-size: 13.5px; font-weight: 700; color: var(--umber); }
+:root:root .app-shell .settings-nav button svg:last-child { display: block; }
+:root:root .app-shell .settings-nav button.active { border-color: var(--umber); }
+:root:root .app-shell .settings-account { grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin: 0; padding: 12px 4px 0; }
+:root:root .app-shell .settings-account > span { margin: 0; font-size: 12px; }
+:root:root .app-shell .settings-nav .settings-logout { width: auto; border: 0; min-height: 44px; }
+:root:root .app-shell .settings-content .panel h3 { font-size: 17px; }
+:root:root .app-shell .settings-form { grid-template-columns: minmax(0, 1fr); gap: 18px; max-width: 560px; }
+:root:root .app-shell .user-row { min-height: 60px; }
+
+/* Forms: one column, label above a big field, the two buttons big at the bottom; whole screen on a phone */
+:root:root .app-shell .form-modal { width: min(640px, 100%); border-radius: 20px; }
+:root:root .app-shell .form-modal-head { padding: 22px 26px; border-bottom: 0; }
+:root:root .app-shell .form-modal-head h2 { font-size: 24px; }
+:root:root .app-shell .form-modal-body { padding: 4px 26px 22px; }
+:root:root .app-shell .form-modal-grid { grid-template-columns: minmax(0, 1fr); gap: 18px; }
+:root:root .app-shell .form-field label { display: block; margin-bottom: 6px; font-size: 12.5px; font-weight: 700; color: var(--umber); }
+:root:root .app-shell .form-field .field { min-height: 48px; font-size: 13.5px; }
+:root:root .app-shell .form-field .field-error { display: block; margin-top: 6px; font-size: 12px; }
+:root:root .app-shell .form-modal-foot { gap: 12px; padding: 18px 26px 24px; border-top: 0; }
+:root:root .app-shell .form-modal-foot .button { flex: 1; min-height: 50px; font-size: 13.5px; }
+:root:root .app-shell .days-picker { display: flex; flex-wrap: wrap; gap: 8px; }
+:root:root .app-shell .days-picker button { min-width: 56px; min-height: 44px; border-radius: 999px; border: 1.5px solid rgba(42,27,18,.3); background: none; color: var(--umber); font-weight: 700; }
+:root:root .app-shell .days-picker button.active { background: var(--umber); color: var(--sand); border-color: var(--umber); }
+:root:root .app-shell .check-list label { display: flex; align-items: center; gap: 10px; min-height: 44px; font-size: 13px; }
+:root:root .app-shell .check-list input { width: 22px; height: 22px; accent-color: var(--umber); }
+@media (max-width: 650px) {
+  :root:root .app-shell .form-modal { width: 100%; max-height: none; height: 100%; margin: 0; border-radius: 0; border-width: 0; }
+  :root:root .app-shell .confirm-box { width: 100%; }
+}
+:root:root .app-shell .confirm-box { padding: 28px 26px 22px; }
+:root:root .app-shell .confirm-box h2 { font-size: 21px; }
+:root:root .app-shell .confirm-box p { font-size: 13.5px; }
+:root:root .app-shell .confirm-actions .button { min-height: 50px; }
+
+/* More colour, charte colours only: palm on icons, avatars, scores and neutral labels;
+   saffron tints for "in progress" labels. Text on tints stays dark enough to read. */
+:root:root .app-shell .activity-icon,
+:root:root .app-shell .empty-state .activity-icon { color: var(--palm) !important; background: rgba(31,107,79,.12) !important; border-radius: 50%; }
+:root:root .app-shell .metric-icon { color: var(--palm); width: 36px; height: 36px; border-radius: 50%; background: rgba(31,107,79,.12); }
+:root:root .app-shell .metric-card.hi .metric-icon { color: var(--sun); background: rgba(242,161,4,.16); }
+:root:root .app-shell .task-icon { background: rgba(31,107,79,.12); color: var(--palm); }
+:root:root .app-shell .task-button:hover .task-icon { background: var(--palm); color: var(--sand); }
+:root:root .app-shell .nav-item svg { color: var(--palm); opacity: 1; }
+:root:root .app-shell .nav-item.active svg { color: var(--sun); }
+:root:root .app-shell .avatar, :root:root .app-shell .profile-avatar { background: rgba(31,107,79,.14) !important; color: var(--palm) !important; font-weight: 800; }
+:root:root .app-shell .school-avatar { background: var(--palm); color: var(--sand); }
+:root:root .app-shell .risk-score { color: var(--palm); }
+:root:root .app-shell .risk-score span { color: var(--muted); }
+:root:root .app-shell .record-line svg, :root:root .app-shell .class-card p svg, :root:root .app-shell .teacher-details svg { color: var(--palm); }
+:root:root .app-shell .roll-choice.present:not(.selected) .roll-symbol { color: var(--palm); }
+:root:root .app-shell .roll-choice.late:not(.selected) .roll-symbol { color: var(--umber); background: rgba(242,161,4,.3); border-radius: 50%; padding: 0 5px; }
+:root:root .app-shell .eyebrow { color: var(--palm); }
+:root:root .app-shell .breadcrumb svg, :root:root .app-shell .global-search svg { color: var(--palm); }
+:root:root .app-shell .record-open svg, :root:root .app-shell .panel-header .button svg { color: var(--palm); }
+:root:root .app-shell .record-open:hover svg { color: var(--sand); }
+:root:root .app-shell .count-chip { background: rgba(31,107,79,.14); color: var(--palm); }
+:root:root .app-shell .tabs button.active .count-chip { background: rgba(243,235,221,.2); color: var(--sand); }
+
+:root:root .app-shell .record-actions .button svg, :root:root .app-shell .page-actions .button-outline svg, :root:root .app-shell .planning-view-switch svg { color: var(--palm); }
+:root:root .app-shell .record-actions .button:hover svg, :root:root .app-shell .page-actions .button-outline:hover svg { color: var(--sand); }
+
+/* Home without its "Bonjour" title: the task question is the page title, same look as before. */
+:root:root .app-shell .home-header { margin-bottom: 22px; }
+:root:root .app-shell .home-header p { margin-top: 6px; }
+:root:root .app-shell .home-tasks h1 { margin: 0 0 14px; font-size: 21px; line-height: 1.2; }
+
+/* Alerts in brick red (validated exception to the charte): unpaid badges, amounts still owed, low attendance. */
+:root:root .app-shell .money-due, :root:root .app-shell .money-danger, :root:root .app-shell .text-danger, :root:root .app-shell .inline-progress > span.low { color: var(--alert) !important; text-decoration: none; }
+:root:root .app-shell .record-line b.money-danger { color: var(--alert); }
+
+/* Figure cards: one row however many there are (3, 4 or 5), never a lone card on a second line.
+   Phones: two per line. */
+@media (min-width: 651px) {
+  :root:root .app-shell .metrics-grid,
+  :root:root .app-shell .metrics-grid.metrics-grid-4,
+  :root:root .app-shell .finance-metrics,
+  :root:root .app-shell .finance-metrics.five { grid-template-columns: none; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 12px; }
+  :root:root .app-shell .metrics-grid-4 .metric-card, :root:root .app-shell .finance-metrics .metric-card { padding: 16px 14px; }
+  :root:root .app-shell .metrics-grid-4 .metric-value, :root:root .app-shell .finance-metrics .metric-value { font-size: clamp(1.1rem, 1.7vw, 1.7rem); }
+  :root:root .app-shell .metrics-grid-4 .metric-icon, :root:root .app-shell .finance-metrics .metric-icon { width: 30px; height: 30px; }
+}
+@media (max-width: 650px) {
+  :root:root .app-shell .metrics-grid, :root:root .app-shell .metrics-grid.metrics-grid-4,
+  :root:root .app-shell .finance-metrics, :root:root .app-shell .finance-metrics.five { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-auto-flow: row; }
+  :root:root .app-shell .metric-card { padding: 14px 12px; }
+}
+/* Narrow cards (4 or 5 in a row): the icon above the label, so long labels have the full width. */
+:root:root .app-shell .metrics-grid-4 .metric-top, :root:root .app-shell .finance-metrics .metric-top { flex-direction: column-reverse; align-items: flex-start; gap: 8px; }
+:root:root .app-shell .metric-label { min-width: 0; overflow-wrap: anywhere; }
+:root:root .app-shell .metric-icon { flex: none; }
+/* Figures stay on one line: their size follows the width of their own card. */
+:root:root .app-shell .metric-card { container-type: inline-size; }
+:root:root .app-shell .metric-value,
+:root:root .app-shell .metrics-grid-4 .metric-value,
+:root:root .app-shell .finance-metrics .metric-value { white-space: nowrap; overflow-wrap: normal; font-size: clamp(14px, 14.5cqi, 1.9rem); }
+/* Payments only (director, 5 cards): two roomier lines — three cards, then two wider ones. */
+@media (min-width: 651px) {
+  :root:root .app-shell .finance-metrics.five { grid-auto-flow: row; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 14px; }
+  :root:root .app-shell .finance-metrics.five .metric-card { grid-column: span 2; padding: 18px 20px; }
+  :root:root .app-shell .finance-metrics.five .metric-card:nth-child(n + 4) { grid-column: span 3; }
+  :root:root .app-shell .finance-metrics.five .metric-top { flex-direction: row; align-items: center; justify-content: space-between; }
+  :root:root .app-shell .finance-metrics.five .metric-icon { width: 36px; height: 36px; }
+}
+@media (max-width: 650px) { :root:root .app-shell .finance-metrics.five .metric-card:last-child { grid-column: 1 / -1; } }
+@media (min-width: 651px) { :root:root .app-shell .finance-metrics.five .metric-value { font-size: 1.5rem; } }
+>>>>>>> Stashed changes

@@ -111,11 +111,21 @@ type Tone = "neutral" | "success" | "warning" | "danger" | "info" | "purple";
 // Charte status pills: paid = palm + sand, partial = saffron + umber, late/unpaid = umber + saffron,
 // anything else outlined. The label is always written: a state is never told by colour alone.
 const tones: Record<Tone, CSSProperties> = {
+<<<<<<< Updated upstream
   neutral: { background: "transparent", color: "var(--ink-2)", boxShadow: "inset 0 0 0 1.5px var(--border)" },
   success: { background: "var(--palm)", color: "#F3EBDD" },
   warning: { background: "var(--sun)", color: "var(--umber)" },
   danger: { background: "var(--umber)", color: "var(--sun)" },
   info: { background: "transparent", color: "var(--ink-2)", boxShadow: "inset 0 0 0 1.5px var(--ink-2)" },
+=======
+  // Neutral labels (payment method, plain states) wear a light palm tint, not a grey outline.
+  neutral: { background: "rgba(31,107,79,.12)", color: "var(--palm)", boxShadow: "inset 0 0 0 1.5px rgba(31,107,79,.3)" },
+  success: { background: "var(--palm)", color: "#F3EBDD" },
+  warning: { background: "var(--sun)", color: "var(--umber)" },
+  // Exception to the charte (validated): alerts such as "Non payé" are brick red.
+  danger: { background: "var(--alert)", color: "#fff8ea" },
+  info: { background: "rgba(242,161,4,.2)", color: "var(--umber)", boxShadow: "inset 0 0 0 1.5px rgba(242,161,4,.65)" },
+>>>>>>> Stashed changes
   purple: { background: "transparent", color: "var(--ink-2)", boxShadow: "inset 0 0 0 1.5px var(--ink-2)" },
 };
 export const Badge = ({ children, tone = "neutral", dot = false }: { children: ReactNode; tone?: Tone; dot?: boolean }) => (
@@ -169,6 +179,26 @@ export const Panel = ({ children, className = "", title, action }: { children: R
   <section className={`panel ${className}`}>{title && <div className="panel-header"><h3>{title}</h3>{action}</div>}{children}</section>
 );
 
+// "Simple and guided" dashboard: one card per record instead of a wide table row. The name comes
+// first and big, then two short lines, the status pill, and one clear button to open it.
+export const RecordCard = ({ title, lines = [], status, avatar, extra, actions, onOpen, openLabel }: {
+  title: ReactNode; lines?: ReactNode[]; status?: ReactNode; avatar?: ReactNode; extra?: ReactNode; actions?: ReactNode; onOpen?: () => void; openLabel?: string;
+}) => (
+  <article className={`record-card${onOpen ? " clickable" : ""}`} onClick={onOpen}>
+    {avatar && <div className="record-avatar">{avatar}</div>}
+    <div className="record-main">
+      <h3 className="record-title">{title}</h3>
+      {lines.filter((line) => line !== null && line !== undefined && line !== false && line !== "").map((line, index) => <p className="record-line" key={index}>{line}</p>)}
+    </div>
+    {(status || extra) && <div className="record-side">{status}{extra}</div>}
+    {(actions || (onOpen && openLabel)) && <div className="record-actions" onClick={(event) => event.stopPropagation()}>
+      {actions}
+      {onOpen && openLabel && <button type="button" className="record-open" onClick={onOpen}>{openLabel}<Icon name="chevron" size={16} /></button>}
+    </div>}
+  </article>
+);
+export const RecordList = ({ children, label }: { children: ReactNode; label?: string }) => <div className="record-list" role="list" aria-label={label}>{children}</div>;
+
 export const EmptyState = ({ title, text, action }: { title: string; text: string; action?: ReactNode }) => (
   <div className="empty-state"><span className="activity-icon"><Icon name="file" size={16} /></span><div><strong>{title}</strong><span>{text}</span></div>{action}</div>
 );
@@ -195,13 +225,17 @@ const storedTheme = (): Theme | null => {
     return value === "light" || value === "dark" ? value : null;
   } catch { return null; }
 };
-let theme: Theme = storedTheme() ?? (window.matchMedia?.("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+// The dark theme was removed (redesign): the site and the app are always light. storedTheme is
+// kept so an old saved "dark" is simply ignored.
+void storedTheme;
+let theme: Theme = "light";
 const themeListeners = new Set<() => void>();
 const applyTheme = () => document.documentElement.setAttribute("data-theme", theme);
 applyTheme();
 
 export function setTheme(next: Theme) {
-  theme = next;
+  void next;
+  theme = "light";
   try { localStorage.setItem("classtra-theme", next); } catch { /* private window: the choice just doesn't stick */ }
   applyTheme();
   for (const listener of themeListeners) listener();

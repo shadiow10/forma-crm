@@ -6,7 +6,11 @@ import { isLeaked } from "./Login";
 import type { FormEvent, ReactNode } from "react";
 import { LangPicker, money, usePage, useT } from "./i18n";
 import type { Copy } from "./i18n";
+<<<<<<< Updated upstream
 import { BrandMark, Icon, Spinner, ThemeToggle, useTheme } from "./ui";
+=======
+import { BrandMark, Icon, Spinner, useTheme } from "./ui";
+>>>>>>> Stashed changes
 import Bg from "./Bg";
 import { Logo } from "./Logo";
 import type { IconName } from "./ui";
@@ -57,7 +61,7 @@ export function Brand({ light = false }: { light?: boolean }) {
 // Language and theme, together, wherever the public site shows its header.
 function Prefs() {
   const t = useT();
-  return <span className="lp-prefs"><LangPicker label={t.language} /><ThemeToggle labels={t.theme} /></span>;
+  return <span className="lp-prefs"><LangPicker label={t.language} /></span>;
 }
 
 // The hero's one visual (charte): a saffron arch behind a still of the dashboard. The still is

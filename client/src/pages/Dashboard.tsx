@@ -2,6 +2,10 @@ import type { PageKey } from "../auth";
 import { label, useAppT } from "../appCopy";
 import { useData } from "../data";
 import { locale } from "../lang";
+<<<<<<< Updated upstream
+=======
+import type { IconName } from "../ui";
+>>>>>>> Stashed changes
 import { Badge, Button, COLORS, tint, DAYS, EmptyState, Icon, MetricCard, PageHeader, Panel, formatDate, formatTime, initialsBadge, statusTone, todayISO } from "../ui";
 
 export function Dashboard({ goTo, openStudent }: { goTo: (page: PageKey) => void; openStudent: (id: number) => void }) {
@@ -29,9 +33,6 @@ export function Dashboard({ goTo, openStudent }: { goTo: (page: PageKey) => void
     .map((enrollment) => ({ enrollment, student: studentById.get(enrollment.student_id), left: balanceOf(enrollment.id).balance, month: balanceOf(enrollment.id).monthsDue ?? 1 }))
     .filter((row) => row.left > 0)
     .sort((a, b) => b.left - a.left);
-  const levels = [...new Set([...activeStudents].map((id) => studentById.get(id)?.level ?? "—"))]
-    .map((level) => ({ level, count: [...activeStudents].filter((id) => (studentById.get(id)?.level ?? "—") === level).length }))
-    .sort((a, b) => a.level.localeCompare(b.level));
   const so = t.so;
   const dateLabel = today.toLocaleDateString(locale(), { weekday: "long", day: "numeric", month: "long", year: "numeric" });
 
@@ -41,6 +42,7 @@ export function Dashboard({ goTo, openStudent }: { goTo: (page: PageKey) => void
   const setup = d.setupSteps.map((step, index) => ({ ...step, page: setupPages[index], done: setupDone[index] }));
 
   return <>
+<<<<<<< Updated upstream
     <PageHeader eyebrow={dateLabel} title={d.hello} description={d.intro} actionLabel={d.newEnrollment} onAction={() => goTo("enrollments")} />
     <div className="metrics-grid">
       <MetricCard label={d.activeStudents} value={String(activeStudents.size)} note={d.ofDirectory(students.length)} icon="graduation" accent={COLORS.teal} />
@@ -51,6 +53,30 @@ export function Dashboard({ goTo, openStudent }: { goTo: (page: PageKey) => void
       <MetricCard label={d.todayCourses} value={String(todayGroups.length)} note={d.scheduledOn(t.v.day[todayName])} icon="calendar" accent="#6A63B8" />
       <MetricCard label={d.avgAttendance} value={presentRate === null ? "—" : `${presentRate}%`} note={d.overSessions(sessions)} icon="checkCircle" accent={COLORS.green} />
       <MetricCard label={d.collected} value={money(collectedThisMonth)} note={d.withBalance(owing.length)} icon="wallet" accent={COLORS.yellow} highlight />
+=======
+    {/* No "Bonjour" title (removed at the user's request): the date, one sentence, then the tasks. */}
+    <div className="page-header home-header"><div><div className="eyebrow">{dateLabel}</div><p>{d.intro}</p></div></div>
+    {/* "What would you like to do?" (validated): the four everyday tasks as big buttons, first thing on the page. */}
+    <section className="home-tasks" aria-labelledby="home-tasks-title">
+      <h1 id="home-tasks-title">{t.simple.question}</h1>
+      <div className="task-grid">
+        {([
+          { label: t.simple.enrol, icon: "plus", page: "enrollments" },
+          { label: t.simple.attendance, icon: "check", page: "attendance" },
+          { label: t.simple.collect, icon: "wallet", page: "payments" },
+          { label: d.seePlanning, icon: "calendar", page: "planning" },
+        ] as { label: string; icon: IconName; page: PageKey }[]).map((task) => <button type="button" className="task-button" key={task.page} onClick={() => goTo(task.page)}>
+          <span className="task-icon"><Icon name={task.icon} size={26} /></span><span>{task.label}</span>
+        </button>)}
+      </div>
+    </section>
+    {/* Three figures (redesign): what came in this month, how well pupils attend, what happens today.
+        The others stay on their own pages (Students, Enrollments, Groups). */}
+    <div className="metrics-grid home-metrics">
+      <MetricCard label={d.collected} value={money(collectedThisMonth)} note={d.withBalance(owing.length)} icon="wallet" highlight />
+      <MetricCard label={d.avgAttendance} value={presentRate === null ? "—" : `${presentRate}%`} note={d.overSessions(sessions)} icon="checkCircle" />
+      <MetricCard label={d.todayCourses} value={String(todayGroups.length)} note={d.scheduledOn(t.v.day[todayName])} icon="calendar" />
+>>>>>>> Stashed changes
     </div>
     {canEdit && !enrollments.length && <Panel title={d.setup} className="setup-panel">
       <p className="setup-intro">{d.setupIntro}</p>
@@ -60,7 +86,7 @@ export function Dashboard({ goTo, openStudent }: { goTo: (page: PageKey) => void
         {step.done ? <span className="setup-done">{d.done}</span> : <button className="setup-cta" onClick={() => goTo(step.page)}>{d.start} <Icon name="arrow" size={15} /></button>}
       </li>)}</ol>
     </Panel>}
-    <div className="dashboard-grid top-grid">
+    <div className="home-today">
       <Panel title={d.todayCourses} action={<Button variant="ghost" icon="arrow" onClick={() => goTo("planning")}>{d.seePlanning}</Button>}>
         {todayGroups.length ? <div className="activity-list">{todayGroups.map((group) => <div className="activity-row" key={group.id}>
           <span className="activity-icon" style={{ color: tint(group.color) }}><Icon name="calendar" size={15} /></span>
@@ -68,6 +94,8 @@ export function Dashboard({ goTo, openStudent }: { goTo: (page: PageKey) => void
           <Badge tone="info">{groupStudentIds(group.id).length}/{group.capacity}</Badge>
         </div>)}</div> : <EmptyState title={d.emptyToday} text={d.emptyTodayText} />}
       </Panel>
+    </div>
+    <div className="dashboard-grid home-pair">
       {isSoutien ? <Panel title={so.dashUnpaidList} action={<Button variant="ghost" icon="arrow" onClick={() => goTo("payments")}>{d.seePayments}</Button>}>
         {unpaidMonth.length ? <div className="risk-list">{unpaidMonth.slice(0, 6).map(({ enrollment, student, left, month }) => <div className="risk-row" key={enrollment.id} onClick={() => student && openStudent(student.id)}>
           <div>{initialsBadge(student?.full_name ?? "?")}</div>
@@ -83,21 +111,6 @@ export function Dashboard({ goTo, openStudent }: { goTo: (page: PageKey) => void
           <Icon name="chevron" size={16} />
         </div>)}</div> : <EmptyState title={d.emptyWatch} text={d.emptyWatchText} />}
       </Panel>}
-    </div>
-    <div className="dashboard-grid lower-grid">
-      {isSoutien ? <Panel title={so.dashByLevel} action={<Button variant="ghost" icon="arrow" onClick={() => goTo("students")}>{t.nav.students}</Button>}>
-        {levels.length ? <div className="activity-list">{levels.map(({ level, count }) => <div className="activity-row" key={level}>
-          <span className="activity-icon" style={{ background: COLORS.tealLight, color: COLORS.teal }}><Icon name="graduation" size={15} /></span>
-          <div><strong>{level}</strong><span>{t.common.students(count)}</span></div>
-          <div className="capacity-track level-track"><i style={{ width: `${Math.round((count / Math.max(1, activeStudents.size)) * 100)}%`, background: COLORS.teal }} /></div>
-        </div>)}</div> : <EmptyState title={d.emptyEnrollments} text={d.emptyEnrollmentsText} />}
-      </Panel> : <Panel title={d.recentEnrollments} action={<Button variant="ghost" icon="arrow" onClick={() => goTo("enrollments")}>{d.allEnrollments}</Button>}>
-        {enrollments.length ? <div className="activity-list">{[...enrollments].reverse().slice(0, 5).map((enrollment) => <div className="activity-row" key={enrollment.id} onClick={() => openStudent(enrollment.student_id)}>
-          <span className="activity-icon" style={{ background: COLORS.tealLight, color: COLORS.teal }}><Icon name="check" size={15} /></span>
-          <div><strong>{studentById.get(enrollment.student_id)?.full_name}</strong><span>{courseName(enrollment.course_id)} · {formatDate(enrollment.enrolled_on)}</span></div>
-          <Badge tone={statusTone(enrollment.status)}>{label(t.v.status, enrollment.status)}</Badge>
-        </div>)}</div> : <EmptyState title={d.emptyEnrollments} text={d.emptyEnrollmentsText} />}
-      </Panel>}
       <Panel title={d.recentPayments} action={<Button variant="ghost" icon="arrow" onClick={() => goTo("payments")}>{d.seePayments}</Button>}>
         {payments.length ? <div className="activity-list">{[...payments].reverse().slice(0, 5).map((payment) => {
           const enrollment = enrollments.find((item) => item.id === payment.enrollment_id);
@@ -108,6 +121,7 @@ export function Dashboard({ goTo, openStudent }: { goTo: (page: PageKey) => void
           </div>;
         })}</div> : <EmptyState title={d.emptyPayments} text={d.emptyPaymentsText} />}
       </Panel>
+<<<<<<< Updated upstream
       <Panel title={d.openGroups} action={<Button variant="ghost" icon="arrow" onClick={() => goTo("groups")}>{d.seeGroups}</Button>}>
         {openGroups.length ? <div className="activity-list">{openGroups.slice(0, 5).map((group) => {
           const count = groupStudentIds(group.id).length;
@@ -119,6 +133,8 @@ export function Dashboard({ goTo, openStudent }: { goTo: (page: PageKey) => void
           </div>;
         })}</div> : <EmptyState title={d.emptyGroups} text={d.emptyGroupsText} />}
       </Panel>
+=======
+>>>>>>> Stashed changes
     </div>
   </>;
 }

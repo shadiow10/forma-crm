@@ -6,7 +6,7 @@ import { useShowMore } from "../appUI";
 import { courseMonths, monthNumber, monthStatus, monthlyFee, teacherPay, totalPay } from "../lib/finance";
 import type { Payment } from "../lib/queries";
 import { supabase } from "../lib/supabase";
-import { Badge, Button, COLORS, EmptyState, Icon, MetricCard, PageHeader, Panel, downloadCSV, formatDate, todayISO } from "../ui";
+import { Badge, Button, COLORS, EmptyState, Icon, MetricCard, PageHeader, Panel, RecordCard, RecordList, downloadCSV, formatDate, todayISO } from "../ui";
 import { payRate } from "./Catalog";
 import { METHODS, MultiPaymentForm, PaymentForm } from "./forms";
 
@@ -141,68 +141,42 @@ export function Payments({ openStudent }: { openStudent: (id: number) => void })
 
       {tab === "history" ? <>
         <p className="muted-copy table-note">{p.shownTotal(money(filtered.reduce((sum, row) => sum + row.payment.amount, 0)))}</p>
-        <div className="table-scroll"><table>
-          <thead><tr><th>{p.colReceipt}</th><th>{t.common.date}</th><th>{t.common.student}</th><th>{t.common.course}</th><th>{p.colAmount}</th><th>{p.colMethod}</th><th /></tr></thead>
-          <tbody>{moreHistory.visible.map(({ payment, enrollment, student }) => <tr key={payment.id} onClick={() => student && openStudent(student.id)}>
-            <td className="muted-cell">{receiptNumber(payment)}</td>
-            <td>{formatDate(payment.paid_on)}</td>
-            <td><strong>{student?.full_name ?? "—"}</strong></td>
-            <td>{payment.month_no ? t.so.monthOf(payment.month_no, courseName(enrollment?.course_id)) : courseName(enrollment?.course_id)}</td>
-            <td className="money-ok">{money(payment.amount)}</td>
-            <td><Badge>{labelOf(t.v.method, payment.method)}</Badge></td>
-            <td><span className="card-actions">
-              <button className="row-menu" aria-label={p.printReceipt} title={p.printReceipt} onClick={(event) => { stop(event); setReceipt([payment.id]); }}><Icon name="print" size={15} /></button>
-              {isDirector && <button className="row-menu" aria-label={p.deletePayment} onClick={(event) => { stop(event); remove(payment.id, payment.amount); }}><Icon name="trash" size={15} /></button>}
-            </span></td>
-          </tr>)}</tbody>
-        </table></div>
+        <RecordList label={p.tabHistory}>{moreHistory.visible.map(({ payment, enrollment, student }) => <RecordCard key={payment.id} title={student?.full_name ?? "—"}
+          onOpen={student ? () => openStudent(student.id) : undefined} openLabel={t.simple.open}
+          lines={[payment.month_no ? t.so.monthOf(payment.month_no, courseName(enrollment?.course_id)) : courseName(enrollment?.course_id), `${formatDate(payment.paid_on)} · ${receiptNumber(payment)}`]}
+          status={<Badge>{labelOf(t.v.method, payment.method)}</Badge>}
+          extra={<strong className="money-ok">{money(payment.amount)}</strong>}
+          actions={<>
+            <Button variant="outline" icon="print" onClick={() => setReceipt([payment.id])}>{p.printReceipt}</Button>
+            {isDirector && <Button variant="danger" icon="trash" onClick={() => remove(payment.id, payment.amount)}>{p.deletePayment}</Button>}
+          </>} />)}</RecordList>
         {moreHistory.button}
         {!filtered.length && <p className="table-empty">{p.emptyHistory}</p>}
       </> : tab === "monthly" ? monthly.length ? <>
         <p className="muted-copy table-note">{isSoutien ? t.so.sessionsHint : p.monthlyNote}</p>
-        <div className="table-scroll"><table>
-          <thead><tr><th>{t.common.student}</th><th>{t.common.course}</th><th>{p.colMonthly}</th><th>{isSoutien ? t.so.colCurrent : p.colMonth}</th><th>{p.colDue}</th><th>{t.common.paid}</th><th>{p.colBehind}</th><th /></tr></thead>
-          <tbody>{moreMonthly.visible.map((row) => <tr key={row.enrollment.id} onClick={() => row.student && openStudent(row.student.id)}>
-            <td><strong>{row.student?.full_name ?? "—"}</strong><span className="cell-sub">{[row.student?.level, row.student?.parent_phone ?? row.student?.phone].filter(Boolean).join(" · ")}</span></td>
-            <td>{courseName(row.enrollment.course_id)}</td>
-            <td><strong>{money(row.fee)}</strong></td>
-            <td>{row.monthly
-              ? <><span>{t.so.month(row.current)}</span> <Badge tone={row.state === "paid" ? "success" : row.state === "partly" ? "warning" : "danger"}>{row.state === "paid" ? t.so.paidOk : row.state === "partly" ? t.so.partly : t.so.notPaid}</Badge></>
-              : p.monthOf(row.current, row.months)}</td>
-            <td>{money(row.due)}</td>
-            <td>{money(row.paid)}</td>
-            <td>{row.behind ? <span className="money-due">{money(row.behind)}</span> : <Badge tone="success">{p.upToDate}</Badge>}</td>
-            <td onClick={stop}>{row.behind > 0 && <Button variant="soft" onClick={() => setRecording({ enrollmentId: row.enrollment.id })}>{p.collect}</Button>}</td>
-          </tr>)}</tbody>
-        </table></div>
+        <RecordList label={isSoutien ? t.so.tabThisMonth : p.tabMonthly}>{moreMonthly.visible.map((row) => <RecordCard key={row.enrollment.id} title={row.student?.full_name ?? "—"}
+          onOpen={row.student ? () => openStudent(row.student!.id) : undefined} openLabel={t.simple.open}
+          lines={[`${courseName(row.enrollment.course_id)} · ${p.colMonthly} : ${money(row.fee)}`,
+            row.monthly ? <>{t.so.month(row.current)} <Badge tone={row.state === "paid" ? "success" : row.state === "partly" ? "warning" : "danger"}>{row.state === "paid" ? t.so.paidOk : row.state === "partly" ? t.so.partly : t.so.notPaid}</Badge></> : p.monthOf(row.current, row.months),
+            `${p.colDue} : ${money(row.due)} · ${t.common.paid} : ${money(row.paid)}`]}
+          extra={row.behind ? <span className="record-amount"><small>{p.colBehind}</small><strong className="money-due">{money(row.behind)}</strong></span> : <Badge tone="success">{p.upToDate}</Badge>}
+          actions={row.behind > 0 ? <Button variant="outline" icon="wallet" onClick={() => setRecording({ enrollmentId: row.enrollment.id })}>{p.collect}</Button> : undefined} />)}</RecordList>
         {moreMonthly.button}
       </> : <EmptyState title={search ? p.emptySearch : p.emptyMonthly} text={search ? "" : p.emptyMonthlyText} />
       : tab === "teachers" ? payRows.length ? <>
-        <div className="table-scroll"><table>
-          <thead><tr><th>{t.common.teacher}</th><th>{p.colGroups}</th><th>{p.colHours}</th><th>{p.colRate}</th><th>{p.colPay}</th></tr></thead>
-          <tbody>{morePay.visible.map((row) => <tr key={row.teacher.id}>
-            <td><strong>{row.teacher.full_name}</strong><span className="cell-sub">{labelOf(t.v.contract, row.teacher.contract)}</span></td>
-            <td>{row.groups.map((group) => group.name).join(", ")}</td>
-            <td>{row.mode === "student" ? <>{t.common.students(row.students)}<span className="cell-sub">{t.groups.monthSessions} {t.groups.sessionsOf(row.held, row.planned)}</span></> : `${row.hours} h`}</td>
-            <td>{payRate(row.teacher, money, t)}<span className="cell-sub">{t.teachers.payModes[row.mode]}</span></td>
-            <td><strong>{money(row.amount)}</strong></td>
-          </tr>)}</tbody>
-        </table></div>
+        <RecordList label={p.tabTeachers}>{morePay.visible.map((row) => <RecordCard key={row.teacher.id} title={row.teacher.full_name}
+          lines={[`${labelOf(t.v.contract, row.teacher.contract)} · ${t.teachers.payModes[row.mode]}`, row.groups.map((group) => group.name).join(", "),
+            row.mode === "student" ? `${t.common.students(row.students)} · ${t.groups.monthSessions} ${t.groups.sessionsOf(row.held, row.planned)}` : <>{row.hours} h · {payRate(row.teacher, money, t)}</>]}
+          extra={<span className="record-amount"><small>{p.colPay}</small><strong>{money(row.amount)}</strong></span>} />)}</RecordList>
         {morePay.button}
         <p className="muted-copy table-note">{p.payHint}</p>
       </> : <EmptyState title={p.emptyTeachers} text={p.emptyTeachersText} />
-      : unpaid.length ? <><div className="table-scroll"><table>
-        <thead><tr><th>{t.common.student}</th><th>{t.common.course}</th><th>{t.common.total}</th><th>{t.common.paid}</th><th>{t.common.left}</th><th>{p.colLast}</th><th /></tr></thead>
-        <tbody>{moreUnpaid.visible.map((row) => <tr key={row.enrollment.id} onClick={() => row.student && openStudent(row.student.id)}>
-          <td><strong>{row.student?.full_name ?? "—"}</strong><span className="cell-sub">{row.student?.phone}</span></td>
-          <td>{courseName(row.enrollment.course_id)}</td>
-          <td>{money(row.enrollment.total)}</td>
-          <td>{money(row.paid)}</td>
-          <td className="money-due">{money(row.balance)}</td>
-          <td>{row.last ? formatDate(row.last) : <Badge tone="danger">{p.noneYet}</Badge>}</td>
-          <td onClick={stop}><Button variant="soft" onClick={() => setRecording({ enrollmentId: row.enrollment.id })}>{p.collect}</Button></td>
-        </tr>)}</tbody>
-      </table></div>{moreUnpaid.button}</> : <EmptyState title={search ? p.emptySearch : p.allPaid} text={search ? p.emptySearchText : p.allPaidText} />}
+      : unpaid.length ? <><RecordList label={p.tabUnpaid}>{moreUnpaid.visible.map((row) => <RecordCard key={row.enrollment.id} title={row.student?.full_name ?? "—"}
+        onOpen={row.student ? () => openStudent(row.student!.id) : undefined} openLabel={t.simple.open}
+        lines={[`${courseName(row.enrollment.course_id)} · ${row.student?.phone ?? ""}`, `${t.common.total} : ${money(row.enrollment.total)} · ${t.common.paid} : ${money(row.paid)}`,
+          <>{p.colLast} : {row.last ? formatDate(row.last) : <Badge tone="danger">{p.noneYet}</Badge>}</>]}
+        extra={<span className="record-amount"><small>{t.common.left}</small><strong className="money-due">{money(row.balance)}</strong></span>}
+        actions={<Button variant="outline" icon="wallet" onClick={() => setRecording({ enrollmentId: row.enrollment.id })}>{p.collect}</Button>} />)}</RecordList>{moreUnpaid.button}</> : <EmptyState title={search ? p.emptySearch : p.allPaid} text={search ? p.emptySearchText : p.allPaidText} />}
       <p className="form-hint table-note"><Icon name="lock" size={13} /> {isDirector ? p.hintDirector : p.hintOther}</p>
     </Panel>
     {recording && <PaymentForm enrollmentId={recording.enrollmentId} onClose={() => setRecording(null)} />}

@@ -19,21 +19,25 @@ import { BrandMark, Icon, formatDate, initials } from "./ui";
 import type { IconName } from "./ui";
 
 // Each page has its own address so refresh, back/forward and shared links work.
-const PAGES: { key: PageKey; path: string; icon: IconName }[] = [
-  { key: "dashboard", path: "/", icon: "grid" },
-  { key: "students", path: "/etudiants", icon: "graduation" },
-  { key: "enrollments", path: "/inscriptions", icon: "file" },
-  { key: "formations", path: "/formations", icon: "checklist" },
-  { key: "teachers", path: "/formateurs", icon: "teacher" },
-  { key: "groups", path: "/groupes", icon: "users" },
-  { key: "planning", path: "/planning", icon: "calendar" },
-  { key: "rooms", path: "/salles", icon: "building" },
-  { key: "attendance", path: "/presences", icon: "check" },
-  { key: "payments", path: "/paiements", icon: "wallet" },
-  { key: "analytics", path: "/statistiques", icon: "chart" },
-  { key: "certificates", path: "/certificats", icon: "print" },
-  { key: "settings", path: "/parametres", icon: "settings" },
+// Grouped by use (redesign): what is done every day first, then organising, then follow-up;
+// Settings stands alone at the bottom of the menu.
+type Section = "daily" | "organisation" | "followUp" | "settings";
+const PAGES: { key: PageKey; path: string; icon: IconName; section: Section }[] = [
+  { key: "dashboard", path: "/", icon: "grid", section: "daily" },
+  { key: "students", path: "/etudiants", icon: "graduation", section: "daily" },
+  { key: "attendance", path: "/presences", icon: "check", section: "daily" },
+  { key: "payments", path: "/paiements", icon: "wallet", section: "daily" },
+  { key: "enrollments", path: "/inscriptions", icon: "file", section: "organisation" },
+  { key: "formations", path: "/formations", icon: "checklist", section: "organisation" },
+  { key: "teachers", path: "/formateurs", icon: "teacher", section: "organisation" },
+  { key: "groups", path: "/groupes", icon: "users", section: "organisation" },
+  { key: "planning", path: "/planning", icon: "calendar", section: "organisation" },
+  { key: "rooms", path: "/salles", icon: "building", section: "organisation" },
+  { key: "analytics", path: "/statistiques", icon: "chart", section: "followUp" },
+  { key: "certificates", path: "/certificats", icon: "print", section: "followUp" },
+  { key: "settings", path: "/parametres", icon: "settings", section: "settings" },
 ];
+const SECTIONS: Section[] = ["daily", "organisation", "followUp", "settings"];
 const pathOf = (key: PageKey) => PAGES.find((page) => page.key === key)!.path;
 const pageAt = (path: string) => PAGES.find((page) => page.path === (path.replace(/\/+$/, "") || "/"))?.key;
 
@@ -135,12 +139,17 @@ export default function App({ member, email, userId, onSignOut }: { member: Memb
     <aside className={`sidebar ${sidebarOpen ? "open" : ""}`}>
       <div className="brand"><BrandMark /><div><strong className="wm" dir="ltr">Classtra</strong><small>{t.tagline}</small></div><button className="mobile-close" onClick={() => setSidebarOpen(false)} aria-label={t.common.closeMenu}><Icon name="close" size={18} /></button></div>
       <div className="school-switcher"><span className="school-avatar">{initials(school.name)}</span><div><strong>{school.name}</strong><span>{t.roles[member.role]}</span></div></div>
-      <nav className="nav-groups" aria-label={t.navGroup}><div className="nav-group"><span className="nav-label">{t.navGroup}</span>
-        {PAGES.filter((item) => allowed.includes(item.key)).map((item) => <a key={item.key} href={item.path} className={`nav-item ${page === item.key ? "active" : ""}`} aria-current={page === item.key ? "page" : undefined}
-          onClick={(event) => { if (event.ctrlKey || event.metaKey || event.shiftKey) return; event.preventDefault(); goTo(item.key); }}>
-          <Icon name={item.icon} size={17} /><span>{t.nav[item.key]}</span>
-        </a>)}
-      </div></nav>
+      <nav className="nav-groups" aria-label={t.navGroup}>{SECTIONS.map((section) => {
+        const items = PAGES.filter((item) => item.section === section && allowed.includes(item.key));
+        if (!items.length) return null;
+        return <div className={`nav-group nav-group-${section}`} key={section}>
+          {section !== "settings" && <span className="nav-label">{t.navSections[section]}</span>}
+          {items.map((item) => <a key={item.key} href={item.path} className={`nav-item ${page === item.key ? "active" : ""}`} aria-current={page === item.key ? "page" : undefined}
+            onClick={(event) => { if (event.ctrlKey || event.metaKey || event.shiftKey) return; event.preventDefault(); goTo(item.key); }}>
+            <Icon name={item.icon} size={17} /><span>{t.nav[item.key]}</span>
+          </a>)}
+        </div>;
+      })}</nav>
     </aside>
     {sidebarOpen && <div className="sidebar-overlay" onClick={() => setSidebarOpen(false)} />}
     <main className="main-area">
@@ -160,6 +169,14 @@ export default function App({ member, email, userId, onSignOut }: { member: Memb
       <div className="content-wrap">{renderPage()}</div>
       <footer className="app-footer"><span>Classtra · {school.name}</span><span role="status"><span className={syncing ? "status-live syncing" : "status-live"} /> {syncing ? t.common.syncing : t.common.synced}</span></footer>
     </main>
+    {/* Phones: the four everyday pages always one tap away, and the full menu behind "Menu". */}
+    <nav className="tabbar" aria-label={t.navSections.daily}>
+      {PAGES.filter((item) => item.section === "daily" && allowed.includes(item.key)).map((item) => <a key={item.key} href={item.path} className={page === item.key ? "active" : ""} aria-current={page === item.key ? "page" : undefined}
+        onClick={(event) => { if (event.ctrlKey || event.metaKey || event.shiftKey) return; event.preventDefault(); goTo(item.key); }}>
+        <Icon name={item.icon} size={22} /><span>{t.nav[item.key]}</span>
+      </a>)}
+      <button type="button" onClick={() => setSidebarOpen(true)} aria-label={t.common.openMenu}><Icon name="menu" size={22} /><span>{t.simple.menu}</span></button>
+    </nav>
     {studentId !== null && <StudentDrawer key={studentId} studentId={studentId} onClose={() => setStudentId(null)} />}
     {groupId !== null && <GroupDrawer key={groupId} groupId={groupId} onClose={() => setGroupId(null)} goTo={goTo} />}
     {notice && <div className="toast" role="status"><span className="toast-check"><Icon name="check" size={14} /></span><span>{notice}</span><button onClick={clearNotice} aria-label={t.common.close}><Icon name="close" size={14} /></button></div>}
