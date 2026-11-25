@@ -4,7 +4,7 @@ import { useData } from "../data";
 import { useShowMore } from "../appUI";
 import { readSheet, studentsFromSheet } from "../lib/sheet";
 import { supabase } from "../lib/supabase";
-import { Badge, Button, COLORS, Icon, MetricCard, PageHeader, Panel, clampPercent, downloadCSV, formatDate, initialsBadge, statusTone } from "../ui";
+import { Badge, Button, COLORS, Icon, MetricCard, PageHeader, Panel, RecordCard, RecordList, downloadCSV, formatDate, initialsBadge, statusTone } from "../ui";
 import { EnrollmentForm, StudentForm, levelOptions } from "./forms";
 import { CardScanner } from "./StudentCard";
 
@@ -76,27 +76,21 @@ export function Students({ openStudent }: { openStudent: (id: number) => void })
       <div className="filter-bar student-filter-bar">
         <div className="student-filter-main">
           <div className="search-box"><Icon name="search" size={16} /><input aria-label={s.searchPlaceholder} placeholder={s.searchPlaceholder} value={query} onChange={(event) => setQuery(event.target.value)} /></div>
-          <select className="select" aria-label={t.common.status} value={status} onChange={(event) => setStatus(event.target.value)}>{STATUS_FILTERS.map((item) => <option key={item} value={item}>{item === "Tous" ? t.common.all : labelOf(t.v.status, item)}</option>)}</select>
           <select className="select" aria-label={t.common.course} value={course} onChange={(event) => setCourse(event.target.value)}><option value="Toutes">{s.allCourses}</option>{courses.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select>
           {isSoutien && <select className="select" aria-label={t.so.fLevel} value={level} onChange={(event) => setLevel(event.target.value)}>{levelOptions(t.so.noLevel).map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}</select>}
         </div>
+        <div className="tabs choice-row" role="group" aria-label={t.common.status}>{STATUS_FILTERS.map((item) => <button type="button" key={item} className={status === item ? "active" : ""} aria-pressed={status === item} onClick={() => setStatus(item)}>{item === "Tous" ? t.common.all : labelOf(t.v.status, item)}</button>)}</div>
         <button className="text-button" onClick={exportList}><Icon name="download" size={14} /> {t.common.export}</button>
       </div>
-      <div className="table-scroll"><table>
-        <thead><tr><th>{t.common.student}</th><th>{t.common.status}</th><th>{t.common.course}</th><th>{s.colAttendance}</th><th>{s.colPayment}</th><th>{t.common.left}</th><th>{t.common.teacher}</th></tr></thead>
-        <tbody>{more.visible.map(({ student, summary }) => {
-          const low = summary.attendance !== null && summary.attendance < 75;
-          return <tr key={student.id} onClick={() => openStudent(student.id)} tabIndex={0} onKeyDown={(event) => event.key === "Enter" && openStudent(student.id)}>
-            <td><div className="person-cell">{initialsBadge(student.full_name)}<div><strong>{student.full_name}</strong><span>{[student.level, student.phone, student.email].filter(Boolean).join(" · ")}</span></div></div></td>
-            <td><Badge tone={statusTone(summary.status)} dot>{labelOf(t.v.status, summary.status)}</Badge></td>
-            <td>{courseName(summary.latest?.course_id)}</td>
-            <td><div className="inline-progress"><span className={low ? "low" : ""}>{summary.attendance === null ? "—" : `${summary.attendance}%`}</span><div><i style={{ width: `${clampPercent(summary.attendance ?? 0)}%`, background: low ? COLORS.red : COLORS.teal }} /></div></div></td>
-            <td><Badge tone={statusTone(summary.paymentStatus)}>{labelOf(t.v.status, summary.paymentStatus)}</Badge></td>
-            <td className={summary.balance ? "money-danger" : "money-ok"}>{money(summary.balance)}</td>
-            <td>{teacherOf(summary.latest?.group_id) ?? s.toAssign}</td>
-          </tr>;
-        })}</tbody>
-      </table></div>
+      <RecordList label={s.title}>{more.visible.map(({ student, summary }) => {
+        const low = summary.attendance !== null && summary.attendance < 75;
+        return <RecordCard key={student.id} avatar={initialsBadge(student.full_name)} title={student.full_name} onOpen={() => openStudent(student.id)} openLabel={t.simple.open}
+          lines={[
+            [courseName(summary.latest?.course_id), teacherOf(summary.latest?.group_id) ?? s.toAssign].join(" · "),
+            <>{s.colAttendance} : <b className={low ? "money-danger" : ""}>{summary.attendance === null ? "—" : `${summary.attendance}%`}</b> · {t.common.left} : <b className={summary.balance ? "money-danger" : "money-ok"}>{money(summary.balance)}</b></>,
+          ]}
+          status={<><Badge tone={statusTone(summary.status)}>{labelOf(t.v.status, summary.status)}</Badge><Badge tone={statusTone(summary.paymentStatus)}>{labelOf(t.v.status, summary.paymentStatus)}</Badge></>} />;
+      })}</RecordList>
       {more.button}
       {!filtered.length && <p className="table-empty">{students.length ? s.emptyFiltered : s.empty}</p>}
       <div className="table-footer"><span>{s.shown(more.visible.length, filtered.length)}</span></div>
@@ -126,22 +120,19 @@ export function Enrollments({ openStudent }: { openStudent: (id: number) => void
       <MetricCard label={e.finished} value={String(enrollments.filter((enrollment) => enrollment.status === "Terminé").length)} note={e.finishedNote} icon="checkCircle" accent={COLORS.green} />
       <MetricCard label={e.balance} value={money(active.reduce((sum, enrollment) => sum + balanceOf(enrollment.id).balance, 0))} note={e.balanceNote} icon="wallet" accent={COLORS.yellow} />
     </div>
-    <Panel className="table-panel" title={e.panel} action={<div className="toolbar-right">
-      <select className="select" aria-label={t.common.status} value={status} onChange={(event) => setStatus(event.target.value)}>{["Tous", "Inscrit", "En cours", "Terminé", "Abandonné"].map((item) => <option key={item} value={item}>{item === "Tous" ? t.common.all : labelOf(t.v.status, item)}</option>)}</select>
-      <div className="search-box compact"><Icon name="search" size={16} /><input aria-label={t.common.search} placeholder={t.common.search} value={query} onChange={(event) => setQuery(event.target.value)} /></div>
-    </div>}>
-      <div className="table-scroll"><table>
-        <thead><tr><th>{t.common.student}</th><th>{t.common.course}</th><th>{t.common.group}</th><th>{t.common.status}</th><th>{t.common.date}</th><th>{t.common.total}</th><th>{t.common.left}</th></tr></thead>
-        <tbody>{more.visible.map(({ enrollment, student, balance }) => <tr key={enrollment.id} onClick={() => openStudent(enrollment.student_id)} tabIndex={0} onKeyDown={(event) => event.key === "Enter" && openStudent(enrollment.student_id)}>
-          <td><div className="person-cell">{initialsBadge(student?.full_name ?? "?")}<div><strong>{student?.full_name ?? "—"}</strong><span>{student?.phone}</span></div></div></td>
-          <td>{courseName(enrollment.course_id)}</td>
-          <td>{enrollment.group_id ? groupById.get(enrollment.group_id)?.name : t.common.noGroup}</td>
-          <td><Badge tone={statusTone(enrollment.status)} dot>{labelOf(t.v.status, enrollment.status)}</Badge></td>
-          <td>{formatDate(enrollment.enrolled_on)}</td>
-          <td>{money(enrollment.total)}</td>
-          <td className={balance ? "money-danger" : "money-ok"}>{money(balance)}</td>
-        </tr>)}</tbody>
-      </table></div>
+    <Panel className="table-panel" title={e.panel}>
+      <div className="toolbar">
+        <div className="search-box"><Icon name="search" size={16} /><input aria-label={t.common.search} placeholder={t.common.search} value={query} onChange={(event) => setQuery(event.target.value)} /></div>
+        <div className="tabs choice-row" role="group" aria-label={t.common.status}>{["Tous", "Inscrit", "En cours", "Terminé", "Abandonné"].map((item) => <button type="button" key={item} className={status === item ? "active" : ""} aria-pressed={status === item} onClick={() => setStatus(item)}>{item === "Tous" ? t.common.all : labelOf(t.v.status, item)}</button>)}</div>
+      </div>
+      <RecordList label={e.panel}>{more.visible.map(({ enrollment, student, balance }) => <RecordCard key={enrollment.id} avatar={initialsBadge(student?.full_name ?? "?")} title={student?.full_name ?? "—"}
+        onOpen={() => openStudent(enrollment.student_id)} openLabel={t.simple.open}
+        lines={[
+          [courseName(enrollment.course_id), enrollment.group_id ? groupById.get(enrollment.group_id)?.name : t.common.noGroup].join(" · "),
+          `${formatDate(enrollment.enrolled_on)} · ${t.common.total} : ${money(enrollment.total)}`,
+        ]}
+        status={<Badge tone={statusTone(enrollment.status)}>{labelOf(t.v.status, enrollment.status)}</Badge>}
+        extra={<span className="record-amount"><small>{t.common.left}</small><strong className={balance ? "money-danger" : "money-ok"}>{money(balance)}</strong></span>} />)}</RecordList>
       {more.button}
       {!filtered.length && <p className="table-empty">{e.empty}</p>}
       <div className="table-footer"><span>{e.shown(more.visible.length, filtered.length)}</span></div>

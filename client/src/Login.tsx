@@ -14,14 +14,12 @@ export function AuthShell({ children, tabs }: { children: ReactNode; tabs?: Reac
   const t = useT();
   const page = usePage();
   return (
-    <div className="auth-page" {...page}>
+    <div className="auth-page cs" {...page}>
       <div className="auth-card">
         <div className="auth-brand">
           <BrandMark size={36} />
           <div>
-            <strong dir="ltr">
-              CLASSTRA<span>.</span>
-            </strong>
+            <strong className="wm" dir="ltr">Classtra</strong>
             <small>{t.auth.tagline}</small>
           </div>
         </div>

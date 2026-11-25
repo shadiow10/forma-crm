@@ -33,7 +33,7 @@ export function ConfirmDialog({ question, onAnswer }: { question: Question; onAn
   const t = useAppT();
   return <div className="drawer-layer confirm-layer" onClick={() => onAnswer(false)}>
     <div className="confirm-box" role="alertdialog" aria-labelledby="confirm-title" onClick={(event) => event.stopPropagation()}>
-      <span className="confirm-icon" style={{ background: question.danger ? "#FDE8E8" : COLORS.tealLight, color: question.danger ? COLORS.red : COLORS.teal }}>
+      <span className="confirm-icon" style={{ background: question.danger ? "var(--umber)" : COLORS.tealLight, color: question.danger ? "var(--sun)" : COLORS.teal }}>
         <Icon name={question.danger ? "trash" : "warning"} size={19} />
       </span>
       <h2 id="confirm-title">{question.title}</h2>

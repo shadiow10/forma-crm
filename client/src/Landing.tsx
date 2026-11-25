@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { EXTRA_PACKS, PLANS, TRIAL_DAYS } from "./lib/plans";
 import type { PlanId } from "./lib/plans";
 import { supabase } from "./lib/supabase";
@@ -6,7 +6,9 @@ import { isLeaked } from "./Login";
 import type { FormEvent, ReactNode } from "react";
 import { LangPicker, money, usePage, useT } from "./i18n";
 import type { Copy } from "./i18n";
-import { BrandMark, Icon, Spinner, ThemeToggle } from "./ui";
+import { BrandMark, Icon, Spinner, useTheme } from "./ui";
+import Bg from "./Bg";
+import { Logo } from "./Logo";
 import type { IconName } from "./ui";
 
 // Public site: landing page and a DEMO checkout. Nothing here charges money.
@@ -17,9 +19,8 @@ import type { IconName } from "./ui";
 const monthlyPrice = (plan: (typeof PLANS)[number]) => Math.round(plan.price / plan.months);
 const cheaperPerMonth = (plan: (typeof PLANS)[number]) => plan.months > 1 && monthlyPrice(plan) < PLANS[0].price;
 
-const PROBLEM_ICONS: IconName[] = ["clock", "wallet", "warning"];
-const ROLE_ICONS: IconName[] = ["building", "file", "teacher"];
-const TILE_ICONS: IconName[] = ["check", "wallet", "graduation", "calendar", "print"];
+const PROBLEM_ICONS: IconName[] = ["clock", "wallet", "lock"];
+const PROOF_ICONS: IconName[] = ["checkCircle", "shield", "download", "wallet"];
 
 export function Footer() {
   const t = useT();
@@ -50,86 +51,65 @@ function DemoButton({ className = "lp-btn" }: { className?: string }) {
 }
 
 export function Brand({ light = false }: { light?: boolean }) {
-  return <a className={`lp-brand ${light ? "light" : ""}`} href="/"><BrandMark size={34} /><strong dir="ltr">CLASSTRA<span>.</span></strong></a>;
+  return <a className={`lp-brand ${light ? "light" : ""}`} href="/"><BrandMark size={38} /><strong className="wm" dir="ltr">Classtra</strong></a>;
 }
 
 // Language and theme, together, wherever the public site shows its header.
 function Prefs() {
   const t = useT();
-  return <span className="lp-prefs"><LangPicker label={t.language} /><ThemeToggle labels={t.theme} /></span>;
+  return <span className="lp-prefs"><LangPicker label={t.language} /></span>;
 }
 
-// A still of the real app, drawn in HTML so it stays sharp and matches the product.
-// Its content is the French product UI on purpose: it is a screenshot, not page copy.
-function AppPreview() {
-  return <div className="lp-app" aria-hidden="true" dir="ltr">
-    <div className="lp-app-side">
-      <BrandMark size={30} />
-      {(["grid", "graduation", "file", "users", "calendar", "check", "wallet"] as IconName[]).map((icon, index) => <i key={icon} className={index === 5 ? "on" : ""}><Icon name={icon} size={15} /></i>)}
-    </div>
-    <div className="lp-app-main">
-      <div className="lp-app-head"><div><small>Présences · Mardi 14 octobre</small><strong>Excel avancé — Matin</strong></div><em>14 / 18 présents</em></div>
-      <div className="lp-app-table">
-        {[["Lina Haddad", "P", "96%"], ["Yacine Merabet", "P", "88%"], ["Sara Belkacem", "L", "81%"], ["Karim Ouali", "A", "68%"], ["Nour Saad", "P", "92%"]].map(([name, mark, rate]) =>
-          <div className="lp-app-row" key={name}>
-            <span className="lp-app-avatar">{name.split(" ").map((part) => part[0]).join("")}</span>
-            <strong>{name}</strong>
-            <span className="lp-app-marks">{["P", "L", "A"].map((option) => <b key={option} className={`${option}${option === mark ? " on" : ""}`}>{option === "P" ? "✓" : option === "L" ? "~" : "×"}</b>)}</span>
-            <span className={`lp-app-rate ${parseInt(rate) < 75 ? "low" : ""}`}>{rate}</span>
-          </div>)}
-      </div>
-    </div>
-    <div className="lp-app-card">
-      <small>Encaissé ce mois</small>
-      <strong>742 000 DA</strong>
-      <span>Reste à recouvrer · 186 500 DA</span>
-    </div>
-  </div>;
+// The hero's one visual (charte): a saffron arch behind a still of the dashboard. The still is
+// the French product, like the app itself; only the "sample data" note is page copy.
+function useInView<T extends HTMLElement>() {
+  const ref = useRef<T>(null);
+  const [seen, setSeen] = useState(false);
+  useEffect(() => {
+    const node = ref.current;
+    if (!node) return;
+    const observer = new IntersectionObserver(([entry]) => { if (entry.isIntersecting) { setSeen(true); observer.disconnect(); } }, { threshold: 0.3 });
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, []);
+  return [ref, seen] as const;
 }
-
-// Small stills of the other screens, looped right-to-left under the hero. Same rule as
-// AppPreview: the inside is the real French app, only the window title is translated.
-const avatar = (name: string) => <i className="ms-avatar">{name.split(" ").map((part) => part[0]).join("")}</i>;
-const SCREENS: { icon: IconName; body: ReactNode }[] = [
-  { icon: "grid", body: <>
-    <div className="ms-metrics"><div><small>Étudiants actifs</small><b>186</b></div><div><small>Présence</small><b>91%</b></div><div><small>Encaissé</small><b>742k</b></div></div>
-    <div className="ms-bars">{[42, 58, 50, 71, 64, 88, 76].map((height, index) => <i key={index} style={{ height: `${height}%` }} />)}</div>
-  </> },
-  { icon: "graduation", body: <>
-    {[["Lina Haddad", "Excel avancé", "Actif"], ["Yacine Merabet", "Anglais B1", "Actif"], ["Sara Belkacem", "Comptabilité", "En attente"], ["Nour Saad", "Python", "Actif"]].map(([name, course, status]) =>
-      <div className="ms-row" key={name}>{avatar(name)}<span><b>{name}</b><small>{course}</small></span><em className={status === "Actif" ? "ok" : "wait"}>{status}</em></div>)}
-  </> },
-  { icon: "wallet", body: <>
-    {[["Karim Ouali", "15 000 DA", "CCP"], ["Lina Haddad", "22 000 DA", "Espèces"], ["Amel Rahmani", "18 500 DA", "Edahabia"]].map(([name, amount, method]) =>
-      <div className="ms-row" key={name}>{avatar(name)}<span><b>{name}</b><small>{method}</small></span><strong>{amount}</strong></div>)}
-    <div className="ms-due"><span>Reste à recouvrer</span><b>186 500 DA</b></div>
-  </> },
-  { icon: "calendar", body:
-    <div className="ms-week">{["Dim", "Lun", "Mar", "Mer", "Jeu"].map((day, index) => <div key={day}><small>{day}</small>
-      {[["Excel", "t"], ["Anglais", "c"], ["Python", "n"]].filter((_, slot) => (index + slot) % 3 !== 2).map(([label, tone]) => <i key={label} className={tone}>{label}</i>)}
-    </div>)}</div> },
-  { icon: "users", body: <>
-    {[["Excel avancé — Matin", 16, 18], ["Anglais B1 — Soir", 11, 20], ["Python débutant", 19, 20]].map(([name, taken, seats]) =>
-      <div className="ms-group" key={name}><span><b>{name}</b><small>{taken} / {seats} places</small></span><div><i style={{ width: `${(Number(taken) / Number(seats)) * 100}%` }} /></div></div>)}
-  </> },
-  { icon: "print", body:
-    <div className="ms-cert"><small>Certificat de formation</small><b>Lina Haddad</b><span>a suivi avec succès « Excel avancé »</span><div><i /><i /></div></div> },
-];
-
-function ScreenStrip() {
+// Counts up once, when it comes into view; shows the number at once with reduced motion.
+function Count({ to, suffix = "" }: { to: number; suffix?: string }) {
+  const [ref, seen] = useInView<HTMLSpanElement>();
+  const [value, setValue] = useState(0);
+  useEffect(() => {
+    if (!seen) return;
+    if (matchMedia("(prefers-reduced-motion: reduce)").matches) { setValue(to); return; }
+    let start = 0, id = 0;
+    const step = (time: number) => { start ||= time; const p = Math.min((time - start) / 1200, 1); setValue(Math.round(to * (1 - (1 - p) ** 3))); if (p < 1) id = requestAnimationFrame(step); };
+    id = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(id);
+  }, [seen, to]);
+  return <span ref={ref}>{value}{suffix}</span>;
+}
+function HeroVisual() {
   const t = useT();
-  return <div className="lp-marquee">
-    <div className="lp-marquee-track" dir="ltr">
-      {[0, 1].map((copy) => SCREENS.map((screen, index) => <div className="lp-shot" key={`${copy}-${index}`} aria-hidden={copy === 1 || undefined}>
-        <div className="lp-shot-bar"><Icon name={screen.icon} size={13} />{t.shots.screens[index]}</div>
-        <div className="lp-shot-body" aria-hidden="true">{screen.body}</div>
-      </div>))}
+  return <div className="cl-visual">
+    <div className="cl-arch" aria-hidden="true" />
+    <div className="cl-dash" aria-hidden="true" dir="ltr">
+      <div className="cl-between"><strong>Tableau de bord</strong><small>Novembre</small></div>
+      <div className="cl-kpis">
+        <div><small>Étudiants actifs</small><b><Count to={186} /></b></div>
+        <div><small>Présence moyenne</small><b><Count to={91} suffix="%" /></b></div>
+        <div className="hi"><small>Encaissé ce mois</small><b><Count to={742} suffix="k" /></b></div>
+      </div>
+      <div className="cl-bars">{[40, 55, 48, 70, 64, 90].map((height, index) => <i key={index} className={index === 5 ? "on" : ""} style={{ height: `${height}%`, animationDelay: `${0.3 + index * 0.08}s` }} />)}</div>
+      {[["Lina Haddad", "ok", "Payé"], ["Yacine Merabet", "mid", "Partiel"], ["Karim Ouali", "late", "Non payé"]].map(([name, tone, label], index) =>
+        <p className="cl-ln" key={name} style={{ animationDelay: `${0.9 + index * 0.2}s` }}><span>{name}</span><span className={`cl-chip ${tone}`}>{label}</span></p>)}
+      <div className="cl-note"><Icon name="bell" size={16} />3 impayés</div>
     </div>
+    <small className="cl-ex">{t.hero.sample}</small>
   </div>;
 }
 
 // Nav underline follows the section in the middle of the screen.
-const NAV = ["fonctionnalites", "roles", "tarifs", "faq"] as const;
+const NAV = ["fonctionnalites", "tarifs", "faq"] as const;
 function useActiveSection() {
   const [active, setActive] = useState("");
   useEffect(() => {
@@ -140,6 +120,16 @@ function useActiveSection() {
     return () => observer.disconnect();
   }, []);
   return active;
+}
+
+// A problem struck through in saffron, then its answer slides in (charte, section 13).
+function Row({ icon, problem, solution }: { icon: IconName; problem: string; solution: string }) {
+  const [ref, seen] = useInView<HTMLDivElement>();
+  return <div ref={ref} className={`cl-row ${seen ? "in" : ""}`}>
+    <Icon name={icon} size={30} />
+    <h3><span className="cl-strike">{problem}</span></h3>
+    <p>{solution}</p>
+  </div>;
 }
 
 export function Landing() {
@@ -153,148 +143,128 @@ export function Landing() {
     window.addEventListener("keydown", close);
     return () => window.removeEventListener("keydown", close);
   }, [menuOpen]);
-  const navLabels = [t.nav.features, t.nav.roles, t.nav.pricing, t.nav.faq];
-  return <div className="lp" {...page}>
-    <header className="lp-header">
-      <div className="lp-header-start"><Brand /><Prefs /></div>
-      <nav className="lp-nav" aria-label={t.sections}>{NAV.map((id, index) => <a key={id} href={`#${id}`} className={active === id ? "active" : ""}>{navLabels[index]}</a>)}</nav>
-      <div className="lp-header-end">
-        <a className="lp-login" href="/connexion">{t.signIn}</a>
-        <a className="lp-login lp-signup-link" href="/creer-un-compte">{t.signup.link}</a>
+  const dark = useTheme() === "dark";
+  const [planIndex, setPlanIndex] = useState(() => Math.max(0, PLANS.findIndex((plan) => plan.featured)));
+  const plan = PLANS[planIndex];
+  const navLabels = [t.nav.features, t.nav.pricing, t.nav.faq];
+  return <div className="lp cl" {...page}>
+    <Bg dark={dark} />
+    <header className="cl-nav">
+      <a href="/" className="cl-home" aria-label="Classtra"><Logo onDark={dark} /></a>
+      <nav className="cl-links" aria-label={t.sections}>{NAV.map((id, index) => <a key={id} href={`#${id}`} className={active === id ? "active" : ""}>{navLabels[index]}</a>)}</nav>
+      <div className="cl-end">
+        <Prefs />
+        <a className="cl-btn outline" href="/connexion">{t.signIn}</a>
+        <button className="cl-burger" type="button" aria-label={t.menu} aria-expanded={menuOpen} aria-controls="lp-menu" onClick={() => setMenuOpen(!menuOpen)}><Icon name={menuOpen ? "close" : "menu"} size={20} /></button>
       </div>
-      <button className="lp-burger" type="button" aria-label={t.menu} aria-expanded={menuOpen} aria-controls="lp-menu" onClick={() => setMenuOpen(!menuOpen)}><Icon name={menuOpen ? "close" : "menu"} size={20} /></button>
-      {menuOpen && <nav id="lp-menu" className="lp-menu" aria-label={t.menu}>
+      {menuOpen && <nav id="lp-menu" className="cl-menu" aria-label={t.menu}>
         {NAV.map((id, index) => <a key={id} href={`#${id}`} onClick={() => setMenuOpen(false)}>{navLabels[index]}</a>)}
-        <a href="/connexion">{t.signIn}</a>
-        <a href="/creer-un-compte">{t.signup.link}</a>
         <Prefs />
       </nav>}
     </header>
 
     <main>
-      <section className="lp-hero">
-        <p className="lp-eyebrow">{t.hero.eyebrow}</p>
-        <h1>{t.hero.titleA}<br /><span>{t.hero.titleB}</span></h1>
-        <p className="lp-lead">{t.hero.lead}</p>
-        <div className="lp-actions"><a className="lp-btn primary" href="#tarifs">{t.hero.plans}</a>{DEMO.email ? <DemoButton className="lp-btn outline" /> : <a className="lp-link" href="#fonctionnalites">{t.hero.how} <Icon name="arrow" size={15} /></a>}</div>
-        <AppPreview />
-      </section>
-
-      <section className="lp-audience" aria-label={t.audience.label}>
-        <span>{t.audience.label}</span>
-        <ul>{t.audience.items.map((audience) => <li key={audience}>{audience}</li>)}</ul>
-      </section>
-
-      <section className="lp-section lp-problem">
-        <div className="lp-section-head">
-          <h2>{t.problem.title}</h2>
-          <p>{t.problem.text}</p>
-        </div>
-        <div className="lp-problem-grid">{t.problem.items.map((item, index) => <article key={item.title}><span className="lp-icon"><Icon name={PROBLEM_ICONS[index]} size={20} /></span><h3>{item.title}</h3><p>{item.text}</p></article>)}</div>
-      </section>
-
-      <section className="lp-shots" aria-label={t.shots.title}>
-        <div className="lp-section-head">
-          <h2>{t.shots.title}</h2>
-        </div>
-        <ScreenStrip />
-      </section>
-
-      <section id="fonctionnalites" className="lp-section">
-        <div className="lp-section-head">
-          <h2>{t.features.title}</h2>
-        </div>
-        <div className="lp-bento">
-          {t.features.tiles.map((tile, index) => <article className={`lp-tile ${["dark big", "", "", "wide", "sand"][index]}`} key={tile.title}>
-            <span className="lp-icon"><Icon name={TILE_ICONS[index]} size={20} /></span>
-            {index === 3
-              ? <div><h3>{tile.title}</h3><p>{tile.text}</p></div>
-              : <><h3>{tile.title}</h3><p>{tile.text}</p></>}
-            {index === 0 && <div className="lp-tile-marks" aria-hidden="true"><b className="P on">✓</b><b className="L">~</b><b className="A">×</b></div>}
-          </article>)}
-        </div>
-      </section>
-
-      <section id="roles" className="lp-section lp-roles">
-        <div className="lp-section-head">
-          <h2>{t.roles.title}</h2>
-          <p>{t.roles.text}</p>
-        </div>
-        <div className="lp-role-grid">{t.roles.items.map((item, index) => <article className="lp-role" key={item.role}>
-          <span className="lp-icon"><Icon name={ROLE_ICONS[index]} size={20} /></span>
-          <h3>{item.role}</h3>
-          <p>{item.text}</p>
-          <ul>{item.can.map((line) => <li key={line}><Icon name="check" size={14} />{line}</li>)}</ul>
-        </article>)}</div>
-      </section>
-
-      <section className="lp-band">
-        <div className="lp-band-inner">
-          <h2>{t.steps.title}</h2>
-          <ol className="lp-steps">
-            {t.steps.items.map((step, index) => <li key={step.title}><em>{String(index + 1).padStart(2, "0")}</em><strong>{step.title}</strong><span>{step.text}</span></li>)}
-          </ol>
-        </div>
-      </section>
-
-      <section id="tarifs" className="lp-section lp-pricing">
-        <div className="lp-pricing-intro">
-          <p className="lp-eyebrow">{t.pricing.eyebrow}</p>
-          <h2>{t.pricing.title}</h2>
-          <p>{t.pricing.text}</p>
-          <div className="lp-included">
-            <strong>{t.pricing.includedTitle}</strong>
-            <ul>{t.pricing.included.map((item) => <li key={item}><Icon name="check" size={14} />{item}</li>)}</ul>
-          </div>
-          {/* The 15-day free trial (0033): straight to a working school, before any plan. */}
-          <div className="lp-trial"><a className="lp-btn primary" href="/essai">{t.trial.cta} <Icon name="arrow" size={16} /></a><span>{t.trial.ctaNote}</span></div>
-        </div>
-
-        <div className="lp-ledger">
-          {PLANS.map((plan) => {
-            const copy = t.plans[plan.id];
-            return <article className={`lp-plan ${plan.featured ? "featured" : ""}`} key={plan.id}>
-              <div className="lp-plan-name">
-                <h3>{copy.name}{plan.featured && <span className="lp-badge">{t.pricing.recommended}</span>}</h3>
-                <p>{copy.tagline}</p>
-              </div>
-              <div className="lp-plan-size" />
-              <div className="lp-plan-price">
-                <strong>{money(plan.price, t)}</strong>
-                {cheaperPerMonth(plan) && <span>{t.pricing.perMonth(money(monthlyPrice(plan), t))}</span>}
-              </div>
-              <a className={`lp-plan-cta ${plan.featured ? "primary" : ""}`} href={`/commander?plan=${plan.id}`} aria-label={t.pricing.chooseAria(copy.name)}>
-                {t.pricing.choose} <Icon name="arrow" size={16} />
-              </a>
-            </article>;
-          })}
-          <div className="lp-extras">
-            <strong>{t.pricing.extrasTitle}</strong>
-            <ul>
-              {EXTRA_PACKS.map((pack) => <li key={pack.students}><Icon name="plus" size={14} />{t.pricing.extraLine(pack.students, money(pack.price, t))}</li>)}
-              <li><Icon name="plus" size={14} />{t.pricing.extraQuote}</li>
-            </ul>
-            <span>{t.pricing.extrasNote}</span>
-          </div>
-          <p className="lp-ledger-note">{t.pricing.note}</p>
-        </div>
-      </section>
-
-      <section id="faq" className="lp-section lp-faq">
+      <section className="cl-wrap cl-hero">
         <div>
-          <h2>{t.faq.title}</h2>
+          <h1>{t.hero.titleA}<br />{t.hero.titleB}</h1>
+          <p className="cl-lead">{t.hero.lead}</p>
+          <p className="cl-offer"><b>{t.hero.offerLead(money(PLANS[0].price, t))}</b>{t.hero.offerRest}</p>
+          <div className="cl-actions">
+            <a className="cl-btn primary" href="/essai">{t.trial.cta}<Icon name="arrow" size={18} /></a>
+            <DemoButton className="cl-btn outline" />
+          </div>
+          <p className="cl-micro">{t.trial.ctaNote}</p>
         </div>
-        <div>{t.faq.items.map((item) => <details key={item.q}><summary>{item.q}<Icon name="plus" size={18} /></summary><p>{item.a}</p></details>)}</div>
+        <HeroVisual />
       </section>
 
-      <section className="lp-cta">
-        <h2>{t.cta.title}</h2>
-        <div className="lp-actions"><a className="lp-btn primary" href="#tarifs">{t.hero.plans}</a><DemoButton className="lp-btn outline" /></div>
+      <ul className="cl-wrap cl-proof" aria-label={t.problem.proofLabel}>
+        {t.problem.proof.map((item, index) => <li key={item}><Icon name={PROOF_ICONS[index]} size={28} />{item}</li>)}
+      </ul>
+
+      <section id="fonctionnalites" className="cl-wrap cl-sec">
+        <h2>{t.problem.title}</h2>
+        <div className="cl-rows">
+          {t.problem.items.map((item, index) => <Row key={item.title} icon={PROBLEM_ICONS[index]} problem={item.title}
+            solution={[t.features.tiles[0].title, t.features.tiles[1].title, t.problem.solution3][index]} />)}
+        </div>
+        <p className="cl-plus"><Icon name="userplus" size={22} />{t.problem.more}</p>
+      </section>
+
+      <section className="cl-wrap cl-sec">
+        <h2>{t.steps.title}</h2>
+        <ol className="cl-steps">
+          {t.steps.items.map((step, index) => <li key={step.title}><b>{index + 1}</b><h3>{step.title}</h3><p>{step.text}</p></li>)}
+        </ol>
+      </section>
+
+      <section id="tarifs" className="cl-band">
+        <div className="cl-wrap cl-offer-grid">
+          <div>
+            <h2>{t.pricing.title}</h2>
+            <p className="cl-band-text">{t.pricing.text}</p>
+            <div role="tablist" aria-label={t.pricing.eyebrow} className="cl-tabs">
+              {PLANS.map((item, index) => <button key={item.id} type="button" role="tab" aria-selected={planIndex === index} onClick={() => setPlanIndex(index)}>{t.plans[item.id].name}</button>)}
+            </div>
+            <p><span className={`cl-best ${plan.featured ? "" : "off"}`}>{t.pricing.recommended}</span></p>
+            <p className="cl-amount" key={plan.id}><b>{money(plan.price, t)}</b></p>
+            <p className="cl-save">{t.plans[plan.id].tagline}{cheaperPerMonth(plan) && <> · {t.pricing.perMonth(money(monthlyPrice(plan), t))}</>}</p>
+            <div className="cl-actions">
+              <a className="cl-btn primary" href="/essai">{t.trial.cta}<Icon name="arrow" size={18} /></a>
+              <a className="cl-btn outline" href={`/commander?plan=${plan.id}`} aria-label={t.pricing.chooseAria(t.plans[plan.id].name)}>{t.pricing.choose}<Icon name="arrow" size={16} /></a>
+            </div>
+          </div>
+          <div>
+            <p className="cl-incl-title">{t.pricing.includedTitle}</p>
+            <ul className="cl-incl">{t.pricing.included.map((item) => <li key={item}><Icon name="checkCircle" size={22} />{item}</li>)}</ul>
+            <p className="cl-extras"><strong>{t.pricing.extrasTitle}</strong> {EXTRA_PACKS.map((pack) => t.pricing.extraLine(pack.students, money(pack.price, t))).join(" · ")} · {t.pricing.extraQuote}. {t.pricing.extrasNote}</p>
+            <p className="cl-extras">{t.pricing.note}</p>
+          </div>
+        </div>
+      </section>
+
+      <section id="faq" className="cl-wrap cl-sec cl-faq">
+        <h2>{t.faq.title}</h2>
+        {/* Four questions (charte): paying, separate data, nothing to install, leaving with your data. */}
+        <div>{[3, 5, 7, 2].map((index) => t.faq.items[index]).map((item) => <details key={item.q}><summary>{item.q}<Icon name="plus" size={22} /></summary><p>{item.a}</p></details>)}</div>
+      </section>
+
+      <section id="contact" className="cl-wrap cl-sec cl-contact">
+        <div>
+          <h2>{t.cta.title}</h2>
+          <p className="cl-lead">{t.trial.text}</p>
+        </div>
+        <ContactForm />
       </section>
     </main>
 
-    <Footer />
+    <footer className="cl-wrap cl-foot">
+      <a href="/" className="cl-home" aria-label="Classtra"><Logo stacked onDark={dark} /></a>
+      <nav className="cl-foot-links" aria-label={t.footer.legalNav}>
+        <a href="/mentions-legales">{t.footer.legal}</a><a href="/cgv">{t.footer.cgv}</a><a href="/confidentialite">{t.footer.privacy}</a><a href="/connexion">{t.footer.client}</a>
+      </nav>
+    </footer>
   </div>;
+}
+
+// The model's contact card, with no new backend: the four answers go into the draft the trial
+// sign-up already reads, then the visitor lands on /essai with them filled in.
+function ContactForm() {
+  const t = useT();
+  const submit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const form = new FormData(event.currentTarget);
+    const text = (key: string) => String(form.get(key) ?? "").trim();
+    saveDraft({ ...EMPTY, ...readDraft(), school: text("school"), director: text("director"), phone: text("phone"), wilaya: text("wilaya") });
+    window.location.href = "/essai";
+  };
+  return <form className="cl-card" onSubmit={submit}>
+    <label>{t.checkout.schoolName}<input name="school" required autoComplete="organization" /></label>
+    <label>{t.checkout.director}<input name="director" required autoComplete="name" /></label>
+    <label>{t.checkout.phone}<input name="phone" type="tel" required autoComplete="tel" placeholder="0555 00 00 00" /></label>
+    <label>{t.checkout.wilaya}<input name="wilaya" required /></label>
+    <button className="cl-btn primary" type="submit">{t.trial.cta}<Icon name="arrow" size={18} /></button>
+  </form>;
 }
 
 // ---------------------------------------------------------------- Checkout and sign-up
@@ -428,7 +398,7 @@ export function Checkout() {
 
   const doneValues = [values.phone.trim(), values.email.trim(), values.school.trim()];
 
-  return <div className="lp lp-checkout-page" {...page}>
+  return <div className="lp lp-checkout-page cs" {...page}>
     <header className="lp-header"><Brand /><a className="lp-login" href="/#tarifs">{t.checkout.back}</a></header>
     <p className="lp-demo-banner" role="note"><Icon name="phone" size={15} /> {t.checkout.banner}</p>
 
@@ -486,7 +456,7 @@ export function Checkout() {
 // With `trial` (/essai), the confirmation link lands on the trial page instead of the order form.
 export function SignupForm({ trial = false }: { trial?: boolean }) {
   const t = useT();
-  const { values, errors, setErrors, set, setType } = useDetails();
+  const { values, errors, setErrors, set, setType } = useDetails(readDraft()); // the landing contact form leaves a draft
   const [password, setPassword] = useState("");
   const [step, setStep] = useState<"form" | "sending" | "done">("form");
 

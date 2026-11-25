@@ -15,7 +15,7 @@ import { fetchAll } from "../lib/queries";
 import { toCSV, zipFiles } from "../lib/zip";
 import { supabase } from "../lib/supabase";
 import { FormModal, ShowMore } from "../appUI";
-import { Badge, Button, COLORS, EmptyState, Icon, PageHeader, Panel, formatDate, initialsBadge, setTheme, todayISO, useTheme, variants } from "../ui";
+import { Badge, Button, COLORS, EmptyState, Icon, PageHeader, Panel, formatDate, initialsBadge, todayISO, variants } from "../ui";
 import type { IconName } from "../ui";
 import { BUCKET, shrinkImage, useSignedUrl } from "./StudentCard";
 
@@ -106,11 +106,9 @@ export function Settings({ userId, signedInAs, onSignOut }: { userId: string; si
 function Preferences() {
   const s = useAppT().settings;
   const lang = useLang();
-  const theme = useTheme();
   return <Panel title={s.prefs}>
     <div className="settings-form">
       <label>{s.fLanguage}<select className="field" value={lang} onChange={(event) => setLang(event.target.value as Lang)}>{LANGS.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
-      <label>{s.fTheme}<select className="field" value={theme} onChange={(event) => setTheme(event.target.value as "light" | "dark")}><option value="light">{s.themeLight}</option><option value="dark">{s.themeDark}</option></select></label>
     </div>
     <p className="form-hint">{s.prefsHint}</p>
   </Panel>;

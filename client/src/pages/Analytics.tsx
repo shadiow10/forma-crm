@@ -19,7 +19,7 @@ function BarChart({ bars, label }: { bars: { key: string; label: string; value: 
       return <div className="bar-col" key={bar.key} title={bar.title}>
         <div className="bar-area">
           <span className="bar-zero" style={{ top: `${zero}%` }} />
-          {!!bar.value && <span className={`bar ${negative ? "negative" : ""}`} style={negative ? { top: `${zero}%`, height: `${size}%` } : { bottom: `${100 - zero}%`, height: `${size}%` }} />}
+          {!!bar.value && <span className={`bar ${negative ? "negative" : ""} ${bar.key === todayISO().slice(0, 7) ? "now" : ""}`} style={negative ? { top: `${zero}%`, height: `${size}%` } : { bottom: `${100 - zero}%`, height: `${size}%` }} />}
         </div>
         <span className="bar-label">{bar.label}</span>
       </div>;

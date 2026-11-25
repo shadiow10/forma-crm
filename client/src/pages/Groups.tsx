@@ -7,7 +7,7 @@ import type { Group } from "../lib/queries";
 import { plannedSessions } from "../lib/finance";
 import { supabase } from "../lib/supabase";
 import { Drawer, useShowMore } from "../appUI";
-import { Badge, Button, COLORS, DAYS, EmptyState, Icon, MetricCard, PageHeader, Panel, clampPercent, formatTime, initialsBadge, percent, statusTone, todayISO } from "../ui";
+import { Badge, Button, COLORS, DAYS, tint, EmptyState, Icon, MetricCard, PageHeader, Panel, RecordCard, RecordList, clampPercent, formatTime, initialsBadge, percent, statusTone, todayISO } from "../ui";
 import { GroupForm } from "./forms";
 
 export const groupStatus = (group: Group, count: number) => (group.status === "Annulé" ? "Annulé" : count >= group.capacity ? "Complet" : "Ouvert");
@@ -57,13 +57,13 @@ export function Groups({ openGroup }: { openGroup: (id: number) => void }) {
       const planned = plannedSessions(group, courses.find((course) => course.id === group.course_id), school.sessions_per_month, month);
       const held = heldThisMonth.get(group.id) ?? 0;
       return <div className="class-card" key={group.id} onClick={() => openGroup(group.id)} tabIndex={0} onKeyDown={(event) => event.key === "Enter" && openGroup(group.id)}>
-        <div className="class-color" style={{ background: group.color }} />
+        <div className="class-color" style={{ background: tint(group.color) }} />
         <div className="class-card-main">
           <div className="class-card-top"><Badge tone={statusTone(status)} dot>{labelOf(t.v.status, status)}</Badge><span className="muted-copy">{courses.find((course) => course.id === group.course_id)?.name ?? ""}</span></div>
           <h3>{group.name}</h3>
           <p><Icon name="teacher" size={14} /> {teachers.find((teacher) => teacher.id === group.teacher_id)?.full_name ?? t.common.unassigned} · {group.room || t.common.noRoom}</p>
           <p><Icon name="calendar" size={14} /> {group.days.map((day) => t.v.day[day]).join(" · ") || t.common.noDays}, {timeRange(group, t.common.noTime)}</p>
-          {canEdit && <div className="capacity"><div><span>{g.capacity}</span><strong>{count}/{group.capacity}</strong></div><div className="capacity-track"><i style={{ width: `${clampPercent(percent(count, group.capacity))}%`, background: count >= group.capacity ? COLORS.coral : group.color }} /></div></div>}
+          {canEdit && <div className="capacity"><div><span>{g.capacity}</span><strong>{count}/{group.capacity}</strong></div><div className="capacity-track"><i style={{ width: `${clampPercent(percent(count, group.capacity))}%`, background: count >= group.capacity ? COLORS.coral : tint(group.color) }} /></div></div>}
           {status !== "Annulé" && planned > 0 && <div className="capacity month-sessions"><div><span>{g.monthSessions}</span><strong>{g.sessionsOf(held, planned)}</strong></div><div className="capacity-track"><i style={{ width: `${clampPercent(percent(held, planned))}%`, background: held >= planned ? COLORS.green : COLORS.teal }} /></div></div>}
         </div>
       </div>;
@@ -130,7 +130,7 @@ export function GroupDrawer({ groupId, onClose, goTo }: { groupId: number; onClo
       {canEdit && <Button small variant="outline" icon="edit" onClick={() => setEditing(true)}>{t.common.edit}</Button>}
     </>}>
     <div className="class-drawer-head">
-      <span className="class-color-large" style={{ background: group.color }} />
+      <span className="class-color-large" style={{ background: tint(group.color) }} />
       <div>
         <Badge tone={statusTone(status)} dot>{labelOf(t.v.status, status)}</Badge>
         <p>{teachers.find((teacher) => teacher.id === group.teacher_id)?.full_name ?? t.common.unassigned} · {group.room || t.common.noRoom}</p>
@@ -194,8 +194,10 @@ export function layoutDay(dayGroups: Group[]) {
 export function Planning({ openGroup }: { openGroup: (id: number) => void }) {
   const t = useAppT();
   const p = t.planning;
-  const { groups, canEdit } = useData();
+  const { groups, teachers, canEdit } = useData();
   const [weekOffset, setWeekOffset] = useState(0);
+  // Day-by-day list first (validated); the week grid stays one click away.
+  const [view, setView] = useState<"list" | "grid">("list");
   const [creating, setCreating] = useState(false);
   const start = new Date();
   start.setHours(0, 0, 0, 0);
@@ -208,13 +210,30 @@ export function Planning({ openGroup }: { openGroup: (id: number) => void }) {
 
   return <>
     <PageHeader eyebrow={t.groups.eyebrow} title={p.title} description={canEdit ? p.description : p.descriptionTeacher} actionLabel={canEdit ? t.groups.action : undefined} onAction={() => setCreating(true)} />
-    <Panel title={p.weekly} action={<div className="week-switch">
+    <Panel title={p.weekly} className="planning-panel" action={<div className="week-switch">
       <button onClick={() => setWeekOffset(weekOffset - 1)} aria-label={p.prev}>‹</button>
       <strong>{range}</strong>
       <button onClick={() => setWeekOffset(weekOffset + 1)} aria-label={p.next}>›</button>
       {weekOffset !== 0 && <button className="text-button" onClick={() => setWeekOffset(0)}>{p.today}</button>}
     </div>}>
-      <div className="table-scroll"><div className="calendar-grid">
+      <div className="planning-view-switch"><Button variant="outline" icon={view === "list" ? "grid" : "checklist"} onClick={() => setView(view === "list" ? "grid" : "list")}>{view === "list" ? t.simple.showGrid : t.simple.showList}</Button></div>
+      {view === "list" ? (() => {
+        // This week starts from today; other weeks from their first day. Days without a course are left out.
+        const todayIndex = dates.findIndex((date) => date.toDateString() === todayKey);
+        const order = DAYS.map((_, index) => index).filter((index) => todayIndex < 0 || index >= todayIndex);
+        const tomorrowKey = new Date(Date.now() + 86_400_000).toDateString();
+        const days = order.map((index) => ({ index, items: visible.filter((group) => group.days.includes(DAYS[index])).sort((a, b) => (a.start_time ?? "").localeCompare(b.start_time ?? "")) })).filter((day) => day.items.length);
+        return days.length ? <div className="day-list">{days.map(({ index, items }) => {
+          const date = dates[index];
+          const name = date.toDateString() === todayKey ? t.simple.today : date.toDateString() === tomorrowKey ? t.simple.tomorrow : date.toLocaleDateString(locale(), { weekday: "long" });
+          return <section className="day-block" key={index} aria-label={name}>
+            <h3><span>{name}</span><small>{date.toLocaleDateString(locale(), { day: "numeric", month: "long" })}</small></h3>
+            <RecordList label={name}>{items.map((group) => <RecordCard key={group.id} title={timeRange(group, t.common.noTime)} onOpen={() => openGroup(group.id)} openLabel={t.simple.open}
+              avatar={<span className="day-dot" style={{ background: tint(group.color) }} aria-hidden="true" />}
+              lines={[<b key="name">{group.name}</b>, [group.room || t.common.noRoom, teachers.find((teacher) => teacher.id === group.teacher_id)?.full_name ?? t.common.unassigned].join(" · ")]} />)}</RecordList>
+          </section>;
+        })}</div> : <EmptyState title={t.groups.empty} text="" />;
+      })() : <div className="table-scroll"><div className="calendar-grid">
         <div className="time-col">{[8, 10, 12, 14, 16, 18, 20].map((hour) => <span key={hour}>{String(hour).padStart(2, "0")}:00</span>)}</div>
         {DAYS.map((day, index) => <div className={`day-col ${dates[index].toDateString() === todayKey ? "today" : ""}`} key={day}>
           <div className="day-head">{t.v.day[day]}<small>{dates[index].getDate()}</small></div>
@@ -224,13 +243,13 @@ export function Planning({ openGroup }: { openGroup: (id: number) => void }) {
               const { from, to } = span(group);
               const top = clampPercent(((from - GRID_START) / GRID_HOURS) * 100);
               const height = Math.max(8, clampPercent(((to - GRID_START) / GRID_HOURS) * 100) - top);
-              return <div className="calendar-event" key={group.id} style={{ top: `${top}%`, height: `${height}%`, insetInlineStart: `calc(${(lane / lanes) * 100}% + 3px)`, width: `calc(${100 / lanes}% - 6px)`, background: `${group.color}18`, borderInlineStartColor: group.color }} onClick={() => openGroup(group.id)} title={group.name}>
+              return <div className="calendar-event" key={group.id} style={{ top: `${top}%`, height: `${height}%`, insetInlineStart: `calc(${(lane / lanes) * 100}% + 3px)`, width: `calc(${100 / lanes}% - 6px)`, background: `${tint(group.color)}1f`, borderInlineStartColor: tint(group.color) }} onClick={() => openGroup(group.id)} title={group.name}>
                 <strong>{group.name.split(" — ")[0]}</strong><span>{timeRange(group, t.common.noTime)} · {group.room || "—"}</span>
               </div>;
             })}
           </div>
         </div>)}
-      </div></div>
+      </div></div>}
       {unscheduled.length > 0 && <p className="muted-copy">{p.unscheduled(unscheduled.map((group) => group.name).join(", "))}</p>}
     </Panel>
     {creating && <GroupForm onClose={() => setCreating(false)} />}

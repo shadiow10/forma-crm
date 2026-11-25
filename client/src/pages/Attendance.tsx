@@ -77,23 +77,21 @@ export function Attendance({ initialGroupId }: { initialGroupId?: number }) {
     <Panel className="table-panel attendance-panel">
       <div className="attendance-head">
         <div><h3>{group?.name}</h3><p>{formatDate(date, "long")} · {t.common.students(roster.length)}{group && !group.days.includes(weekday) ? a.warnDay(t.v.day[weekday]) : ""}</p></div>
-        {unmarked.length > 0 && <Button variant="soft" icon="check" disabled={saving !== null} onClick={() => mark(unmarked.map((student) => student.id), "P")}>{a.markRest(unmarked.length)}</Button>}
+        {unmarked.length > 0 && <Button variant="outline" icon="check" disabled={saving !== null} onClick={() => mark(unmarked.map((student) => student.id), "P")}>{a.markRest(unmarked.length)}</Button>}
         {roster.length > 0 && !unmarked.length && <Badge tone="success" dot>{a.complete}</Badge>}
       </div>
-      {roster.length ? <div className="table-scroll"><table className="attendance-table">
-        <thead><tr><th>{t.common.student}</th><th>{a.colToday}</th><th>{a.colRate}</th></tr></thead>
-        <tbody>{roster.map((student) => {
-          const rate = attendanceRate(student.id, groupId);
-          return <tr key={student.id}>
-            <td><div className="person-cell">{initialsBadge(student.full_name)}<div><strong>{student.full_name}</strong><span>{marks[student.id] ? LABELS[marks[student.id]] : a.unmarked}</span></div></div></td>
-            <td><div className="presence-choices">{(Object.keys(LABELS) as AttendanceStatus[]).map((status) => <button key={status}
-              className={`presence ${CLASSES[status]} ${marks[student.id] === status ? "selected" : ""}`} aria-pressed={marks[student.id] === status}
-              aria-label={`${student.full_name} : ${LABELS[status]}`} title={LABELS[status]} disabled={saving !== null}
-              onClick={() => mark([student.id], status)}>{SYMBOLS[status]}</button>)}</div></td>
-            <td><strong className={rate !== null && rate < 75 ? "text-danger" : "text-teal"}>{rate === null ? "—" : `${rate}%`}</strong></td>
-          </tr>;
-        })}</tbody>
-      </table></div> : <EmptyState title={a.emptyRoster} text={a.emptyRosterText} />}
+      {/* One block per student, with the four choices written out in full (validated). */}
+      {roster.length ? <div className="roll-list">{roster.map((student) => {
+        const rate = attendanceRate(student.id, groupId);
+        return <div className="roll-card" key={student.id}>
+          <div className="roll-who">{initialsBadge(student.full_name)}<div><strong>{student.full_name}</strong>
+            <span>{marks[student.id] ? LABELS[marks[student.id]] : a.unmarked} · {a.colRate} : <b className={rate !== null && rate < 75 ? "text-danger" : ""}>{rate === null ? "—" : `${rate}%`}</b></span></div></div>
+          <div className="roll-choices" role="group" aria-label={student.full_name}>{(Object.keys(LABELS) as AttendanceStatus[]).map((status) => <button type="button" key={status}
+            className={`roll-choice ${CLASSES[status]} ${marks[student.id] === status ? "selected" : ""}`} aria-pressed={marks[student.id] === status}
+            aria-label={`${student.full_name} : ${LABELS[status]}`} disabled={saving !== null}
+            onClick={() => mark([student.id], status)}><span className="roll-symbol" aria-hidden="true">{SYMBOLS[status]}</span>{LABELS[status]}</button>)}</div>
+        </div>;
+      })}</div> : <EmptyState title={a.emptyRoster} text={a.emptyRosterText} />}
     </Panel>
     <p className="form-hint"><Icon name="lock" size={13} /> {a.hint}</p>
   </>;
