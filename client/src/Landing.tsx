@@ -6,11 +6,7 @@ import { isLeaked } from "./Login";
 import type { FormEvent, ReactNode } from "react";
 import { LangPicker, money, usePage, useT } from "./i18n";
 import type { Copy } from "./i18n";
-<<<<<<< Updated upstream
-import { BrandMark, Icon, Spinner, ThemeToggle, useTheme } from "./ui";
-=======
 import { BrandMark, Icon, Spinner, useTheme } from "./ui";
->>>>>>> Stashed changes
 import Bg from "./Bg";
 import { Logo } from "./Logo";
 import type { IconName } from "./ui";

@@ -2,11 +2,8 @@ import type { PageKey } from "../auth";
 import { label, useAppT } from "../appCopy";
 import { useData } from "../data";
 import { locale } from "../lang";
-<<<<<<< Updated upstream
-=======
 import type { IconName } from "../ui";
->>>>>>> Stashed changes
-import { Badge, Button, COLORS, tint, DAYS, EmptyState, Icon, MetricCard, PageHeader, Panel, formatDate, formatTime, initialsBadge, statusTone, todayISO } from "../ui";
+import { Badge, Button, COLORS, tint, DAYS, EmptyState, Icon, MetricCard, Panel, formatDate, formatTime, initialsBadge, todayISO } from "../ui";
 
 export function Dashboard({ goTo, openStudent }: { goTo: (page: PageKey) => void; openStudent: (id: number) => void }) {
   const { students, enrollments, groups, payments, attendanceStats, courses, teachers, studentById, groupStudentIds, summaryOf, balanceOf, money, canEdit, isSoutien } = useData();
@@ -17,7 +14,6 @@ export function Dashboard({ goTo, openStudent }: { goTo: (page: PageKey) => void
   const monthPrefix = todayISO().slice(0, 7);
 
   const activeEnrollments = enrollments.filter((enrollment) => enrollment.status === "Inscrit" || enrollment.status === "En cours");
-  const activeStudents = new Set(activeEnrollments.map((enrollment) => enrollment.student_id));
   const openGroups = groups.filter((group) => group.status !== "Annulé");
   const todayGroups = openGroups.filter((group) => group.days.includes(todayName)).sort((a, b) => (a.start_time ?? "").localeCompare(b.start_time ?? ""));
   const sessions = attendanceStats.reduce((sum, stat) => sum + stat.sessions - (stat.excused ?? 0), 0);
@@ -42,18 +38,6 @@ export function Dashboard({ goTo, openStudent }: { goTo: (page: PageKey) => void
   const setup = d.setupSteps.map((step, index) => ({ ...step, page: setupPages[index], done: setupDone[index] }));
 
   return <>
-<<<<<<< Updated upstream
-    <PageHeader eyebrow={dateLabel} title={d.hello} description={d.intro} actionLabel={d.newEnrollment} onAction={() => goTo("enrollments")} />
-    <div className="metrics-grid">
-      <MetricCard label={d.activeStudents} value={String(activeStudents.size)} note={d.ofDirectory(students.length)} icon="graduation" accent={COLORS.teal} />
-      {isSoutien
-        ? <MetricCard label={so.dashUnpaid} value={String(unpaidMonth.length)} note={so.dashUnpaidNote(money(unpaidMonth.reduce((sum, row) => sum + row.left, 0)))} icon="wallet" accent={COLORS.red} />
-        : <MetricCard label={d.activeEnrollments} value={String(activeEnrollments.length)} note={d.enrolledOrRunning} icon="file" accent="#5B8DEF" />}
-      <MetricCard label={d.openGroups} value={String(openGroups.length)} note={d.onPlanning} icon="users" accent={COLORS.coral} />
-      <MetricCard label={d.todayCourses} value={String(todayGroups.length)} note={d.scheduledOn(t.v.day[todayName])} icon="calendar" accent="#6A63B8" />
-      <MetricCard label={d.avgAttendance} value={presentRate === null ? "—" : `${presentRate}%`} note={d.overSessions(sessions)} icon="checkCircle" accent={COLORS.green} />
-      <MetricCard label={d.collected} value={money(collectedThisMonth)} note={d.withBalance(owing.length)} icon="wallet" accent={COLORS.yellow} highlight />
-=======
     {/* No "Bonjour" title (removed at the user's request): the date, one sentence, then the tasks. */}
     <div className="page-header home-header"><div><div className="eyebrow">{dateLabel}</div><p>{d.intro}</p></div></div>
     {/* "What would you like to do?" (validated): the four everyday tasks as big buttons, first thing on the page. */}
@@ -76,7 +60,6 @@ export function Dashboard({ goTo, openStudent }: { goTo: (page: PageKey) => void
       <MetricCard label={d.collected} value={money(collectedThisMonth)} note={d.withBalance(owing.length)} icon="wallet" highlight />
       <MetricCard label={d.avgAttendance} value={presentRate === null ? "—" : `${presentRate}%`} note={d.overSessions(sessions)} icon="checkCircle" />
       <MetricCard label={d.todayCourses} value={String(todayGroups.length)} note={d.scheduledOn(t.v.day[todayName])} icon="calendar" />
->>>>>>> Stashed changes
     </div>
     {canEdit && !enrollments.length && <Panel title={d.setup} className="setup-panel">
       <p className="setup-intro">{d.setupIntro}</p>
@@ -121,20 +104,6 @@ export function Dashboard({ goTo, openStudent }: { goTo: (page: PageKey) => void
           </div>;
         })}</div> : <EmptyState title={d.emptyPayments} text={d.emptyPaymentsText} />}
       </Panel>
-<<<<<<< Updated upstream
-      <Panel title={d.openGroups} action={<Button variant="ghost" icon="arrow" onClick={() => goTo("groups")}>{d.seeGroups}</Button>}>
-        {openGroups.length ? <div className="activity-list">{openGroups.slice(0, 5).map((group) => {
-          const count = groupStudentIds(group.id).length;
-          const status = count >= group.capacity ? "Complet" : "Ouvert";
-          return <div className="activity-row" key={group.id}>
-            <span className="activity-icon" style={{ color: tint(group.color) }}><Icon name="users" size={15} /></span>
-            <div><strong>{group.name}</strong><span>{count}/{group.capacity} {t.common.student.toLowerCase()} · {group.days.map((day) => t.v.day[day]).join(" ") || t.common.noDays}</span></div>
-            <Badge tone={statusTone(status)}>{label(t.v.status, status)}</Badge>
-          </div>;
-        })}</div> : <EmptyState title={d.emptyGroups} text={d.emptyGroupsText} />}
-      </Panel>
-=======
->>>>>>> Stashed changes
     </div>
   </>;
 }

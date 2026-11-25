@@ -111,13 +111,6 @@ type Tone = "neutral" | "success" | "warning" | "danger" | "info" | "purple";
 // Charte status pills: paid = palm + sand, partial = saffron + umber, late/unpaid = umber + saffron,
 // anything else outlined. The label is always written: a state is never told by colour alone.
 const tones: Record<Tone, CSSProperties> = {
-<<<<<<< Updated upstream
-  neutral: { background: "transparent", color: "var(--ink-2)", boxShadow: "inset 0 0 0 1.5px var(--border)" },
-  success: { background: "var(--palm)", color: "#F3EBDD" },
-  warning: { background: "var(--sun)", color: "var(--umber)" },
-  danger: { background: "var(--umber)", color: "var(--sun)" },
-  info: { background: "transparent", color: "var(--ink-2)", boxShadow: "inset 0 0 0 1.5px var(--ink-2)" },
-=======
   // Neutral labels (payment method, plain states) wear a light palm tint, not a grey outline.
   neutral: { background: "rgba(31,107,79,.12)", color: "var(--palm)", boxShadow: "inset 0 0 0 1.5px rgba(31,107,79,.3)" },
   success: { background: "var(--palm)", color: "#F3EBDD" },
@@ -125,7 +118,6 @@ const tones: Record<Tone, CSSProperties> = {
   // Exception to the charte (validated): alerts such as "Non payé" are brick red.
   danger: { background: "var(--alert)", color: "#fff8ea" },
   info: { background: "rgba(242,161,4,.2)", color: "var(--umber)", boxShadow: "inset 0 0 0 1.5px rgba(242,161,4,.65)" },
->>>>>>> Stashed changes
   purple: { background: "transparent", color: "var(--ink-2)", boxShadow: "inset 0 0 0 1.5px var(--ink-2)" },
 };
 export const Badge = ({ children, tone = "neutral", dot = false }: { children: ReactNode; tone?: Tone; dot?: boolean }) => (

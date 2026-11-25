@@ -7,11 +7,7 @@ import type { Group } from "../lib/queries";
 import { plannedSessions } from "../lib/finance";
 import { supabase } from "../lib/supabase";
 import { Drawer, useShowMore } from "../appUI";
-<<<<<<< Updated upstream
-import { Badge, Button, COLORS, DAYS, tint, EmptyState, Icon, MetricCard, PageHeader, Panel, clampPercent, formatTime, initialsBadge, percent, statusTone, todayISO } from "../ui";
-=======
 import { Badge, Button, COLORS, DAYS, tint, EmptyState, Icon, MetricCard, PageHeader, Panel, RecordCard, RecordList, clampPercent, formatTime, initialsBadge, percent, statusTone, todayISO } from "../ui";
->>>>>>> Stashed changes
 import { GroupForm } from "./forms";
 
 export const groupStatus = (group: Group, count: number) => (group.status === "Annulé" ? "Annulé" : count >= group.capacity ? "Complet" : "Ouvert");
