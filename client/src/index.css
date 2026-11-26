@@ -10955,3 +10955,13 @@ input[type="radio"] {
 /* The sidebar's own bar stays slimmer, so the menu keeps its room. */
 .app-shell .nav-groups::-webkit-scrollbar { width: 9px; }
 .app-shell .nav-groups::-webkit-scrollbar-thumb { border-width: 2px; }
+
+/* Student record: a small round button beside the photo to remove it (only when there is one) */
+:root:root .app-shell .profile-hero .photo-remove { align-self: flex-end; display: grid; place-items: center; width: 28px; height: 28px; margin-inline-start: -10px; padding: 0; border: 1.5px solid rgba(42,27,18,.3); border-radius: 50%; background: #fff8ea; color: var(--alert); cursor: pointer; flex: none; }
+:root:root .app-shell .profile-hero .photo-remove:hover { background: var(--alert); border-color: var(--alert); color: #fff8ea; }
+:root:root .app-shell .profile-hero .photo-remove:disabled { opacity: .5; cursor: progress; }
+
+/* A student record, a form or a dialog is open: the page behind stops scrolling, so only one scroll bar shows */
+html:has(.app-shell .drawer-layer), html:has(.app-shell .drawer-layer) body { overflow: hidden; }
+:root:root .app-shell .drawer-layer { overflow: hidden; }
+:root:root .app-shell .drawer { overflow-y: auto; overscroll-behavior: contain; }
