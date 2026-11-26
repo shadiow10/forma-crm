@@ -6,6 +6,8 @@ import { friendlyError, useData } from "./data";
 import { usePage } from "./i18n";
 import { supabase } from "./lib/supabase";
 import { Certificates, Settings } from "./pages/Admin";
+import type { SettingsTab } from "./pages/Admin";
+import { LangPicker } from "./i18n";
 import { Attendance } from "./pages/Attendance";
 import { Courses, Teachers } from "./pages/Catalog";
 import { Dashboard } from "./pages/Dashboard";
@@ -87,6 +89,7 @@ export default function App({ member, email, userId, onSignOut }: { member: Memb
   const [studentId, setStudentId] = useState<number | null>(() => Number(new URLSearchParams(window.location.search).get("eleve")) || null);
   const [groupId, setGroupId] = useState<number | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [settingsTab, setSettingsTab] = useState<SettingsTab>("school");
   const [search, setSearch] = useState("");
   const displayName = member.full_name || email;
 
@@ -131,7 +134,7 @@ export default function App({ member, email, userId, onSignOut }: { member: Memb
       case "rooms": return <Rooms openGroup={setGroupId} />;
       case "analytics": return <Analytics />;
       case "certificates": return <Certificates />;
-      case "settings": return <Settings userId={userId} signedInAs={displayName} onSignOut={onSignOut} />;
+      case "settings": return <Settings userId={userId} signedInAs={displayName} onSignOut={onSignOut} tab={settingsTab} />;
     }
   };
 
@@ -148,8 +151,16 @@ export default function App({ member, email, userId, onSignOut }: { member: Memb
             onClick={(event) => { if (event.ctrlKey || event.metaKey || event.shiftKey) return; event.preventDefault(); goTo(item.key); }}>
             <Icon name={item.icon} size={17} /><span>{t.nav[item.key]}</span>
           </a>)}
+          {/* Settings' three sections, right under it (director only): school, users, activity log. */}
+          {section === "settings" && member.role === "director" && <div className="nav-sub" role="group" aria-label={t.nav.settings}>
+            {([["school", "building", t.settings.tabSchool], ["users", "users", t.settings.tabUsers], ["activity", "clock", t.settings.tabActivity]] as [SettingsTab, IconName, string][]).map(([key, icon, label]) =>
+              <button type="button" key={key} className={`nav-sub-item ${page === "settings" && settingsTab === key ? "active" : ""}`} aria-current={page === "settings" && settingsTab === key ? "page" : undefined}
+                onClick={() => { setSettingsTab(key); goTo("settings"); }}><Icon name={icon} size={15} /><span>{label}</span></button>)}
+          </div>}
         </div>;
       })}</nav>
+      {/* The language is chosen here, like on the public site (task list), not in the settings. */}
+      <div className="sidebar-lang"><LangPicker label={t.settings.fLanguage} /></div>
     </aside>
     {sidebarOpen && <div className="sidebar-overlay" onClick={() => setSidebarOpen(false)} />}
     <main className="main-area">

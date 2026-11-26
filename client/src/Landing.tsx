@@ -4,7 +4,8 @@ import type { PlanId } from "./lib/plans";
 import { supabase } from "./lib/supabase";
 import { isLeaked } from "./Login";
 import type { FormEvent, ReactNode } from "react";
-import { LangPicker, money, usePage, useT } from "./i18n";
+import { LangPicker, money, useLang, usePage, useT } from "./i18n";
+import { WILAYAS } from "./lib/wilayas";
 import type { Copy } from "./i18n";
 import { BrandMark, Icon, Spinner, useTheme } from "./ui";
 import Bg from "./Bg";
@@ -104,7 +105,6 @@ function HeroVisual() {
         <p className="cl-ln" key={name} style={{ animationDelay: `${0.9 + index * 0.2}s` }}><span>{name}</span><span className={`cl-chip ${tone}`}>{label}</span></p>)}
       <div className="cl-note"><Icon name="bell" size={16} />3 impayés</div>
     </div>
-    <small className="cl-ex">{t.hero.sample}</small>
   </div>;
 }
 
@@ -262,7 +262,7 @@ function ContactForm() {
     <label>{t.checkout.schoolName}<input name="school" required autoComplete="organization" /></label>
     <label>{t.checkout.director}<input name="director" required autoComplete="name" /></label>
     <label>{t.checkout.phone}<input name="phone" type="tel" required autoComplete="tel" placeholder="0555 00 00 00" /></label>
-    <label>{t.checkout.wilaya}<input name="wilaya" required /></label>
+    <label>{t.checkout.wilaya}<WilayaSelect name="wilaya" required /></label>
     <button className="cl-btn primary" type="submit">{t.trial.cta}<Icon name="arrow" size={18} /></button>
   </form>;
 }
@@ -310,6 +310,17 @@ function detailErrors(values: Details, t: Copy) {
   return next;
 }
 
+// The wilaya is chosen from the official list, never typed. The French name is stored; Arabic
+// readers see the Arabic name.
+function WilayaSelect({ value, onChange, invalid, className, name, required }: { value?: string; onChange?: (event: { target: { value: string } }) => void; invalid?: boolean; className?: string; name?: string; required?: boolean }) {
+  const lang = useLang();
+  return <select className={className} name={name} required={required} value={value} onChange={onChange} aria-invalid={invalid || undefined} defaultValue={value === undefined ? "" : undefined}>
+    <option value="" disabled>—</option>
+    {value && !WILAYAS.some((item) => item.fr === value) && <option value={value}>{value}</option>}
+    {WILAYAS.map((item) => <option key={item.code} value={item.fr}>{item.code} · {lang === "ar" ? item.ar : item.fr}</option>)}
+  </select>;
+}
+
 // The two fieldsets both pages show: the school, then the director.
 function DetailFields({ values, set, setType, errors, disabled, emailLocked, children }: {
   values: Details; set: (key: keyof Details) => (event: { target: { value: string } }) => void; setType: (type: number) => void;
@@ -326,11 +337,12 @@ function DetailFields({ values, set, setType, errors, disabled, emailLocked, chi
       <legend>{t.checkout.schoolLegend}</legend>
       {field("school", t.checkout.schoolName, { placeholder: t.checkout.schoolPlaceholder, autoComplete: "organization" })}
       <label>{t.checkout.schoolType}<select className="field" value={values.type} onChange={(event) => setType(Number(event.target.value))}>{t.checkout.types.map((label, index) => <option key={label} value={index}>{label}</option>)}</select></label>
-      {field("wilaya", t.checkout.wilaya, { placeholder: t.checkout.wilayaPlaceholder })}
+      <label>{t.checkout.wilaya}<WilayaSelect className="field" value={values.wilaya} onChange={set("wilaya")} invalid={Boolean(errors.wilaya)} />
+        {errors.wilaya && <span className="field-error">{errors.wilaya}</span>}</label>
     </fieldset>
     <fieldset disabled={disabled}>
       <legend>{t.checkout.accountLegend}</legend>
-      {field("director", t.checkout.director, { autoComplete: "name" })}
+      {field("director", t.checkout.director, { autoComplete: "name", placeholder: t.checkout.directorPlaceholder })}
       {field("email", t.checkout.email, { type: "email", autoComplete: "email", placeholder: "directeur@ecole.dz", readOnly: emailLocked })}
       {field("phone", t.checkout.phone, { type: "tel", autoComplete: "tel", placeholder: "0555 00 00 00" })}
       {children}

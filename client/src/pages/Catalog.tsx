@@ -5,7 +5,7 @@ import { useData } from "../data";
 import type { Course, PayMode, Teacher } from "../lib/queries";
 import { supabase } from "../lib/supabase";
 import { Drawer, FormModal, useShowMore } from "../appUI";
-import { Badge, Button, EmptyState, Icon, PALETTE, tint, PageHeader, Panel, clampPercent, downloadCSV, percent } from "../ui";
+import { Badge, Button, COLORS, EmptyState, Icon, PALETTE, tint, PageHeader, Panel, clampPercent, downloadCSV, percent } from "../ui";
 import { timeRange } from "./Groups";
 import { levelOptions } from "./forms";
 
@@ -82,7 +82,7 @@ export function Courses() {
           <h3>{course.name}</h3>
           <p><Icon name="clock" size={14} /> {course.billing === "monthly" ? `${course.level ?? t.so.noLevel} · ${money(course.price)} ${t.so.perMonth} · ${t.so.sessionsShort(course.sessions_per_month ?? school.sessions_per_month)}` : `${t.v.months(monthsOf(course.duration))} · ${money(course.price)}`}</p>
           <p><Icon name="graduation" size={14} /> {c.enrollmentsCount(s.active)} · {c.groupsCount(s.groups)}</p>
-          <div className="capacity"><div><span>{c.seats}</span><strong>{s.seats ? `${s.filled}/${s.seats}` : c.noGroup}</strong></div><div className="capacity-track"><i style={{ width: `${fill}%`, background: course.color }} /></div></div>
+          <div className="capacity"><div><span>{c.seats}</span><strong>{s.seats ? `${s.filled}/${s.seats}` : c.noGroup}</strong></div><div className="capacity-track"><i style={{ width: `${fill}%`, background: fill >= 100 ? COLORS.coral : "var(--palm)" }} /></div></div>
         </div>
       </div>;
     })}</div>{more.button}</> : <Panel><EmptyState title={c.empty} text={c.emptyText} /></Panel>}

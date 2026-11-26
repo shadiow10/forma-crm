@@ -132,7 +132,7 @@ export function StudentDrawer({ studentId, onClose }: { studentId: number; onClo
   };
 
   return <>
-    <Drawer title={student.full_name} eyebrow={f.drawer} onClose={onClose}>
+    <Drawer title={student.full_name} eyebrow={f.drawer} onClose={onClose} full>
     <div className="profile-hero">
       <label className={`profile-avatar large profile-photo ${uploading ? "busy" : ""}`} title={student.photo_path ? f.photoChange : f.photoAdd}>
         {photo ? <img src={photo} alt={student.full_name} /> : initials(student.full_name)}

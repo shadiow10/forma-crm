@@ -102,9 +102,9 @@ export function FormModal({ title, subtitle, fields, initial, submitLabel, onClo
 }
 
 // `actions`: small buttons shown right under the title, for what is done most often in this drawer.
-export function Drawer({ title, eyebrow, actions, children, onClose }: { title: string; eyebrow?: string; actions?: ReactNode; children: ReactNode; onClose: () => void }) {
+export function Drawer({ title, eyebrow, actions, children, onClose, full = false }: { title: string; eyebrow?: string; actions?: ReactNode; children: ReactNode; onClose: () => void; full?: boolean }) {
   const t = useAppT();
-  return <div className="drawer-layer" onClick={onClose}><aside className="drawer" role="dialog" aria-label={title} onClick={(event) => event.stopPropagation()}><div className="drawer-head"><div><span className="eyebrow">{eyebrow ?? t.common.detail}</span><h2>{title}</h2>{actions && <div className="drawer-head-actions">{actions}</div>}</div><button className="close-button" onClick={onClose} aria-label={t.common.close}><Icon name="close" size={20} /></button></div>{children}</aside></div>;
+  return <div className="drawer-layer" onClick={onClose}><aside className={full ? "drawer full" : "drawer"} role="dialog" aria-label={title} onClick={(event) => event.stopPropagation()}><div className="drawer-head"><div><span className="eyebrow">{eyebrow ?? t.common.detail}</span><h2>{title}</h2>{actions && <div className="drawer-head-actions">{actions}</div>}</div><button className="close-button" onClick={onClose} aria-label={t.common.close}><Icon name="close" size={20} /></button></div>{children}</aside></div>;
 }
 
 

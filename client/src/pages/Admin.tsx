@@ -74,45 +74,25 @@ export function Certificates() {
 // ---------------------------------------------------------------- Settings
 
 // Logging out lives here, at the foot of the settings menu, for every role.
-export function Settings({ userId, signedInAs, onSignOut }: { userId: string; signedInAs: string; onSignOut: () => void }) {
+export type SettingsTab = "school" | "users" | "activity";
+export function Settings({ userId, signedInAs, onSignOut, tab }: { userId: string; signedInAs: string; onSignOut: () => void; tab: SettingsTab }) {
   const t = useAppT();
   const s = t.settings;
   const { isDirector } = useData();
-  // Everyone gets the display preferences; the school, the team and the log stay with the director.
-  const tabs: { key: "school" | "users" | "activity" | "prefs"; icon: IconName; label: string }[] = [
-    ...(isDirector ? [
-      { key: "school" as const, icon: "building" as const, label: s.tabSchool },
-      { key: "users" as const, icon: "users" as const, label: s.tabUsers },
-      { key: "activity" as const, icon: "clock" as const, label: s.tabActivity },
-    ] : []),
-    { key: "prefs", icon: "settings", label: s.tabPrefs },
-  ];
-  const [tab, setTab] = useState(tabs[0].key);
+  // The three sections are chosen from the sidebar (task list); the language moved to the sidebar too.
   return <>
     <PageHeader eyebrow={s.eyebrow} title={s.title} description={s.description} />
     <div className="settings-layout">
-      <aside className="settings-nav">
-        {tabs.map((item) => <button key={item.key} className={tab === item.key ? "active" : ""} onClick={() => setTab(item.key)}><Icon name={item.icon} size={16} />{item.label}<Icon name="chevron" size={15} /></button>)}
-        <div className="settings-account">
+      <div className="settings-content">{isDirector ? (tab === "users" ? <UserSettings userId={userId} /> : tab === "activity" ? <ActivityLog /> : <><Subscription /><SchoolSettings /><StudentLimit /><DangerZone /></>) : null}
+        <div className="settings-account panel">
           <span>{s.signedInAs(signedInAs)}</span>
           <button className="settings-logout" onClick={onSignOut}><Icon name="logout" size={16} />{t.common.signOut}</button>
         </div>
-      </aside>
-      <div className="settings-content">{tab === "school" ? <><Subscription /><SchoolSettings /><StudentLimit /><DangerZone /></> : tab === "users" ? <UserSettings userId={userId} /> : tab === "activity" ? <ActivityLog /> : <Preferences />}</div>
+      </div>
     </div>
   </>;
 }
 
-function Preferences() {
-  const s = useAppT().settings;
-  const lang = useLang();
-  return <Panel title={s.prefs}>
-    <div className="settings-form">
-      <label>{s.fLanguage}<select className="field" value={lang} onChange={(event) => setLang(event.target.value as Lang)}>{LANGS.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
-    </div>
-    <p className="form-hint">{s.prefsHint}</p>
-  </Panel>;
-}
 
 function SchoolSettings() {
   const t = useAppT();

@@ -10030,3 +10030,193 @@ a.auth-submit {
     font-size: 1.5rem;
   }
 }
+
+/* ================================================================
+   Task list (Notion export) — public screens
+   ================================================================ */
+/* Sign-in / sign-up: the card is the light cream, the fields the sand, so each field stands out */
+:root:root .cs .auth-card { background: #fff8ea; }
+:root:root .cs .field, :root:root .cs select.field { background-color: #f3ebdd; border-color: rgba(42,27,18,.4); }
+:root:root .cs .field:hover { border-color: var(--umber); }
+:root:root .cs .field::placeholder { color: rgba(42,27,18,.5); }
+
+/* Sign-up fits one screen: wider card, the school and the director side by side, tighter rhythm */
+:root:root .cs .auth-card:has(.auth-signup) { max-width: 880px; padding: 24px 28px; }
+:root:root .cs.auth-page:has(.auth-signup) { padding-block: 12px; align-content: center; }
+:root:root .cs .auth-card:has(.auth-signup) .auth-brand { margin-bottom: 12px; }
+:root:root .cs .auth-card:has(.auth-signup) .auth-tabs { margin-bottom: 12px; }
+:root:root .cs .auth-card:has(.auth-signup) h1 { font-size: 1.35rem; margin-bottom: 2px; }
+:root:root .cs .auth-signup { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 22px; margin-top: 12px; }
+:root:root .cs .auth-signup fieldset { gap: 9px; }
+:root:root .cs .auth-signup fieldset + fieldset { margin-top: 0; }
+:root:root .cs .auth-signup legend { margin-bottom: 6px; font-size: 1rem; }
+:root:root .cs .auth-signup label { gap: 4px; font-size: 13px; }
+:root:root .cs .auth-signup .field { min-height: 40px; padding: 7px 12px; font-size: 15px; }
+:root:root .cs .auth-signup > :not(fieldset) { grid-column: 1 / -1; }
+:root:root .cs .auth-signup > p.auth-muted { font-size: 12.5px; margin: 0; }
+:root:root .cs .auth-signup .auth-submit { min-height: 48px; margin-top: 2px; }
+:root:root .cs .auth-card:has(.auth-signup) .auth-foot { margin-top: 10px; }
+@media (max-width: 760px) { :root:root .cs .auth-signup { grid-template-columns: minmax(0, 1fr); } }
+
+/* Choice fields (selects, checkboxes, radios): the charte instead of the browser's blue */
+select.field, select.select, select.compact-select, .cl-card select, .cs select {
+  appearance: none; -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' fill='none' stroke='%232A1B12' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 5l4 4 4-4'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: right 14px center; background-size: 14px;
+  padding-inline-end: 38px !important; cursor: pointer;
+}
+[dir="rtl"] select.field, [dir="rtl"] select.select, [dir="rtl"] select.compact-select, [dir="rtl"] .cl-card select, [dir="rtl"] .cs select { background-position: left 14px center; }
+select option { background: #fff8ea; color: #2a1b12; }
+select option:checked { background: #1f6b4f; color: #f3ebdd; }
+input[type="checkbox"], input[type="radio"] { accent-color: #1f6b4f; }
+:root:root .cl-card select { font: inherit; font-weight: 400; padding: 12px 14px; border: 1.5px solid var(--umber); border-radius: 10px; background-color: #fff8ea; color: var(--umber); min-width: 0; }
+:root:root .cl-card select:focus { outline: 3px solid var(--sun); outline-offset: 0; }
+:root:root .cs .auth-signup fieldset { align-content: start; }
+
+/* ================================================================
+   Task list — dashboard
+   ================================================================ */
+/* Smaller overall: the app's zoom steps come down (it was 1.34 by default) */
+:root:root .app-shell { --ui: 1.12; }
+@media (min-width: 1800px) { :root:root .app-shell { --ui: 1.22; } }
+@media (min-width: 2300px) { :root:root .app-shell { --ui: 1.36; } }
+@media (min-width: 951px) and (max-width: 1279px) { :root:root .app-shell { --ui: 1; } }
+@media (max-width: 950px) { :root:root .app-shell { --ui: 1.05; } }
+@media (max-width: 520px) { :root:root .app-shell { --ui: 1; } }
+:root:root .app-shell .content-wrap { max-width: 1240px; }
+:root:root .app-shell .task-button { min-height: 104px; }
+
+/* The search box: no line appears under it when it is clicked */
+:root:root .app-shell .global-search, :root:root .app-shell .global-search:focus-within { border-bottom-color: transparent; }
+:root:root .app-shell .global-search input:focus, :root:root .app-shell .global-search input:focus-visible { outline: none; }
+
+/* First steps: the "start" buttons in colour */
+:root:root .app-shell .setup-cta { background: var(--palm); color: var(--sand); border-color: var(--palm); }
+:root:root .app-shell .setup-cta:hover { background: var(--umber); border-color: var(--umber); color: var(--sand); }
+
+/* Icons centred in their round */
+:root:root .app-shell .activity-icon { display: grid !important; place-items: center; flex: none; }
+:root:root .app-shell .activity-icon svg { display: block; }
+
+/* Students: one line each — face, name and course, what is left to pay, the two statuses */
+:root:root .app-shell .student-rows { display: grid; gap: 8px; padding: 4px 20px 20px; }
+:root:root .app-shell .student-row { display: grid; grid-template-columns: auto minmax(0, 1fr) auto auto auto; align-items: center; gap: 14px; width: 100%; min-height: 64px; padding: 10px 16px; background: #fff8ea; border: 1.5px solid rgba(42,27,18,.14); border-radius: 14px; color: var(--umber); text-align: start; cursor: pointer; font: inherit; }
+:root:root .app-shell .student-row:hover { border-color: var(--palm); background: rgba(31,107,79,.06); }
+:root:root .app-shell .student-row > svg { color: var(--palm); }
+[dir="rtl"] .app-shell .student-row > svg { transform: scaleX(-1); }
+:root:root .app-shell .student-row .avatar { width: 40px; height: 40px; border-radius: 50%; }
+:root:root .app-shell .student-row-name { min-width: 0; }
+:root:root .app-shell .student-row-name strong { display: block; font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+:root:root .app-shell .student-row-name small { display: block; margin-top: 2px; font-size: 12px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+:root:root .app-shell .student-row-figures { display: flex; flex-direction: column; align-items: flex-end; line-height: 1.2; }
+:root:root .app-shell .student-row-figures small { font-size: 11px; color: var(--muted); }
+:root:root .app-shell .student-row-figures b { font: 800 15px Fraunces, Georgia, serif; }
+:root:root .app-shell .student-row-badges { display: flex; gap: 6px; }
+@media (max-width: 760px) {
+  :root:root .app-shell .student-row { grid-template-columns: auto minmax(0, 1fr) auto; grid-template-areas: "face name arrow" "face badges arrow"; row-gap: 6px; }
+  :root:root .app-shell .student-row .avatar, :root:root .app-shell .student-row .photo-avatar { grid-area: face; }
+  :root:root .app-shell .student-row-name { grid-area: name; }
+  :root:root .app-shell .student-row-figures { display: none; }
+  :root:root .app-shell .student-row-badges { grid-area: badges; flex-wrap: wrap; }
+  :root:root .app-shell .student-row > svg { grid-area: arrow; }
+}
+:root:root .app-shell .photo-avatar { display: block; overflow: hidden; padding: 0; border-radius: 50%; }
+:root:root .app-shell .photo-avatar img { display: block; width: 100%; height: 100%; object-fit: cover; }
+
+/* The small profile */
+:root:root .app-shell .student-preview { position: relative; width: min(460px, 100%); max-height: calc(92vh / var(--ui)); overflow: auto; padding: 26px; background: #fff8ea; border: 2px solid var(--umber); border-radius: 20px; box-shadow: 0 30px 80px rgba(42,27,18,.25); }
+:root:root .app-shell .student-preview .close-button { position: absolute; top: 16px; inset-inline-end: 16px; width: 40px; height: 40px; }
+:root:root .app-shell .student-preview-head { display: flex; align-items: center; gap: 14px; padding-inline-end: 44px; }
+:root:root .app-shell .student-preview-head .avatar { width: 64px; height: 64px; border-radius: 50%; font-size: 18px; }
+:root:root .app-shell .student-preview h2 { margin: 0; font-size: 22px; }
+:root:root .app-shell .student-preview-badges { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+:root:root .app-shell .student-preview-facts { display: grid; gap: 0; margin: 18px 0; }
+:root:root .app-shell .student-preview-facts > div { display: flex; justify-content: space-between; gap: 12px; padding: 10px 0; border-bottom: 1px solid rgba(42,27,18,.12); }
+:root:root .app-shell .student-preview-facts dt { color: var(--muted); font-size: 13px; }
+:root:root .app-shell .student-preview-facts dd { margin: 0; font-weight: 700; font-size: 13.5px; text-align: end; }
+:root:root .app-shell .student-preview > .button { width: 100%; min-height: 48px; }
+
+/* The full student record: a whole page, its blocks two by two on wide screens */
+:root:root .app-shell .drawer.full { width: 100%; max-width: none; padding: 28px clamp(18px, 4vw, 56px); border-inline-start: 0; }
+:root:root .app-shell .drawer.full > * { max-width: 1120px; margin-inline: auto; }
+@media (min-width: 1100px) {
+  :root:root .app-shell .drawer.full .profile-summary-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
+:root:root .app-shell .profile-photo img { border-radius: inherit; }
+
+/* Panel actions (edit, card, delete): real pill buttons; the icon stays visible on hover */
+:root:root .app-shell .profile-hero { flex-wrap: wrap; border-bottom: 0; }
+:root:root .app-shell .profile-hero .action-stack { flex-direction: row; flex-wrap: wrap; gap: 8px; }
+:root:root .app-shell .profile-hero .action-stack button { width: auto; min-height: 42px; padding: 0 16px; border: 2px solid rgba(42,27,18,.35); border-radius: 999px; }
+:root:root .app-shell .action-stack > button > svg { color: inherit; }
+:root:root .app-shell .button-outline:hover svg, :root:root .app-shell .button-danger:hover svg, :root:root .app-shell .button-soft:hover svg { color: var(--sand) !important; }
+:root:root .app-shell .button-soft:hover { background: var(--palm) !important; color: var(--sand) !important; border-color: var(--palm) !important; }
+:root:root .app-shell .button-danger:hover { background: var(--alert) !important; border-color: var(--alert) !important; }
+
+/* Pop-ups never taller than the screen (the app's zoom made 92vh taller than it): their buttons stay reachable */
+:root:root .app-shell .form-modal { max-height: calc(92vh / var(--ui)); }
+:root:root .app-shell .form-modal-body { min-height: 0; flex: 1; overflow-y: auto; }
+:root:root .app-shell .confirm-box { max-height: calc(92vh / var(--ui)); overflow: auto; }
+:root:root .app-shell .drawer { height: calc(100vh / var(--ui)); }
+:root:root .app-shell .drawer-layer { height: calc(100vh / var(--ui)); }
+
+/* Student card in the charte (screen preview and print): sand card, umber band with the school, palm accents */
+.student-card { background: #fff8ea; border: 0.35mm solid #2a1b12; border-radius: 3mm; color: #2a1b12; font-family: Karla, Arial, sans-serif; padding: 0 0 2mm; gap: 1.4mm; }
+.student-card header { margin: 0; padding: 2mm 3mm; background: #2a1b12; color: #f3ebdd; border-bottom: 0.8mm solid #f2a104; grid-template-columns: 9mm 1fr auto; }
+.student-card header img { background: #fff8ea; border-radius: 1.5mm; padding: 0.5mm; }
+.student-card header strong { font-family: Fraunces, Georgia, serif; font-size: 8.5pt; color: #f3ebdd; letter-spacing: -0.01em; }
+.student-card header span { color: #f2a104; font-size: 6.5pt; }
+.student-card header small { color: #f3ebdd; opacity: 0.85; }
+.student-card .card-body { padding: 0 3mm; }
+.student-card .card-qr svg { padding: 0.8mm; background: #ffffff; border: 0.25mm solid rgba(42, 27, 18, 0.25); border-radius: 1mm; box-sizing: border-box; }
+.student-card .card-field span { color: rgba(42, 27, 18, 0.6); }
+.student-card .card-field i[lang="ar"] { font-family: Cairo, Karla, sans-serif; text-transform: none; }
+.student-card .card-field strong { color: #2a1b12; font-weight: 700; }
+.student-card .card-photo { background: rgba(31, 107, 79, 0.12); border: 0.35mm solid #1f6b4f; border-radius: 2mm; }
+.student-card footer { margin: 0 3mm; padding-top: 1mm; border-top: 0.25mm solid rgba(42, 27, 18, 0.2); color: #1f6b4f; font-family: Karla, monospace; font-weight: 800; letter-spacing: 0.14em; }
+.card-preview { background: rgba(42, 27, 18, 0.06); }
+.card-preview .student-card { box-shadow: 0 6px 18px rgba(42, 27, 18, 0.2); }
+
+/* Courses: bigger edit / delete buttons on each card */
+:root:root .app-shell .card-actions { display: flex; gap: 6px; }
+:root:root .app-shell .card-actions .row-menu { width: 38px; height: 38px; border: 1.5px solid rgba(42,27,18,.25); border-radius: 50%; color: var(--palm); }
+:root:root .app-shell .card-actions .row-menu:hover { background: var(--umber); color: var(--sand); border-color: var(--umber); }
+
+/* Certificate (screen preview and print): the charte, no decorative circle */
+.formal-document { background: #fffdf8; border: 0; outline: 1.2mm double #2a1b12; outline-offset: -4mm; box-shadow: 0 10px 30px rgba(42,27,18,.12); font-family: Karla, Arial, sans-serif; }
+.document-corner { display: none; }
+.formal-document::before { content: ""; position: absolute; inset: 0 0 auto; height: 8px; background: #f2a104; }
+.document-logo > span { background: #2a1b12; color: #f2a104; font-family: Fraunces, Georgia, serif; border-radius: 50%; }
+.document-logo strong { color: #2a1b12; font-family: Fraunces, Georgia, serif; letter-spacing: -0.01em; }
+.document-logo strong span { color: #1f6b4f; }
+.document-logo small { color: rgba(42,27,18,.6); }
+.document-rule { background: rgba(42,27,18,.2); }
+.formal-kicker { color: #1f6b4f; font-family: Karla, Arial, sans-serif; }
+.formal-intro, .formal-copy, .document-stats span, .document-bottom span { color: rgba(42,27,18,.72); }
+.formal-document h2 { color: #2a1b12; font-family: Fraunces, Georgia, serif; letter-spacing: -0.015em; }
+.formal-document h3 { color: #1f6b4f; font-family: Karla, Arial, sans-serif; }
+.document-stats strong, .document-bottom strong { color: #2a1b12; }
+.signature { color: #2a1b12; border-bottom-color: #2a1b12; }
+:root:root .app-shell .certificate-preview { background: rgba(42,27,18,.06); border-radius: 16px; }
+:root:root .app-shell .preview-toolbar strong { color: var(--umber); }
+
+/* Settings' three sections under "Paramètres" in the sidebar */
+:root:root .app-shell .nav-sub { display: grid; gap: 2px; margin: 2px 0 0; padding-inline-start: 18px; border-inline-start: 2px solid rgba(31,107,79,.25); margin-inline-start: 22px; }
+:root:root .app-shell .nav-sub-item { display: flex; align-items: center; gap: 10px; min-height: 36px; padding: 6px 12px; border: 0; border-radius: 999px; background: none; color: var(--muted); font: 700 12px Karla, sans-serif; text-align: start; cursor: pointer; }
+:root:root .app-shell[lang="ar"] .nav-sub-item { font-family: Cairo, Karla, sans-serif; }
+:root:root .app-shell .nav-sub-item svg { color: var(--palm); }
+:root:root .app-shell .nav-sub-item:hover { background: rgba(42,27,18,.07); color: var(--umber); }
+:root:root .app-shell .nav-sub-item.active { background: rgba(31,107,79,.14); color: var(--palm); }
+
+/* The language switch at the foot of the sidebar, like on the public site */
+:root:root .app-shell .sidebar-lang { padding: 12px 6px 0; margin-top: 10px; border-top: 1px solid var(--line); }
+:root:root .app-shell .sidebar-lang .lang-picker { width: 100%; justify-content: space-between; height: 40px; background: transparent; border: 1.5px solid rgba(42,27,18,.2); color: var(--umber); }
+:root:root .app-shell .sidebar-lang .lang-picker svg { color: var(--palm); opacity: 1; }
+:root:root .app-shell .sidebar-lang .lang-picker button { flex: 1; min-height: 30px; color: var(--muted); font-size: 12px; }
+:root:root .app-shell .sidebar-lang .lang-picker button.on { background: var(--sun); color: var(--umber); }
+
+/* Settings page: the chosen section, then who is signed in and the way out */
+:root:root .app-shell .settings-account.panel { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; padding: 16px 20px; border-top: 0; }
+:root:root .app-shell .settings-account.panel > span { font-size: 13px; color: var(--muted); }
+:root:root .app-shell .settings-account .settings-logout { display: inline-flex; align-items: center; gap: 8px; min-height: 42px; padding: 0 18px; border: 2px solid rgba(42,27,18,.35); border-radius: 999px; background: none; color: var(--umber); font-weight: 700; cursor: pointer; }
+:root:root .app-shell .settings-account .settings-logout:hover { background: var(--umber); color: var(--sand); }
