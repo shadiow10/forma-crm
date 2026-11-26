@@ -142,6 +142,8 @@ export default function App({ member, email, userId, onSignOut }: { member: Memb
     <aside className={`sidebar ${sidebarOpen ? "open" : ""}`}>
       <div className="brand"><BrandMark /><div><strong className="wm" dir="ltr">Classtra</strong><small>{t.tagline}</small></div><button className="mobile-close" onClick={() => setSidebarOpen(false)} aria-label={t.common.closeMenu}><Icon name="close" size={18} /></button></div>
       <div className="school-switcher"><span className="school-avatar">{initials(school.name)}</span><div><strong>{school.name}</strong><span>{t.roles[member.role]}</span></div></div>
+      {/* The language is chosen here, small, right under the school (user request), not in the settings. */}
+      <div className="sidebar-lang"><LangPicker label={t.settings.fLanguage} /></div>
       <nav className="nav-groups" aria-label={t.navGroup}>{SECTIONS.map((section) => {
         const items = PAGES.filter((item) => item.section === section && allowed.includes(item.key));
         if (!items.length) return null;
@@ -159,8 +161,6 @@ export default function App({ member, email, userId, onSignOut }: { member: Memb
           </div>}
         </div>;
       })}</nav>
-      {/* The language is chosen here, like on the public site (task list), not in the settings. */}
-      <div className="sidebar-lang"><LangPicker label={t.settings.fLanguage} /></div>
     </aside>
     {sidebarOpen && <div className="sidebar-overlay" onClick={() => setSidebarOpen(false)} />}
     <main className="main-area">
