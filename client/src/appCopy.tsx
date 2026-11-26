@@ -13,7 +13,7 @@ const fr = {
   // Sidebar sections (redesign, validated): day to day, organisation, follow-up.
   navSections: { daily: "Au quotidien", organisation: "Organisation", followUp: "Suivi" },
   // "Simple and guided" dashboard (validated): home task buttons, record cards, day-by-day timetable, phone bar.
-  simple: { question: "Que voulez-vous faire ?", enrol: "Inscrire un étudiant", attendance: "Faire l'appel", collect: "Encaisser un paiement", open: "Ouvrir", today: "Aujourd'hui", tomorrow: "Demain", showGrid: "Voir la grille", showList: "Voir la liste", menu: "Menu" },
+  simple: { question: "Que voulez-vous faire ?", enrol: "Inscrire un étudiant", attendance: "Faire l'appel", collect: "Encaisser un paiement", open: "Ouvrir", today: "Aujourd'hui", tomorrow: "Demain", showGrid: "Voir la grille", showList: "Voir la liste", menu: "Menu", fullRecord: "Voir la fiche complète" },
   nav: {
     dashboard: "Tableau de bord", students: "Étudiants", enrollments: "Inscriptions", formations: "Formations",
     teachers: "Formateurs", groups: "Groupes", planning: "Planning", attendance: "Présences",
@@ -453,7 +453,7 @@ const en: AppCopy = {
   tagline: "School management",
   navGroup: "RUNNING THE SCHOOL",
   navSections: { daily: "Day to day", organisation: "Organisation", followUp: "Follow-up" },
-  simple: { question: "What would you like to do?", enrol: "Enrol a student", attendance: "Take attendance", collect: "Record a payment", open: "Open", today: "Today", tomorrow: "Tomorrow", showGrid: "Show the grid", showList: "Show the list", menu: "Menu" },
+  simple: { question: "What would you like to do?", enrol: "Enrol a student", attendance: "Take attendance", collect: "Record a payment", open: "Open", today: "Today", tomorrow: "Tomorrow", showGrid: "Show the grid", showList: "Show the list", menu: "Menu", fullRecord: "See the full record" },
   nav: {
     dashboard: "Dashboard", students: "Students", enrollments: "Enrolments", formations: "Courses",
     teachers: "Teachers", groups: "Groups", planning: "Timetable", attendance: "Attendance",
@@ -887,7 +887,7 @@ const ar: AppCopy = {
   tagline: "إدارة المراكز",
   navGroup: "إدارة المركز",
   navSections: { daily: "العمل اليومي", organisation: "التنظيم", followUp: "المتابعة" },
-  simple: { question: "ماذا تريد أن تفعل؟", enrol: "تسجيل طالب", attendance: "تسجيل الحضور", collect: "تحصيل دفعة", open: "فتح", today: "اليوم", tomorrow: "غدًا", showGrid: "عرض الجدول", showList: "عرض القائمة", menu: "القائمة" },
+  simple: { question: "ماذا تريد أن تفعل؟", enrol: "تسجيل طالب", attendance: "تسجيل الحضور", collect: "تحصيل دفعة", open: "فتح", today: "اليوم", tomorrow: "غدًا", showGrid: "عرض الجدول", showList: "عرض القائمة", menu: "القائمة", fullRecord: "عرض الملف الكامل" },
   nav: {
     dashboard: "لوحة القيادة", students: "الطلبة", enrollments: "التسجيلات", formations: "التكوينات",
     teachers: "المكوّنون", groups: "الأفواج", planning: "البرنامج", attendance: "الحضور",

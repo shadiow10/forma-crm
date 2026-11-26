@@ -16,8 +16,15 @@ export function useSignedUrl(path: string | null | undefined) {
     if (!path) { setUrl(null); return; }
     setUrl(undefined);
     let live = true;
-    void supabase.storage.from(BUCKET).createSignedUrl(path, 600).then(({ data }) => { if (live) setUrl(data?.signedUrl ?? null); });
-    return () => { live = false; };
+    let objectUrl: string | null = null;
+    // Downloaded and shown from memory (blob:): the site's CSP only lets images come from itself,
+    // data: or blob:, so a signed https link to the storage server would stay blank in production.
+    void supabase.storage.from(BUCKET).download(path).then(({ data }) => {
+      if (!live) return;
+      objectUrl = data ? URL.createObjectURL(data) : null;
+      setUrl(objectUrl);
+    });
+    return () => { live = false; if (objectUrl) URL.revokeObjectURL(objectUrl); };
   }, [path]);
   return url;
 }

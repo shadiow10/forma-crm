@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { label as labelOf, useAppT } from "../appCopy";
 import { useData } from "../data";
 import { useShowMore } from "../appUI";
@@ -6,7 +6,9 @@ import { readSheet, studentsFromSheet } from "../lib/sheet";
 import { supabase } from "../lib/supabase";
 import { Badge, Button, COLORS, Icon, MetricCard, PageHeader, Panel, RecordCard, RecordList, downloadCSV, formatDate, initialsBadge, statusTone } from "../ui";
 import { EnrollmentForm, StudentForm, levelOptions } from "./forms";
-import { CardScanner } from "./StudentCard";
+import { CardScanner, useSignedUrl } from "./StudentCard";
+import type { Student } from "../lib/queries";
+import type { StudentSummary } from "../data";
 
 // Stored values: the filter compares them, the label is translated when shown.
 const STATUS_FILTERS = ["Tous", "Inscrit", "En cours", "Terminé", "Abandonné", "Sans inscription"];
@@ -22,6 +24,7 @@ export function Students({ openStudent }: { openStudent: (id: number) => void })
   const [level, setLevel] = useState("");
   const [creating, setCreating] = useState(false);
   const [scanning, setScanning] = useState(false);
+  const [preview, setPreview] = useState<number | null>(null);
   const fileInput = useRef<HTMLInputElement>(null);
 
   // A row needs a name and a phone; a phone already in the school is skipped rather than doubled.
@@ -82,20 +85,15 @@ export function Students({ openStudent }: { openStudent: (id: number) => void })
         <div className="tabs choice-row" role="group" aria-label={t.common.status}>{STATUS_FILTERS.map((item) => <button type="button" key={item} className={status === item ? "active" : ""} aria-pressed={status === item} onClick={() => setStatus(item)}>{item === "Tous" ? t.common.all : labelOf(t.v.status, item)}</button>)}</div>
         <button className="text-button" onClick={exportList}><Icon name="download" size={14} /> {t.common.export}</button>
       </div>
-      <RecordList label={s.title}>{more.visible.map(({ student, summary }) => {
-        const low = summary.attendance !== null && summary.attendance < 75;
-        return <RecordCard key={student.id} avatar={initialsBadge(student.full_name)} title={student.full_name} onOpen={() => openStudent(student.id)} openLabel={t.simple.open}
-          lines={[
-            [courseName(summary.latest?.course_id), teacherOf(summary.latest?.group_id) ?? s.toAssign].join(" · "),
-            <>{s.colAttendance} : <b className={low ? "money-danger" : ""}>{summary.attendance === null ? "—" : `${summary.attendance}%`}</b> · {t.common.left} : <b className={summary.balance ? "money-danger" : "money-ok"}>{money(summary.balance)}</b></>,
-          ]}
-          status={<><Badge tone={statusTone(summary.status)}>{labelOf(t.v.status, summary.status)}</Badge><Badge tone={statusTone(summary.paymentStatus)}>{labelOf(t.v.status, summary.paymentStatus)}</Badge></>} />;
-      })}</RecordList>
+      {/* One line per student (task list): a click opens a small preview, and from there the full record. */}
+      <div className="student-rows" role="list" aria-label={s.title}>{more.visible.map(({ student, summary }) => <StudentRow key={student.id} student={student} summary={summary}
+        course={courseName(summary.latest?.course_id)} teacher={teacherOf(summary.latest?.group_id) ?? s.toAssign} onOpen={() => setPreview(student.id)} />)}</div>
       {more.button}
       {!filtered.length && <p className="table-empty">{students.length ? s.emptyFiltered : s.empty}</p>}
       <div className="table-footer"><span>{s.shown(more.visible.length, filtered.length)}</span></div>
     </Panel>
     {creating && <StudentForm onClose={() => setCreating(false)} onSaved={openStudent} />}
+    {preview !== null && <StudentPreview studentId={preview} onClose={() => setPreview(null)} onFull={() => { const id = preview; setPreview(null); openStudent(id); }} />}
   </>;
 }
 
@@ -139,4 +137,57 @@ export function Enrollments({ openStudent }: { openStudent: (id: number) => void
     </Panel>
     {creating && <EnrollmentForm onClose={() => setCreating(false)} />}
   </>;
+}
+
+// A student's photo when there is one, else their initials.
+function StudentFace({ student, size = "" }: { student: Student; size?: string }) {
+  const photo = useSignedUrl(student.photo_path);
+  return photo ? <span className={`avatar photo-avatar ${size}`}><img src={photo} alt="" /></span> : initialsBadge(student.full_name);
+}
+
+function StudentRow({ student, summary, course, teacher, onOpen }: { student: Student; summary: StudentSummary; course: string; teacher: string; onOpen: () => void }) {
+  const t = useAppT();
+  const { money } = useData();
+  return <button type="button" role="listitem" className="student-row" onClick={onOpen}>
+    <StudentFace student={student} />
+    <span className="student-row-name"><strong>{student.full_name}</strong><small>{course} · {teacher}</small></span>
+    <span className="student-row-figures"><small>{t.common.left}</small><b className={summary.balance ? "money-danger" : "money-ok"}>{money(summary.balance)}</b></span>
+    <span className="student-row-badges"><Badge tone={statusTone(summary.status)}>{labelOf(t.v.status, summary.status)}</Badge><Badge tone={statusTone(summary.paymentStatus)}>{labelOf(t.v.status, summary.paymentStatus)}</Badge></span>
+    <Icon name="chevron" size={18} />
+  </button>;
+}
+
+// The small profile: who, how they are doing, and one button to the full record.
+function StudentPreview({ studentId, onClose, onFull }: { studentId: number; onClose: () => void; onFull: () => void }) {
+  const t = useAppT();
+  const s = t.students;
+  const { studentById, summaryOf, courses, groupById, teachers, money } = useData();
+  useEffect(() => {
+    const close = (event: KeyboardEvent) => { if (event.key === "Escape") onClose(); };
+    window.addEventListener("keydown", close);
+    return () => window.removeEventListener("keydown", close);
+  }, [onClose]);
+  const student = studentById.get(studentId);
+  if (!student) return null;
+  const summary = summaryOf(student.id);
+  const group = summary.latest?.group_id ? groupById.get(summary.latest.group_id) : undefined;
+  const teacher = group ? teachers.find((item) => item.id === group.teacher_id)?.full_name : undefined;
+  const rows: [string, string][] = [
+    [t.common.phone, student.phone],
+    [t.common.course, courses.find((item) => item.id === summary.latest?.course_id)?.name ?? "—"],
+    [t.common.group, group?.name ?? t.common.noGroup],
+    [t.common.teacher, teacher ?? s.toAssign],
+    [s.colAttendance, summary.attendance === null ? "—" : `${summary.attendance}%`],
+    [t.common.paid, money(summary.paid)],
+    [t.common.left, money(summary.balance)],
+  ];
+  return <div className="drawer-layer confirm-layer" onClick={onClose}>
+    <div className="student-preview" role="dialog" aria-label={student.full_name} onClick={(event) => event.stopPropagation()}>
+      <button type="button" className="close-button" onClick={onClose} aria-label={t.common.close}><Icon name="close" size={18} /></button>
+      <div className="student-preview-head"><StudentFace student={student} size="large" /><div><h2>{student.full_name}</h2>
+        <div className="student-preview-badges"><Badge tone={statusTone(summary.status)}>{labelOf(t.v.status, summary.status)}</Badge><Badge tone={statusTone(summary.paymentStatus)}>{labelOf(t.v.status, summary.paymentStatus)}</Badge></div></div></div>
+      <dl className="student-preview-facts">{rows.map(([label, value]) => <div key={label}><dt>{label}</dt><dd className={label === t.common.left && summary.balance ? "money-danger" : ""}>{value}</dd></div>)}</dl>
+      <Button icon="file" onClick={onFull}>{t.simple.fullRecord}</Button>
+    </div>
+  </div>;
 }
