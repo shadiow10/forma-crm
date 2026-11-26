@@ -121,6 +121,14 @@ export function StudentDrawer({ studentId, onClose }: { studentId: number; onClo
     await supabase.storage.from(BUCKET).remove([ok ? old : path].filter((item): item is string => Boolean(item)));
     setUploading(false);
   };
+  // Removing the photo: the same two calls the record already makes (clear photo_path, then delete the file).
+  const removePhoto = async () => {
+    const old = student.photo_path;
+    if (!old || blocked() || !(await ask({ title: t.simple.removePhoto, confirmLabel: t.common.remove, danger: true }))) return;
+    setUploading(true);
+    if (await save(() => supabase.from("students").update({ photo_path: null }).eq("id", student.id), t.simple.photoRemoved)) await supabase.storage.from(BUCKET).remove([old]);
+    setUploading(false);
+  };
   const deleteStudent = async () => {
     const sure = await ask({ title: f.deleteTitle(student.full_name), danger: true, confirmLabel: f.deleteConfirm, text: f.deleteText });
     if (!sure) return;
@@ -139,6 +147,7 @@ export function StudentDrawer({ studentId, onClose }: { studentId: number; onClo
         <input type="file" hidden accept="image/jpeg,image/png" aria-label={student.photo_path ? f.photoChange : f.photoAdd} disabled={uploading} onChange={(event) => { void uploadPhoto(event.target.files?.[0]); event.target.value = ""; }} />
         <i><Icon name="edit" size={12} /></i>
       </label>
+      {student.photo_path && <button type="button" className="photo-remove" onClick={() => { void removePhoto(); }} disabled={uploading} title={t.simple.removePhoto} aria-label={t.simple.removePhoto}><Icon name="trash" size={13} /></button>}
       <div><h2>{student.full_name}</h2><div className="profile-subline"><span>{student.phone}</span><Badge tone={statusTone(summary.status)} dot>{labelOf(t.v.status, summary.status)}</Badge></div></div>
       <div className="action-stack"><Button variant="outline" icon="edit" onClick={() => setForm("edit")}>{t.common.edit}</Button><Button variant="soft" icon="print" onClick={() => setCard(true)}>{f.card}</Button>{isDirector && <Button variant="danger" icon="trash" onClick={deleteStudent}>{t.common.del}</Button>}</div>
     </div>
