@@ -10035,188 +10035,923 @@ a.auth-submit {
    Task list (Notion export) — public screens
    ================================================================ */
 /* Sign-in / sign-up: the card is the light cream, the fields the sand, so each field stands out */
-:root:root .cs .auth-card { background: #fff8ea; }
-:root:root .cs .field, :root:root .cs select.field { background-color: #f3ebdd; border-color: rgba(42,27,18,.4); }
-:root:root .cs .field:hover { border-color: var(--umber); }
-:root:root .cs .field::placeholder { color: rgba(42,27,18,.5); }
+:root:root .cs .auth-card {
+  background: #fff8ea;
+}
+:root:root .cs .field,
+:root:root .cs select.field {
+  background-color: #f3ebdd;
+  border-color: rgba(42, 27, 18, 0.4);
+}
+:root:root .cs .field:hover {
+  border-color: var(--umber);
+}
+:root:root .cs .field::placeholder {
+  color: rgba(42, 27, 18, 0.5);
+}
 
 /* Sign-up fits one screen: wider card, the school and the director side by side, tighter rhythm */
-:root:root .cs .auth-card:has(.auth-signup) { max-width: 880px; padding: 24px 28px; }
-:root:root .cs.auth-page:has(.auth-signup) { padding-block: 12px; align-content: center; }
-:root:root .cs .auth-card:has(.auth-signup) .auth-brand { margin-bottom: 12px; }
-:root:root .cs .auth-card:has(.auth-signup) .auth-tabs { margin-bottom: 12px; }
-:root:root .cs .auth-card:has(.auth-signup) h1 { font-size: 1.35rem; margin-bottom: 2px; }
-:root:root .cs .auth-signup { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 22px; margin-top: 12px; }
-:root:root .cs .auth-signup fieldset { gap: 9px; }
-:root:root .cs .auth-signup fieldset + fieldset { margin-top: 0; }
-:root:root .cs .auth-signup legend { margin-bottom: 6px; font-size: 1rem; }
-:root:root .cs .auth-signup label { gap: 4px; font-size: 13px; }
-:root:root .cs .auth-signup .field { min-height: 40px; padding: 7px 12px; font-size: 15px; }
-:root:root .cs .auth-signup > :not(fieldset) { grid-column: 1 / -1; }
-:root:root .cs .auth-signup > p.auth-muted { font-size: 12.5px; margin: 0; }
-:root:root .cs .auth-signup .auth-submit { min-height: 48px; margin-top: 2px; }
-:root:root .cs .auth-card:has(.auth-signup) .auth-foot { margin-top: 10px; }
-@media (max-width: 760px) { :root:root .cs .auth-signup { grid-template-columns: minmax(0, 1fr); } }
+:root:root .cs .auth-card:has(.auth-signup) {
+  max-width: 880px;
+  padding: 24px 28px;
+}
+:root:root .cs.auth-page:has(.auth-signup) {
+  padding-block: 12px;
+  align-content: center;
+}
+:root:root .cs .auth-card:has(.auth-signup) .auth-brand {
+  margin-bottom: 12px;
+}
+:root:root .cs .auth-card:has(.auth-signup) .auth-tabs {
+  margin-bottom: 12px;
+}
+:root:root .cs .auth-card:has(.auth-signup) h1 {
+  font-size: 1.35rem;
+  margin-bottom: 2px;
+}
+:root:root .cs .auth-signup {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px 22px;
+  margin-top: 12px;
+}
+:root:root .cs .auth-signup fieldset {
+  gap: 9px;
+}
+:root:root .cs .auth-signup fieldset + fieldset {
+  margin-top: 0;
+}
+:root:root .cs .auth-signup legend {
+  margin-bottom: 6px;
+  font-size: 1rem;
+}
+:root:root .cs .auth-signup label {
+  gap: 4px;
+  font-size: 13px;
+}
+:root:root .cs .auth-signup .field {
+  min-height: 40px;
+  padding: 7px 12px;
+  font-size: 15px;
+}
+:root:root .cs .auth-signup > :not(fieldset) {
+  grid-column: 1 / -1;
+}
+:root:root .cs .auth-signup > p.auth-muted {
+  font-size: 12.5px;
+  margin: 0;
+}
+:root:root .cs .auth-signup .auth-submit {
+  min-height: 48px;
+  margin-top: 2px;
+}
+:root:root .cs .auth-card:has(.auth-signup) .auth-foot {
+  margin-top: 10px;
+}
+@media (max-width: 760px) {
+  :root:root .cs .auth-signup {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
 
 /* Choice fields (selects, checkboxes, radios): the charte instead of the browser's blue */
-select.field, select.select, select.compact-select, .cl-card select, .cs select {
-  appearance: none; -webkit-appearance: none;
+select.field,
+select.select,
+select.compact-select,
+.cl-card select,
+.cs select {
+  appearance: none;
+  -webkit-appearance: none;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' fill='none' stroke='%232A1B12' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 5l4 4 4-4'/%3E%3C/svg%3E");
-  background-repeat: no-repeat; background-position: right 14px center; background-size: 14px;
-  padding-inline-end: 38px !important; cursor: pointer;
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  background-size: 14px;
+  padding-inline-end: 38px !important;
+  cursor: pointer;
 }
-[dir="rtl"] select.field, [dir="rtl"] select.select, [dir="rtl"] select.compact-select, [dir="rtl"] .cl-card select, [dir="rtl"] .cs select { background-position: left 14px center; }
-select option { background: #fff8ea; color: #2a1b12; }
-select option:checked { background: #1f6b4f; color: #f3ebdd; }
-input[type="checkbox"], input[type="radio"] { accent-color: #1f6b4f; }
-:root:root .cl-card select { font: inherit; font-weight: 400; padding: 12px 14px; border: 1.5px solid var(--umber); border-radius: 10px; background-color: #fff8ea; color: var(--umber); min-width: 0; }
-:root:root .cl-card select:focus { outline: 3px solid var(--sun); outline-offset: 0; }
-:root:root .cs .auth-signup fieldset { align-content: start; }
+[dir="rtl"] select.field,
+[dir="rtl"] select.select,
+[dir="rtl"] select.compact-select,
+[dir="rtl"] .cl-card select,
+[dir="rtl"] .cs select {
+  background-position: left 14px center;
+}
+select option {
+  background: #fff8ea;
+  color: #2a1b12;
+}
+select option:checked {
+  background: #1f6b4f;
+  color: #f3ebdd;
+}
+input[type="checkbox"],
+input[type="radio"] {
+  accent-color: #1f6b4f;
+}
+:root:root .cl-card select {
+  font: inherit;
+  font-weight: 400;
+  padding: 12px 14px;
+  border: 1.5px solid var(--umber);
+  border-radius: 10px;
+  background-color: #fff8ea;
+  color: var(--umber);
+  min-width: 0;
+}
+:root:root .cl-card select:focus {
+  outline: 3px solid var(--sun);
+  outline-offset: 0;
+}
+:root:root .cs .auth-signup fieldset {
+  align-content: start;
+}
 
 /* ================================================================
    Task list — dashboard
    ================================================================ */
 /* Smaller overall: the app's zoom steps come down (it was 1.34 by default) */
-:root:root .app-shell { --ui: 1.12; }
-@media (min-width: 1800px) { :root:root .app-shell { --ui: 1.22; } }
-@media (min-width: 2300px) { :root:root .app-shell { --ui: 1.36; } }
-@media (min-width: 951px) and (max-width: 1279px) { :root:root .app-shell { --ui: 1; } }
-@media (max-width: 950px) { :root:root .app-shell { --ui: 1.05; } }
-@media (max-width: 520px) { :root:root .app-shell { --ui: 1; } }
-:root:root .app-shell .content-wrap { max-width: 1240px; }
-:root:root .app-shell .task-button { min-height: 104px; }
+:root:root .app-shell {
+  --ui: 1.12;
+}
+@media (min-width: 1800px) {
+  :root:root .app-shell {
+    --ui: 1.22;
+  }
+}
+@media (min-width: 2300px) {
+  :root:root .app-shell {
+    --ui: 1.36;
+  }
+}
+@media (min-width: 951px) and (max-width: 1279px) {
+  :root:root .app-shell {
+    --ui: 1;
+  }
+}
+@media (max-width: 950px) {
+  :root:root .app-shell {
+    --ui: 1.05;
+  }
+}
+@media (max-width: 520px) {
+  :root:root .app-shell {
+    --ui: 1;
+  }
+}
+:root:root .app-shell .content-wrap {
+  max-width: 1240px;
+}
+:root:root .app-shell .task-button {
+  min-height: 104px;
+}
 
 /* The search box: no line appears under it when it is clicked */
-:root:root .app-shell .global-search, :root:root .app-shell .global-search:focus-within { border-bottom-color: transparent; }
-:root:root .app-shell .global-search input:focus, :root:root .app-shell .global-search input:focus-visible { outline: none; }
+:root:root .app-shell .global-search,
+:root:root .app-shell .global-search:focus-within {
+  border-bottom-color: transparent;
+}
+:root:root .app-shell .global-search input:focus,
+:root:root .app-shell .global-search input:focus-visible {
+  outline: none;
+}
 
 /* First steps: the "start" buttons in colour */
-:root:root .app-shell .setup-cta { background: var(--palm); color: var(--sand); border-color: var(--palm); }
-:root:root .app-shell .setup-cta:hover { background: var(--umber); border-color: var(--umber); color: var(--sand); }
+:root:root .app-shell .setup-cta {
+  background: var(--palm);
+  color: var(--sand);
+  border-color: var(--palm);
+}
+:root:root .app-shell .setup-cta:hover {
+  background: var(--umber);
+  border-color: var(--umber);
+  color: var(--sand);
+}
 
 /* Icons centred in their round */
-:root:root .app-shell .activity-icon { display: grid !important; place-items: center; flex: none; }
-:root:root .app-shell .activity-icon svg { display: block; }
+:root:root .app-shell .activity-icon {
+  display: grid !important;
+  place-items: center;
+  flex: none;
+}
+:root:root .app-shell .activity-icon svg {
+  display: block;
+}
 
 /* Students: one line each — face, name and course, what is left to pay, the two statuses */
-:root:root .app-shell .student-rows { display: grid; gap: 8px; padding: 4px 20px 20px; }
-:root:root .app-shell .student-row { display: grid; grid-template-columns: auto minmax(0, 1fr) auto auto auto; align-items: center; gap: 14px; width: 100%; min-height: 64px; padding: 10px 16px; background: #fff8ea; border: 1.5px solid rgba(42,27,18,.14); border-radius: 14px; color: var(--umber); text-align: start; cursor: pointer; font: inherit; }
-:root:root .app-shell .student-row:hover { border-color: var(--palm); background: rgba(31,107,79,.06); }
-:root:root .app-shell .student-row > svg { color: var(--palm); }
-[dir="rtl"] .app-shell .student-row > svg { transform: scaleX(-1); }
-:root:root .app-shell .student-row .avatar { width: 40px; height: 40px; border-radius: 50%; }
-:root:root .app-shell .student-row-name { min-width: 0; }
-:root:root .app-shell .student-row-name strong { display: block; font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-:root:root .app-shell .student-row-name small { display: block; margin-top: 2px; font-size: 12px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-:root:root .app-shell .student-row-figures { display: flex; flex-direction: column; align-items: flex-end; line-height: 1.2; }
-:root:root .app-shell .student-row-figures small { font-size: 11px; color: var(--muted); }
-:root:root .app-shell .student-row-figures b { font: 800 15px Fraunces, Georgia, serif; }
-:root:root .app-shell .student-row-badges { display: flex; gap: 6px; }
-@media (max-width: 760px) {
-  :root:root .app-shell .student-row { grid-template-columns: auto minmax(0, 1fr) auto; grid-template-areas: "face name arrow" "face badges arrow"; row-gap: 6px; }
-  :root:root .app-shell .student-row .avatar, :root:root .app-shell .student-row .photo-avatar { grid-area: face; }
-  :root:root .app-shell .student-row-name { grid-area: name; }
-  :root:root .app-shell .student-row-figures { display: none; }
-  :root:root .app-shell .student-row-badges { grid-area: badges; flex-wrap: wrap; }
-  :root:root .app-shell .student-row > svg { grid-area: arrow; }
+:root:root .app-shell .student-rows {
+  display: grid;
+  gap: 8px;
+  padding: 4px 20px 20px;
 }
-:root:root .app-shell .photo-avatar { display: block; overflow: hidden; padding: 0; border-radius: 50%; }
-:root:root .app-shell .photo-avatar img { display: block; width: 100%; height: 100%; object-fit: cover; }
+:root:root .app-shell .student-row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto auto auto;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  min-height: 64px;
+  padding: 10px 16px;
+  background: #fff8ea;
+  border: 1.5px solid rgba(42, 27, 18, 0.14);
+  border-radius: 14px;
+  color: var(--umber);
+  text-align: start;
+  cursor: pointer;
+  font: inherit;
+}
+:root:root .app-shell .student-row:hover {
+  border-color: var(--palm);
+  background: rgba(31, 107, 79, 0.06);
+}
+:root:root .app-shell .student-row > svg {
+  color: var(--palm);
+}
+[dir="rtl"] .app-shell .student-row > svg {
+  transform: scaleX(-1);
+}
+:root:root .app-shell .student-row .avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+}
+:root:root .app-shell .student-row-name {
+  min-width: 0;
+}
+:root:root .app-shell .student-row-name strong {
+  display: block;
+  font-size: 14px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+:root:root .app-shell .student-row-name small {
+  display: block;
+  margin-top: 2px;
+  font-size: 12px;
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+:root:root .app-shell .student-row-figures {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  line-height: 1.2;
+}
+:root:root .app-shell .student-row-figures small {
+  font-size: 11px;
+  color: var(--muted);
+}
+:root:root .app-shell .student-row-figures b {
+  font:
+    800 15px Fraunces,
+    Georgia,
+    serif;
+}
+:root:root .app-shell .student-row-badges {
+  display: flex;
+  gap: 6px;
+}
+@media (max-width: 760px) {
+  :root:root .app-shell .student-row {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-areas: "face name arrow" "face badges arrow";
+    row-gap: 6px;
+  }
+  :root:root .app-shell .student-row .avatar,
+  :root:root .app-shell .student-row .photo-avatar {
+    grid-area: face;
+  }
+  :root:root .app-shell .student-row-name {
+    grid-area: name;
+  }
+  :root:root .app-shell .student-row-figures {
+    display: none;
+  }
+  :root:root .app-shell .student-row-badges {
+    grid-area: badges;
+    flex-wrap: wrap;
+  }
+  :root:root .app-shell .student-row > svg {
+    grid-area: arrow;
+  }
+}
+:root:root .app-shell .photo-avatar {
+  display: block;
+  overflow: hidden;
+  padding: 0;
+  border-radius: 50%;
+}
+:root:root .app-shell .photo-avatar img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
 
 /* The small profile */
-:root:root .app-shell .student-preview { position: relative; width: min(460px, 100%); max-height: calc(92vh / var(--ui)); overflow: auto; padding: 26px; background: #fff8ea; border: 2px solid var(--umber); border-radius: 20px; box-shadow: 0 30px 80px rgba(42,27,18,.25); }
-:root:root .app-shell .student-preview .close-button { position: absolute; top: 16px; inset-inline-end: 16px; width: 40px; height: 40px; }
-:root:root .app-shell .student-preview-head { display: flex; align-items: center; gap: 14px; padding-inline-end: 44px; }
-:root:root .app-shell .student-preview-head .avatar { width: 64px; height: 64px; border-radius: 50%; font-size: 18px; }
-:root:root .app-shell .student-preview h2 { margin: 0; font-size: 22px; }
-:root:root .app-shell .student-preview-badges { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
-:root:root .app-shell .student-preview-facts { display: grid; gap: 0; margin: 18px 0; }
-:root:root .app-shell .student-preview-facts > div { display: flex; justify-content: space-between; gap: 12px; padding: 10px 0; border-bottom: 1px solid rgba(42,27,18,.12); }
-:root:root .app-shell .student-preview-facts dt { color: var(--muted); font-size: 13px; }
-:root:root .app-shell .student-preview-facts dd { margin: 0; font-weight: 700; font-size: 13.5px; text-align: end; }
-:root:root .app-shell .student-preview > .button { width: 100%; min-height: 48px; }
+:root:root .app-shell .student-preview {
+  position: relative;
+  width: min(460px, 100%);
+  max-height: calc(92vh / var(--ui));
+  overflow: auto;
+  padding: 26px;
+  background: #fff8ea;
+  border: 2px solid var(--umber);
+  border-radius: 20px;
+  box-shadow: 0 30px 80px rgba(42, 27, 18, 0.25);
+}
+:root:root .app-shell .student-preview .close-button {
+  position: absolute;
+  top: 16px;
+  inset-inline-end: 16px;
+  width: 40px;
+  height: 40px;
+}
+:root:root .app-shell .student-preview-head {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding-inline-end: 44px;
+}
+:root:root .app-shell .student-preview-head .avatar {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  font-size: 18px;
+}
+:root:root .app-shell .student-preview h2 {
+  margin: 0;
+  font-size: 22px;
+}
+:root:root .app-shell .student-preview-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+:root:root .app-shell .student-preview-facts {
+  display: grid;
+  gap: 0;
+  margin: 18px 0;
+}
+:root:root .app-shell .student-preview-facts > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid rgba(42, 27, 18, 0.12);
+}
+:root:root .app-shell .student-preview-facts dt {
+  color: var(--muted);
+  font-size: 13px;
+}
+:root:root .app-shell .student-preview-facts dd {
+  margin: 0;
+  font-weight: 700;
+  font-size: 13.5px;
+  text-align: end;
+}
+:root:root .app-shell .student-preview > .button {
+  width: 100%;
+  min-height: 48px;
+}
 
 /* The full student record: a whole page, its blocks two by two on wide screens */
-:root:root .app-shell .drawer.full { width: 100%; max-width: none; padding: 28px clamp(18px, 4vw, 56px); border-inline-start: 0; }
-:root:root .app-shell .drawer.full > * { max-width: 1120px; margin-inline: auto; }
-@media (min-width: 1100px) {
-  :root:root .app-shell .drawer.full .profile-summary-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+:root:root .app-shell .drawer.full {
+  width: 100%;
+  max-width: none;
+  padding: 28px clamp(18px, 4vw, 56px);
+  border-inline-start: 0;
 }
-:root:root .app-shell .profile-photo img { border-radius: inherit; }
+:root:root .app-shell .drawer.full > * {
+  max-width: 1120px;
+  margin-inline: auto;
+}
+@media (min-width: 1100px) {
+  :root:root .app-shell .drawer.full .profile-summary-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+:root:root .app-shell .profile-photo img {
+  border-radius: inherit;
+}
 
 /* Panel actions (edit, card, delete): real pill buttons; the icon stays visible on hover */
-:root:root .app-shell .profile-hero { flex-wrap: wrap; border-bottom: 0; }
-:root:root .app-shell .profile-hero .action-stack { flex-direction: row; flex-wrap: wrap; gap: 8px; }
-:root:root .app-shell .profile-hero .action-stack button { width: auto; min-height: 42px; padding: 0 16px; border: 2px solid rgba(42,27,18,.35); border-radius: 999px; }
-:root:root .app-shell .action-stack > button > svg { color: inherit; }
-:root:root .app-shell .button-outline:hover svg, :root:root .app-shell .button-danger:hover svg, :root:root .app-shell .button-soft:hover svg { color: var(--sand) !important; }
-:root:root .app-shell .button-soft:hover { background: var(--palm) !important; color: var(--sand) !important; border-color: var(--palm) !important; }
-:root:root .app-shell .button-danger:hover { background: var(--alert) !important; border-color: var(--alert) !important; }
+:root:root .app-shell .profile-hero {
+  flex-wrap: wrap;
+  border-bottom: 0;
+}
+:root:root .app-shell .profile-hero .action-stack {
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+:root:root .app-shell .profile-hero .action-stack button {
+  width: auto;
+  min-height: 42px;
+  padding: 0 16px;
+  border: 2px solid rgba(42, 27, 18, 0.35);
+  border-radius: 999px;
+}
+:root:root .app-shell .action-stack > button > svg {
+  color: inherit;
+}
+:root:root .app-shell .button-outline:hover svg,
+:root:root .app-shell .button-danger:hover svg,
+:root:root .app-shell .button-soft:hover svg {
+  color: var(--sand) !important;
+}
+:root:root .app-shell .button-soft:hover {
+  background: var(--palm) !important;
+  color: var(--sand) !important;
+  border-color: var(--palm) !important;
+}
+:root:root .app-shell .button-danger:hover {
+  background: var(--alert) !important;
+  border-color: var(--alert) !important;
+}
 
 /* Pop-ups never taller than the screen (the app's zoom made 92vh taller than it): their buttons stay reachable */
-:root:root .app-shell .form-modal { max-height: calc(92vh / var(--ui)); }
-:root:root .app-shell .form-modal-body { min-height: 0; flex: 1; overflow-y: auto; }
-:root:root .app-shell .confirm-box { max-height: calc(92vh / var(--ui)); overflow: auto; }
-:root:root .app-shell .drawer { height: calc(100vh / var(--ui)); }
-:root:root .app-shell .drawer-layer { height: calc(100vh / var(--ui)); }
+:root:root .app-shell .form-modal {
+  max-height: calc(92vh / var(--ui));
+}
+:root:root .app-shell .form-modal-body {
+  min-height: 0;
+  flex: 1;
+  overflow-y: auto;
+}
+:root:root .app-shell .confirm-box {
+  max-height: calc(92vh / var(--ui));
+  overflow: auto;
+}
+:root:root .app-shell .drawer {
+  height: calc(100vh / var(--ui));
+}
+:root:root .app-shell .drawer-layer {
+  height: calc(100vh / var(--ui));
+}
 
 /* Student card in the charte (screen preview and print): sand card, umber band with the school, palm accents */
-.student-card { background: #fff8ea; border: 0.35mm solid #2a1b12; border-radius: 3mm; color: #2a1b12; font-family: Karla, Arial, sans-serif; padding: 0 0 2mm; gap: 1.4mm; }
-.student-card header { margin: 0; padding: 2mm 3mm; background: #2a1b12; color: #f3ebdd; border-bottom: 0.8mm solid #f2a104; grid-template-columns: 9mm 1fr auto; }
-.student-card header img { background: #fff8ea; border-radius: 1.5mm; padding: 0.5mm; }
-.student-card header strong { font-family: Fraunces, Georgia, serif; font-size: 8.5pt; color: #f3ebdd; letter-spacing: -0.01em; }
-.student-card header span { color: #f2a104; font-size: 6.5pt; }
-.student-card header small { color: #f3ebdd; opacity: 0.85; }
-.student-card .card-body { padding: 0 3mm; }
-.student-card .card-qr svg { padding: 0.8mm; background: #ffffff; border: 0.25mm solid rgba(42, 27, 18, 0.25); border-radius: 1mm; box-sizing: border-box; }
-.student-card .card-field span { color: rgba(42, 27, 18, 0.6); }
-.student-card .card-field i[lang="ar"] { font-family: Cairo, Karla, sans-serif; text-transform: none; }
-.student-card .card-field strong { color: #2a1b12; font-weight: 700; }
-.student-card .card-photo { background: rgba(31, 107, 79, 0.12); border: 0.35mm solid #1f6b4f; border-radius: 2mm; }
-.student-card footer { margin: 0 3mm; padding-top: 1mm; border-top: 0.25mm solid rgba(42, 27, 18, 0.2); color: #1f6b4f; font-family: Karla, monospace; font-weight: 800; letter-spacing: 0.14em; }
-.card-preview { background: rgba(42, 27, 18, 0.06); }
-.card-preview .student-card { box-shadow: 0 6px 18px rgba(42, 27, 18, 0.2); }
+.student-card {
+  background: #fff8ea;
+  border: 0.35mm solid #2a1b12;
+  border-radius: 3mm;
+  color: #2a1b12;
+  font-family: Karla, Arial, sans-serif;
+  padding: 0 0 2mm;
+  gap: 1.4mm;
+}
+.student-card header {
+  margin: 0;
+  padding: 2mm 3mm;
+  background: var(--palm);
+  color: #f3ebdd;
+  border-bottom: 0.8mm solid #f2a104;
+  grid-template-columns: 9mm 1fr auto;
+}
+.student-card header img {
+  background: #fff8ea;
+  border-radius: 1.5mm;
+  padding: 0.5mm;
+}
+.student-card header strong {
+  font-family: Fraunces, Georgia, serif;
+  font-size: 8.5pt;
+  color: #f3ebdd;
+  letter-spacing: -0.01em;
+}
+.student-card header span {
+  color: #f2a104;
+  font-size: 6.5pt;
+}
+.student-card header small {
+  color: #f3ebdd;
+  opacity: 0.85;
+}
+.student-card .card-body {
+  padding: 0 3mm;
+}
+.student-card .card-qr svg {
+  padding: 0.8mm;
+  background: #ffffff;
+  border: 0.25mm solid rgba(42, 27, 18, 0.25);
+  border-radius: 1mm;
+  box-sizing: border-box;
+}
+.student-card .card-field span {
+  color: rgba(42, 27, 18, 0.6);
+}
+.student-card .card-field i[lang="ar"] {
+  font-family: Cairo, Karla, sans-serif;
+  text-transform: none;
+}
+.student-card .card-field strong {
+  color: #2a1b12;
+  font-weight: 700;
+}
+.student-card .card-photo {
+  background: rgba(31, 107, 79, 0.12);
+  border: 0.35mm solid #1f6b4f;
+  border-radius: 2mm;
+}
+.student-card footer {
+  margin: 0 3mm;
+  padding-top: 1mm;
+  border-top: 0.25mm solid rgba(42, 27, 18, 0.2);
+  color: #1f6b4f;
+  font-family: Karla, monospace;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+}
+.card-preview {
+  background: rgba(42, 27, 18, 0.06);
+}
+.card-preview .student-card {
+  box-shadow: 0 6px 18px rgba(42, 27, 18, 0.2);
+}
 
 /* Courses: bigger edit / delete buttons on each card */
-:root:root .app-shell .card-actions { display: flex; gap: 6px; }
-:root:root .app-shell .card-actions .row-menu { width: 38px; height: 38px; border: 1.5px solid rgba(42,27,18,.25); border-radius: 50%; color: var(--palm); }
-:root:root .app-shell .card-actions .row-menu:hover { background: var(--umber); color: var(--sand); border-color: var(--umber); }
+:root:root .app-shell .card-actions {
+  display: flex;
+  gap: 6px;
+}
+:root:root .app-shell .card-actions .row-menu {
+  width: 38px;
+  height: 38px;
+  border: 1.5px solid rgba(42, 27, 18, 0.25);
+  border-radius: 50%;
+  color: var(--palm);
+}
+:root:root .app-shell .card-actions .row-menu:hover {
+  background: var(--umber);
+  color: var(--sand);
+  border-color: var(--umber);
+}
 
 /* Certificate (screen preview and print): the charte, no decorative circle */
-.formal-document { background: #fffdf8; border: 0; outline: 1.2mm double #2a1b12; outline-offset: -4mm; box-shadow: 0 10px 30px rgba(42,27,18,.12); font-family: Karla, Arial, sans-serif; }
-.document-corner { display: none; }
-.formal-document::before { content: ""; position: absolute; inset: 0 0 auto; height: 8px; background: #f2a104; }
-.document-logo > span { background: #2a1b12; color: #f2a104; font-family: Fraunces, Georgia, serif; border-radius: 50%; }
-.document-logo strong { color: #2a1b12; font-family: Fraunces, Georgia, serif; letter-spacing: -0.01em; }
-.document-logo strong span { color: #1f6b4f; }
-.document-logo small { color: rgba(42,27,18,.6); }
-.document-rule { background: rgba(42,27,18,.2); }
-.formal-kicker { color: #1f6b4f; font-family: Karla, Arial, sans-serif; }
-.formal-intro, .formal-copy, .document-stats span, .document-bottom span { color: rgba(42,27,18,.72); }
-.formal-document h2 { color: #2a1b12; font-family: Fraunces, Georgia, serif; letter-spacing: -0.015em; }
-.formal-document h3 { color: #1f6b4f; font-family: Karla, Arial, sans-serif; }
-.document-stats strong, .document-bottom strong { color: #2a1b12; }
-.signature { color: #2a1b12; border-bottom-color: #2a1b12; }
-:root:root .app-shell .certificate-preview { background: rgba(42,27,18,.06); border-radius: 16px; }
-:root:root .app-shell .preview-toolbar strong { color: var(--umber); }
+.formal-document {
+  background: #fffdf8;
+  border: 0;
+  outline: 1.2mm double #2a1b12;
+  outline-offset: -4mm;
+  box-shadow: 0 10px 30px rgba(42, 27, 18, 0.12);
+  font-family: Karla, Arial, sans-serif;
+}
+.document-corner {
+  display: none;
+}
+.formal-document::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto;
+  height: 8px;
+  background: #f2a104;
+}
+.document-logo > span {
+  background: #2a1b12;
+  color: #f2a104;
+  font-family: Fraunces, Georgia, serif;
+  border-radius: 50%;
+}
+.document-logo strong {
+  color: #2a1b12;
+  font-family: Fraunces, Georgia, serif;
+  letter-spacing: -0.01em;
+}
+.document-logo strong span {
+  color: #1f6b4f;
+}
+.document-logo small {
+  color: rgba(42, 27, 18, 0.6);
+}
+.document-rule {
+  background: rgba(42, 27, 18, 0.2);
+}
+.formal-kicker {
+  color: #1f6b4f;
+  font-family: Karla, Arial, sans-serif;
+}
+.formal-intro,
+.formal-copy,
+.document-stats span,
+.document-bottom span {
+  color: rgba(42, 27, 18, 0.72);
+}
+.formal-document h2 {
+  color: #2a1b12;
+  font-family: Fraunces, Georgia, serif;
+  letter-spacing: -0.015em;
+}
+.formal-document h3 {
+  color: #1f6b4f;
+  font-family: Karla, Arial, sans-serif;
+}
+.document-stats strong,
+.document-bottom strong {
+  color: #2a1b12;
+}
+.signature {
+  color: #2a1b12;
+  border-bottom-color: #2a1b12;
+}
+:root:root .app-shell .certificate-preview {
+  background: rgba(42, 27, 18, 0.06);
+  border-radius: 16px;
+}
+:root:root .app-shell .preview-toolbar strong {
+  color: var(--umber);
+}
 
 /* Settings' three sections under "Paramètres" in the sidebar */
-:root:root .app-shell .nav-sub { display: grid; gap: 2px; margin: 2px 0 0; padding-inline-start: 18px; border-inline-start: 2px solid rgba(31,107,79,.25); margin-inline-start: 22px; }
-:root:root .app-shell .nav-sub-item { display: flex; align-items: center; gap: 10px; min-height: 36px; padding: 6px 12px; border: 0; border-radius: 999px; background: none; color: var(--muted); font: 700 12px Karla, sans-serif; text-align: start; cursor: pointer; }
-:root:root .app-shell[lang="ar"] .nav-sub-item { font-family: Cairo, Karla, sans-serif; }
-:root:root .app-shell .nav-sub-item svg { color: var(--palm); }
-:root:root .app-shell .nav-sub-item:hover { background: rgba(42,27,18,.07); color: var(--umber); }
-:root:root .app-shell .nav-sub-item.active { background: rgba(31,107,79,.14); color: var(--palm); }
+:root:root .app-shell .nav-sub {
+  display: grid;
+  gap: 2px;
+  margin: 2px 0 0;
+  padding-inline-start: 18px;
+  border-inline-start: 2px solid rgba(31, 107, 79, 0.25);
+  margin-inline-start: 22px;
+}
+:root:root .app-shell .nav-sub-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 36px;
+  padding: 6px 12px;
+  border: 0;
+  border-radius: 999px;
+  background: none;
+  color: var(--muted);
+  font:
+    700 12px Karla,
+    sans-serif;
+  text-align: start;
+  cursor: pointer;
+}
+:root:root .app-shell[lang="ar"] .nav-sub-item {
+  font-family: Cairo, Karla, sans-serif;
+}
+:root:root .app-shell .nav-sub-item svg {
+  color: var(--palm);
+}
+:root:root .app-shell .nav-sub-item:hover {
+  background: rgba(42, 27, 18, 0.07);
+  color: var(--umber);
+}
+:root:root .app-shell .nav-sub-item.active {
+  background: rgba(31, 107, 79, 0.14);
+  color: var(--palm);
+}
 
 /* The language switch at the foot of the sidebar, like on the public site */
-:root:root .app-shell .sidebar-lang { padding: 12px 6px 0; margin-top: 10px; border-top: 1px solid var(--line); }
-:root:root .app-shell .sidebar-lang .lang-picker { width: 100%; justify-content: space-between; height: 40px; background: transparent; border: 1.5px solid rgba(42,27,18,.2); color: var(--umber); }
-:root:root .app-shell .sidebar-lang .lang-picker svg { color: var(--palm); opacity: 1; }
-:root:root .app-shell .sidebar-lang .lang-picker button { flex: 1; min-height: 30px; color: var(--muted); font-size: 12px; }
-:root:root .app-shell .sidebar-lang .lang-picker button.on { background: var(--sun); color: var(--umber); }
+:root:root .app-shell .sidebar-lang {
+  /* Small, between the school and the first menu section, with room under it */
+  margin: 0 0 18px;
+  padding: 0 4px;
+  border-top: 0;
+}
+:root:root .app-shell .sidebar-lang .lang-picker {
+  width: auto;
+  justify-content: flex-start;
+  height: 26px;
+  padding: 0 2px 0 7px;
+  gap: 1px;
+  background: transparent;
+  border: 1px solid rgba(42, 27, 18, 0.2);
+  color: var(--umber);
+}
+:root:root .app-shell .sidebar-lang .lang-picker svg {
+  width: 12px;
+  height: 12px;
+  color: var(--palm);
+  opacity: 1;
+}
+:root:root .app-shell .sidebar-lang .lang-picker button {
+  flex: none;
+  min-height: 20px;
+  padding: 0 7px;
+  color: var(--muted);
+  font-size: 10.5px;
+}
+:root:root .app-shell .sidebar-lang .lang-picker button.on {
+  background: var(--sun);
+  color: var(--umber);
+}
 
 /* Settings page: the chosen section, then who is signed in and the way out */
-:root:root .app-shell .settings-account.panel { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; padding: 16px 20px; border-top: 0; }
-:root:root .app-shell .settings-account.panel > span { font-size: 13px; color: var(--muted); }
-:root:root .app-shell .settings-account .settings-logout { display: inline-flex; align-items: center; gap: 8px; min-height: 42px; padding: 0 18px; border: 2px solid rgba(42,27,18,.35); border-radius: 999px; background: none; color: var(--umber); font-weight: 700; cursor: pointer; }
-:root:root .app-shell .settings-account .settings-logout:hover { background: var(--umber); color: var(--sand); }
+:root:root .app-shell .settings-account.panel {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 20px;
+  border-top: 0;
+}
+:root:root .app-shell .settings-account.panel > span {
+  font-size: 13px;
+  color: var(--muted);
+}
+:root:root .app-shell .settings-account .settings-logout {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 42px;
+  padding: 0 18px;
+  border: 2px solid rgba(42, 27, 18, 0.35);
+  border-radius: 999px;
+  background: none;
+  color: var(--umber);
+  font-weight: 700;
+  cursor: pointer;
+}
+:root:root .app-shell .settings-account .settings-logout:hover {
+  background: var(--umber);
+  color: var(--sand);
+}
+
+/* Smaller task cards: icon beside the text, one short row; four across when there is room */
+:root:root .app-shell .home-tasks { margin-bottom: 20px; }
+:root:root .app-shell .home-tasks h1 { font-size: 18px; margin-bottom: 10px; }
+:root:root .app-shell .task-grid { gap: 10px; grid-template-columns: repeat(4, minmax(0, 1fr)); }
+@media (max-width: 1100px) { :root:root .app-shell .task-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+:root:root .app-shell .task-button { flex-direction: row; align-items: center; justify-content: flex-start; gap: 10px; min-height: 0; padding: 10px 12px; border-radius: 14px; font-size: 13px; }
+:root:root .app-shell .task-icon { width: 34px; height: 34px; flex: none; }
+:root:root .app-shell .task-icon svg { width: 18px; height: 18px; }
+
+/* Smaller figure cards */
+:root:root .app-shell .metrics-grid { gap: 10px; margin-bottom: 18px; }
+:root:root .app-shell .metric-card, :root:root .app-shell .metrics-grid-4 .metric-card, :root:root .app-shell .finance-metrics .metric-card { padding: 12px 14px; border-radius: 12px; }
+:root:root .app-shell .metric-label { font-size: 11.5px; }
+:root:root .app-shell .metric-value, :root:root .app-shell .metrics-grid-4 .metric-value, :root:root .app-shell .finance-metrics .metric-value, :root:root .app-shell .finance-metrics.five .metric-value { margin-top: 6px; font-size: clamp(14px, 11cqi, 1.35rem); }
+:root:root .app-shell .metric-note { margin-top: 4px; font-size: 10.5px; }
+:root:root .app-shell .metric-icon, :root:root .app-shell .metrics-grid-4 .metric-icon, :root:root .app-shell .finance-metrics .metric-icon, :root:root .app-shell .finance-metrics.five .metric-icon { width: 28px; height: 28px; }
+:root:root .app-shell .finance-metrics.five .metric-card { padding: 12px 14px; }
+
+/* ================================================================
+   Everything more compact (user request): a lower overall zoom, then tighter boxes,
+   buttons and cards. Text stays at least ~12px on screen.
+   ================================================================ */
+:root:root .app-shell { --ui: 1; }
+@media (min-width: 1800px) { :root:root .app-shell { --ui: 1.1; } }
+@media (min-width: 2300px) { :root:root .app-shell { --ui: 1.22; } }
+@media (min-width: 951px) and (max-width: 1279px) { :root:root .app-shell { --ui: .95; } }
+@media (max-width: 950px) { :root:root .app-shell { --ui: 1; } }
+
+/* Page frame */
+:root:root .app-shell .content-wrap { padding: 24px 28px 32px; }
+:root:root .app-shell .topbar { height: 56px; padding-inline: 24px; }
+:root:root .app-shell .page-header { margin-bottom: 18px; }
+:root:root .app-shell .page-header h1 { font-size: 24px; }
+:root:root .app-shell .page-header p { margin-top: 6px; font-size: 12.5px; }
+:root:root .app-shell .page-actions { margin-top: 12px; gap: 8px; }
+
+/* Buttons */
+:root:root .app-shell .button { min-height: 34px; padding: 0 14px; font-size: 12px; }
+:root:root .app-shell .page-actions .button { min-height: 38px; padding-inline: 16px; font-size: 12.5px; }
+:root:root .app-shell .panel-header .button { min-height: 30px; font-size: 11.5px; padding-inline: 10px; }
+:root:root .app-shell .record-actions .button, :root:root .app-shell .record-open { min-height: 34px; font-size: 12px; }
+:root:root .app-shell .drawer-head-actions .button, :root:root .app-shell .drawer-actions .button,
+:root:root .app-shell .profile-hero .action-stack button { min-height: 36px; font-size: 12px; padding-inline: 14px; }
+:root:root .app-shell .form-modal-foot .button, :root:root .app-shell .confirm-actions .button, :root:root .app-shell .student-preview > .button { min-height: 40px; font-size: 12.5px; }
+:root:root .app-shell .tabs button { min-height: 34px; padding: 0 14px; font-size: 12px; }
+:root:root .app-shell .roll-choice { min-height: 38px; font-size: 12px; }
+:root:root .app-shell .show-more .button { min-height: 36px; }
+
+/* Blocks and cards */
+:root:root .app-shell .panel { padding: 16px 18px; border-radius: 12px; }
+:root:root .app-shell .panel-header { margin-bottom: 10px; }
+:root:root .app-shell .panel-header h3 { font-size: 13.5px; }
+:root:root .app-shell .home-today { margin-bottom: 14px; }
+:root:root .app-shell .dashboard-grid { gap: 14px; }
+:root:root .app-shell .activity-row, :root:root .app-shell .risk-row { min-height: 46px; padding-block: 8px; }
+:root:root .app-shell .activity-icon { width: 30px; height: 30px; }
+:root:root .app-shell .record-list { gap: 10px; padding: 2px 14px 14px; }
+:root:root .app-shell .record-card { padding: 12px 14px; gap: 6px 12px; border-radius: 12px; }
+:root:root .app-shell .record-title { font-size: 13.5px; }
+:root:root .app-shell .record-line { font-size: 11.5px; margin-top: 2px; }
+:root:root .app-shell .student-rows { gap: 6px; padding: 2px 14px 14px; }
+:root:root .app-shell .student-row { min-height: 52px; padding: 7px 12px; gap: 12px; border-radius: 12px; }
+:root:root .app-shell .student-row .avatar, :root:root .app-shell .student-row .photo-avatar { width: 34px; height: 34px; }
+:root:root .app-shell .student-row-name strong { font-size: 13px; }
+:root:root .app-shell .roll-list { gap: 8px; padding: 0 14px 14px; }
+:root:root .app-shell .roll-card { padding: 12px 14px; gap: 10px; border-radius: 12px; }
+:root:root .app-shell .class-cards, :root:root .app-shell .teacher-grid { gap: 12px; }
+:root:root .app-shell .class-card-main { padding: 14px 16px; }
+:root:root .app-shell .class-card h3 { font-size: 15px; margin: 8px 0 6px; }
+:root:root .app-shell .teacher-card { padding: 14px; }
+:root:root .app-shell .day-list { gap: 16px; }
+:root:root .app-shell .day-block h3 { font-size: 16px; }
+:root:root .app-shell .day-block .record-title { font-size: 15px; }
+
+/* Search, filters and fields */
+:root:root .app-shell .toolbar, :root:root .app-shell .filter-bar { padding: 14px; gap: 10px; }
+:root:root .app-shell .toolbar .search-box, :root:root .app-shell .filter-bar .search-box { min-height: 40px; }
+:root:root .app-shell .field, :root:root .app-shell .select, :root:root .app-shell .compact-select { min-height: 36px; font-size: 12.5px; }
+:root:root .app-shell .form-field .field { min-height: 40px; font-size: 13px; }
+:root:root .app-shell .attendance-controls { padding: 14px; gap: 12px; }
+:root:root .app-shell .attendance-controls .select { min-height: 40px; }
+
+/* Panels and pop-ups */
+:root:root .app-shell .drawer { padding: 22px 24px; }
+:root:root .app-shell .drawer.full { padding: 22px clamp(16px, 3vw, 40px); }
+:root:root .app-shell .drawer-head h2 { font-size: 22px; }
+:root:root .app-shell .drawer-section { margin-top: 12px; padding: 14px 16px; border-radius: 12px; }
+:root:root .app-shell .drawer-section h4 { font-size: 15px; margin-bottom: 10px; }
+:root:root .app-shell .form-modal { width: min(560px, 100%); }
+:root:root .app-shell .form-modal-head { padding: 16px 20px; }
+:root:root .app-shell .form-modal-head h2 { font-size: 20px; }
+:root:root .app-shell .form-modal-body { padding: 2px 20px 16px; }
+:root:root .app-shell .form-modal-grid { gap: 12px; }
+:root:root .app-shell .form-modal-foot { padding: 12px 20px 16px; }
+:root:root .app-shell .student-preview { padding: 20px; width: min(420px, 100%); }
+:root:root .app-shell .student-preview h2 { font-size: 19px; }
+:root:root .app-shell .student-preview-head .avatar { width: 52px; height: 52px; }
+:root:root .app-shell .student-preview-facts > div { padding: 7px 0; }
+
+/* Sidebar */
+:root:root .app-shell .nav-item { min-height: 34px; padding: 7px 12px; font-size: 12.5px; }
+:root:root .app-shell .nav-groups { gap: 14px; }
+:root:root .app-shell .school-switcher { margin-bottom: 14px; padding: 8px 10px; }
+:root:root .app-shell .nav-sub-item { min-height: 30px; padding: 4px 10px; }
+
+/* Settings */
+:root:root .app-shell .settings-form { gap: 12px; }
+:root:root .app-shell .settings-account.panel { padding: 12px 16px; }
+:root:root .app-shell .settings-account .settings-logout { min-height: 36px; }
+
+/* Absent in brick red (alert), like "Non payé": the legend, the chosen button and its symbol */
+:root:root .app-shell .attendance-legend .presence.absent,
+:root:root .app-shell .presence-choices .presence.absent { background: var(--alert); color: #fff8ea; border-color: var(--alert); }
+:root:root .app-shell .roll-choices .roll-choice.absent.selected { background: var(--alert); color: #fff8ea; border-color: var(--alert); }
+:root:root .app-shell .roll-choices .roll-choice.absent:not(.selected) .roll-symbol { color: var(--alert); }
+:root:root .app-shell .roll-choices .roll-choice.absent:not(.selected):hover { border-color: var(--alert); }
+
+/* The open list of a choice field, drawn by the page instead of the system (Chrome / Edge 135+:
+   "customizable select"). Other browsers keep their usual list. */
+@supports (appearance: base-select) {
+  select.field, select.select, select.compact-select, .cl-card select, .cs select, .app-shell select {
+    appearance: base-select;
+    display: flex; align-items: center;
+  }
+  select.field::picker-icon, select.select::picker-icon, select.compact-select::picker-icon,
+  .cl-card select::picker-icon, .cs select::picker-icon, .app-shell select::picker-icon { display: none; }
+  ::picker(select) {
+    appearance: base-select;
+    margin-top: 6px; padding: 6px;
+    border: 1.5px solid #2a1b12; border-radius: 14px;
+    background: #fff8ea; color: #2a1b12;
+    box-shadow: 0 18px 40px rgba(42, 27, 18, 0.18);
+    max-height: min(320px, 60vh); overflow-y: auto;
+  }
+  select option {
+    display: flex; align-items: center; gap: 8px;
+    min-height: 36px; padding: 8px 12px; border-radius: 10px;
+    background: transparent; color: #2a1b12; font: inherit; cursor: pointer;
+  }
+  select option:hover, select option:focus-visible { background: rgba(31, 107, 79, 0.12); color: #1f6b4f; outline: none; }
+  select option:checked { background: #1f6b4f; color: #f3ebdd; font-weight: 700; }
+  select option:disabled { color: rgba(42, 27, 18, 0.45); }
+  select option::checkmark { content: "✓"; order: 2; margin-inline-start: auto; font-weight: 800; }
+}
+
+/* Student record: room between a section's title row (with its button) and the cards under it */
+:root:root .app-shell .drawer-section > .drawer-section-head { flex-wrap: wrap; gap: 10px; margin-bottom: 14px; }
+
+/* Student card preview: the photo frame is a button to add or change the photo */
+.card-preview .card-photo-pick { display: grid; place-items: center; cursor: pointer; transition: border-color .15s, background .15s; }
+.card-preview .card-photo-pick:hover { background: rgba(31, 107, 79, 0.22); border-style: dashed; }
+.card-preview .card-photo-pick.busy { opacity: .5; cursor: progress; }
+.card-photo-add { display: grid; justify-items: center; gap: 1mm; padding: 1mm; color: #1f6b4f; font: 700 5.5pt Karla, sans-serif; text-align: center; line-height: 1.15; }
+.card-photo-add svg { width: 4mm; height: 4mm; }
+
+/* Teachers: three cards per line (two on tablets, one on phones) */
+:root:root .app-shell .content-wrap > .teacher-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+@media (max-width: 900px) { :root:root .app-shell .content-wrap > .teacher-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 560px) { :root:root .app-shell .content-wrap > .teacher-grid { grid-template-columns: minmax(0, 1fr); } }
+:root:root .app-shell .content-wrap > .teacher-grid .teacher-details span { min-width: 0; }
+
+/* Custom scroll bars, everywhere (page, sidebar, lists, pop-ups): thin, no arrows, a soft umber
+   thumb that turns palm when grabbed. Firefox reads the first two lines; Chrome/Edge/Safari the rest. */
+/* Firefox only: in Chrome, setting these would replace the custom bar below with the system one (arrows and all). */
+@supports not selector(::-webkit-scrollbar) {
+  html, body, .app-shell *, .cs *, .cl * { scrollbar-width: thin; scrollbar-color: #f2a104 rgba(42, 27, 18, 0.06); }
+}
+/* A bar with the charte's character: a saffron pill outlined in umber (like the main button) on a
+   soft sand rail; palm when hovered and while dragged. */
+::-webkit-scrollbar { width: 13px; height: 13px; }
+::-webkit-scrollbar-track { background: rgba(42, 27, 18, 0.06); border-radius: 999px; margin: 4px; }
+::-webkit-scrollbar-thumb {
+  background: #f2a104; border-radius: 999px;
+  border: 3px solid transparent; background-clip: padding-box;
+  box-shadow: inset 0 0 0 1.5px #2a1b12;
+  min-height: 40px;
+}
+::-webkit-scrollbar-thumb:hover { background: #1f6b4f; background-clip: padding-box; box-shadow: inset 0 0 0 1.5px #2a1b12; }
+::-webkit-scrollbar-thumb:active { background: #1f6b4f; background-clip: padding-box; box-shadow: inset 0 0 0 2px #2a1b12; }
+::-webkit-scrollbar-button { display: none; width: 0; height: 0; }
+::-webkit-scrollbar-corner { background: transparent; }
+/* The sidebar's own bar stays slimmer, so the menu keeps its room. */
+.app-shell .nav-groups::-webkit-scrollbar { width: 9px; }
+.app-shell .nav-groups::-webkit-scrollbar-thumb { border-width: 2px; }

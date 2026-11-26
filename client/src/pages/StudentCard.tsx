@@ -67,7 +67,8 @@ export function studentFromLink(text: string) {
 
 // The card itself, credit-card size (85.6 × 54 mm). The QR code opens the student's profile in the
 // app; only signed-in staff of the school get past the login.
-function CardFace({ student, photo, logo, onImage }: { student: Student; photo: string | null | undefined; logo: string | null | undefined; onImage?: () => void }) {
+// `onPickPhoto` (screen preview only): the photo frame becomes a button to add or change the photo.
+function CardFace({ student, photo, logo, onImage, onPickPhoto, pickLabel, busy }: { student: Student; photo: string | null | undefined; logo: string | null | undefined; onImage?: () => void; onPickPhoto?: (file: File | undefined) => void; pickLabel?: string; busy?: boolean }) {
   const { school, summaryOf, courses } = useData();
   const qr = qrcode(0, "M");
   qr.addData(cardLink(student.id));
@@ -89,7 +90,12 @@ function CardFace({ student, photo, logo, onImage }: { student: Student; photo: 
         <Field label={L.dob} value={student.dob ? student.dob.split("-").reverse().join("/") : ""} />
         {student.level ? <Field label={L.level} value={student.level} /> : <Field label={L.course} value={course} />}
       </div>
-      <div className="card-photo">{photo && <img src={photo} alt="" onLoad={onImage} onError={onImage} />}</div>
+      {onPickPhoto
+        ? <label className={`card-photo card-photo-pick ${busy ? "busy" : ""}`} title={pickLabel}>
+            {photo ? <img src={photo} alt="" onLoad={onImage} onError={onImage} /> : <span className="card-photo-add"><Icon name="plus" size={14} />{pickLabel}</span>}
+            <input type="file" hidden accept="image/jpeg,image/png" aria-label={pickLabel} disabled={busy} onChange={(event) => { onPickPhoto(event.target.files?.[0]); event.target.value = ""; }} />
+          </label>
+        : <div className="card-photo">{photo && <img src={photo} alt="" onLoad={onImage} onError={onImage} />}</div>}
     </div>
     <footer>N° {String(student.id).padStart(8, "0")}</footer>
   </article>;
@@ -97,7 +103,9 @@ function CardFace({ student, photo, logo, onImage }: { student: Student; photo: 
 
 // Preview first, then print. The printed copy sits straight under <body>, outside the app, and
 // prints alone (index.css); "Imprimer" waits until the pictures are in.
-export function StudentCardDialog({ student, onClose }: { student: Student; onClose: () => void }) {
+// `onPickPhoto` hands the chosen file to the student record's existing photo upload (same bucket,
+// same table, same rules); the card just offers it where the photo goes.
+export function StudentCardDialog({ student, onClose, onPickPhoto, busy = false }: { student: Student; onClose: () => void; onPickPhoto?: (file: File | undefined) => void; busy?: boolean }) {
   const t = useAppT();
   const { school } = useData();
   const photo = useSignedUrl(student.photo_path);
@@ -108,7 +116,7 @@ export function StudentCardDialog({ student, onClose }: { student: Student; onCl
   return <>
     <div className="drawer-layer" onClick={onClose}><div className="form-modal card-dialog" role="dialog" aria-label={t.student.card} onClick={(event) => event.stopPropagation()}>
       <div className="form-modal-head"><div><span className="eyebrow">{student.full_name}</span><h2>{t.student.card}</h2></div><button className="close-button" onClick={onClose} aria-label={t.common.close}><Icon name="close" size={20} /></button></div>
-      <div className="form-modal-body"><div className="card-preview"><CardFace student={student} photo={photo} logo={logo} onImage={done} /></div>
+      <div className="form-modal-body"><div className="card-preview"><CardFace student={student} photo={photo} logo={logo} onImage={done} onPickPhoto={onPickPhoto} busy={busy} pickLabel={student.photo_path ? t.student.photoChange : t.student.photoAdd} /></div>
         <p className="form-hint">{t.student.cardHint}</p></div>
       <div className="form-modal-foot"><Button variant="outline" onClick={onClose}>{t.common.close}</Button><Button icon="print" disabled={!ready} onClick={() => window.print()}>{t.student.cardPrint}</Button></div>
     </div></div>

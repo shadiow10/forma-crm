@@ -224,6 +224,6 @@ export function StudentDrawer({ studentId, onClose }: { studentId: number; onClo
     {form === "enroll" && <EnrollmentForm studentId={student.id} onClose={() => setForm(null)} />}
     {form === "pay" && <PaymentForm enrollmentId={payFor} onClose={() => setForm(null)} />}
     {receipt && <Receipt paymentIds={receipt} />}
-    {card && <StudentCardDialog student={student} onClose={closeCard} />}
+    {card && <StudentCardDialog student={student} onClose={closeCard} onPickPhoto={(file) => { void uploadPhoto(file); }} busy={uploading} />}
   </>;
 }
