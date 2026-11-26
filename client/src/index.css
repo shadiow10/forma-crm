@@ -10965,3 +10965,8 @@ input[type="radio"] {
 html:has(.app-shell .drawer-layer), html:has(.app-shell .drawer-layer) body { overflow: hidden; }
 :root:root .app-shell .drawer-layer { overflow: hidden; }
 :root:root .app-shell .drawer { overflow-y: auto; overscroll-behavior: contain; }
+
+/* Phones: one navigation only — the bottom bar (its "Menu" opens the full menu); no burger at the top */
+@media (max-width: 950px) { :root:root .app-shell .topbar-left > .mobile-menu { display: none; } }
+/* Phones: a lone last figure card fills its line instead of sitting alone on half of it */
+@media (max-width: 650px) { :root:root .app-shell .content-wrap > .metrics-grid > .metric-card:last-child:nth-child(odd) { grid-column: 1 / -1; } }
