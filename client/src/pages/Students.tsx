@@ -113,7 +113,7 @@ export function Enrollments({ openStudent }: { openStudent: (id: number) => void
   return <>
     <PageHeader eyebrow={e.eyebrow} title={e.title} description={e.description} actionLabel={e.action} onAction={() => setCreating(true)} />
     <div className="metrics-grid metrics-grid-4">
-      <MetricCard label={e.active} value={String(active.length)} note={e.activeNote} icon="file" accent={COLORS.teal} />
+      <MetricCard label={e.active} value={String(active.length)} note={e.activeNote} icon="enrol" accent={COLORS.teal} />
       <MetricCard label={e.running} value={String(enrollments.filter((enrollment) => enrollment.status === "En cours").length)} note={e.runningNote} icon="graduation" accent="#5B8DEF" />
       <MetricCard label={e.finished} value={String(enrollments.filter((enrollment) => enrollment.status === "Terminé").length)} note={e.finishedNote} icon="checkCircle" accent={COLORS.green} />
       <MetricCard label={e.balance} value={money(active.reduce((sum, enrollment) => sum + balanceOf(enrollment.id).balance, 0))} note={e.balanceNote} icon="wallet" accent={COLORS.yellow} />

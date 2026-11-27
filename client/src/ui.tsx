@@ -1,6 +1,7 @@
 import { useState, useSyncExternalStore } from "react";
 import { locale } from "./lang";
 import { Mark } from "./Logo";
+import { Icon, type IconName } from "./icons";
 import type { CSSProperties, ReactNode } from "react";
 
 // Shared building blocks for every page: colors, icons, badges, buttons, panels, forms and drawers.
@@ -24,55 +25,9 @@ export const COLORS = {
   red: "var(--sun)",            // charte: alerts are saffron fills; text stays umber (--bad-fg)
 };
 
-export const ICONS = {
-  grid: "M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h6v6h-6z",
-  funnel: "M3 5h18l-7 8v5l-4 2v-7z",
-  users: "M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75",
-  graduation: "M22 10 12 5 2 10l10 5 10-5zM6 12v5c3 3 9 3 12 0v-5M19 11v6",
-  calendar: "M6 2v4M18 2v4M3 10h18M5 4h14a2 2 0 0 1 2 2v14H3V6a2 2 0 0 1 2-2z",
-  check: "M20 6 9 17l-5-5",
-  wallet: "M3 7V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v2M3 7h18v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7zm12 6h3",
-  checklist: "M9 11l3 3L22 4M4 4h2M4 11h2M4 18h2M9 5h10M9 18h10",
-  teacher: "M4 21v-1a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v1M10 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM18 8h4M20 6v4",
-  file: "M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8zM14 2v6h6M8 13h8M8 17h6",
-  settings: "M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7zM19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06-1.41 1.41-.06-.06a1.7 1.7 0 0 0-1.88-.34 1.7 1.7 0 0 0-1.03 1.56V20h-2v-.08a1.7 1.7 0 0 0-1.03-1.56 1.7 1.7 0 0 0-1.88.34l-.06.06-1.41-1.41.06-.06A1.7 1.7 0 0 0 9.4 15a1.7 1.7 0 0 0-1.56-1.03H7v-2h.84A1.7 1.7 0 0 0 9.4 11a1.7 1.7 0 0 0-.34-1.88L9 9.06l1.41-1.41.06.06a1.7 1.7 0 0 0 1.88.34A1.7 1.7 0 0 0 13.38 6.5V6h2v.5a1.7 1.7 0 0 0 1.03 1.55 1.7 1.7 0 0 0 1.88-.34l.06-.06 1.41 1.41-.06.06A1.7 1.7 0 0 0 19.4 11a1.7 1.7 0 0 0 1.56 1.03H21v2h-.04A1.7 1.7 0 0 0 19.4 15z",
-  plus: "M12 5v14M5 12h14",
-  search: "m21 21-4.35-4.35M10.5 18a7.5 7.5 0 1 0 0-15 7.5 7.5 0 0 0 0 15z",
-  bell: "M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4",
-  menu: "M4 6h16M4 12h16M4 18h16",
-  close: "M6 6l12 12M18 6 6 18",
-  arrow: "M5 12h14M13 6l6 6-6 6",
-  chevron: "m9 18 6-6-6-6",
-  dots: "M5 12h.01M12 12h.01M19 12h.01",
-  phone: "M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6A19.79 19.79 0 0 1 2.12 4.18 2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.12.9.33 1.78.62 2.63a2 2 0 0 1-.45 2.11L8 9.73a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.85.29 1.73.5 2.63.62A2 2 0 0 1 22 16.92z",
-  mail: "M4 4h16a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2zM22 6l-10 7L2 6",
-  clock: "M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20zm0-16v6l4 2",
-  filter: "M4 4h16M7 10h10M10 16h4",
-  download: "M12 3v12m0 0 4-4m-4 4-4-4M4 21h16",
-  print: "M6 9V3h12v6M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2M6 14h12v7H6z",
-  warning: "M10.3 3.3 1.8 18a2 2 0 0 0 1.73 3h16.94A2 2 0 0 0 22.2 18L13.7 3.3a2 2 0 0 0-3.4 0zM12 9v4M12 17h.01",
-  spark: "m12 3-1.2 5.8L5 10l5.8 1.2L12 17l1.2-5.8L19 10l-5.8-1.2z",
-  checkCircle: "M22 11.08V12a10 10 0 1 1-5.93-9.14M22 4 12 14.01l-3-3",
-  building: "M3 21h18M6 21V4h8v17M14 8h4v13M8 8h2M8 12h2M8 16h2M16 12h2M16 16h2",
-  lock: "M6 10V8a6 6 0 0 1 12 0v2M5 10h14v11H5z",
-  logout: "M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9",
-  trash: "M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14M10 11v6M14 11v6",
-  edit: "M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z",
-  upload: "M12 21V9m0 0-4 4m4-4 4 4M4 3h16",
-  scan: "M4 8V5a1 1 0 0 1 1-1h3m8 0h3a1 1 0 0 1 1 1v3m0 8v3a1 1 0 0 1-1 1h-3m-8 0H5a1 1 0 0 1-1-1v-3M7 12h10",
-  sun: "M12 17a5 5 0 1 0 0-10 5 5 0 0 0 0 10M12 1.8v2.1M12 20.1v2.1M4.4 4.4l1.5 1.5M18.1 18.1l1.5 1.5M1.8 12h2.1M20.1 12h2.1M4.4 19.6l1.5-1.5M18.1 5.9l1.5-1.5",
-  moon: "M21 12.9A9 9 0 1 1 11.1 3a7 7 0 0 0 9.9 9.9z",
-  chart: "M3 20h18M6 16v-5M11 16V6M16 16v-8M21 16v-3",
-  globe: "M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18M3.5 9h17M3.5 15h17M12 3a14 14 0 0 1 0 18 14 14 0 0 1 0-18",
-  shield: "M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z M8.5 12l2.5 2.5 4.5-5", // charte, annexe D
-  userplus: "M10 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8z M3 20c0-3.5 3-6 7-6 M18 8v6 M15 11h6", // charte, annexe D
-} as const;
-
-export type IconName = keyof typeof ICONS;
-
-export const Icon = ({ name, size = 18, stroke = "currentColor" }: { name: IconName; size?: number; stroke?: string }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={stroke} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d={ICONS[name]} /></svg>
-);
+// Icons live in ./icons (one family, drawn to the charte). Re-exported here so existing imports keep working.
+export { Icon, ICONS, ICON_SIZES } from "./icons";
+export type { IconName, IconSize } from "./icons";
 
 export const PALETTE = ["#5B8DEF", "#E4A853", "#B56FCE", "#2A9D8F", "#E57865", "#6A63B8"];
 // Charte Classtra: four colours only. The colour a group, course or teacher was given (stored as
@@ -192,7 +147,7 @@ export const RecordCard = ({ title, lines = [], status, avatar, extra, actions, 
 export const RecordList = ({ children, label }: { children: ReactNode; label?: string }) => <div className="record-list" role="list" aria-label={label}>{children}</div>;
 
 export const EmptyState = ({ title, text, action }: { title: string; text: string; action?: ReactNode }) => (
-  <div className="empty-state"><span className="activity-icon"><Icon name="file" size={16} /></span><div><strong>{title}</strong><span>{text}</span></div>{action}</div>
+  <div className="empty-state"><span className="activity-icon"><Icon name="tray" size={16} /></span><div><strong>{title}</strong><span>{text}</span></div>{action}</div>
 );
 
 export type Option = string | { value: string; label: string };

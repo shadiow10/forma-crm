@@ -30,7 +30,7 @@ export function Rooms({ openGroup }: { openGroup: (id: number) => void }) {
   return <>
     <PageHeader eyebrow={r.eyebrow} title={r.title} description={r.description} actionLabel={isDirector ? r.action : undefined} onAction={() => setEditing("new")} />
     {rooms.length > 0 && <div className="metrics-grid metrics-grid-4 rooms-metrics">
-      <MetricCard label={r.count} value={String(rooms.length)} note={r.countNote} icon="building" accent="#5B8DEF" />
+      <MetricCard label={r.count} value={String(rooms.length)} note={r.countNote} icon="door" accent="#5B8DEF" />
       <MetricCard label={r.busyNow} value={String(busyCount)} note={r.busyNowNote} icon="users" accent={COLORS.yellow} />
       <MetricCard label={r.freeNow} value={String(rooms.length - busyCount)} note={r.freeNowNote} icon="checkCircle" accent={COLORS.green} />
     </div>}

@@ -45,8 +45,8 @@ export function Dashboard({ goTo, openStudent }: { goTo: (page: PageKey) => void
       <h1 id="home-tasks-title">{t.simple.question}</h1>
       <div className="task-grid">
         {([
-          { label: t.simple.enrol, icon: "plus", page: "enrollments" },
-          { label: t.simple.attendance, icon: "check", page: "attendance" },
+          { label: t.simple.enrol, icon: "userplus", page: "enrollments" },
+          { label: t.simple.attendance, icon: "roll", page: "attendance" },
           { label: t.simple.collect, icon: "wallet", page: "payments" },
           { label: d.seePlanning, icon: "calendar", page: "planning" },
         ] as { label: string; icon: IconName; page: PageKey }[]).map((task) => <button type="button" className="task-button" key={task.page} onClick={() => goTo(task.page)}>
