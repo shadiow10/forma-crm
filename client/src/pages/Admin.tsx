@@ -78,7 +78,9 @@ export type SettingsTab = "school" | "users" | "activity";
 export function Settings({ userId, signedInAs, onSignOut, tab }: { userId: string; signedInAs: string; onSignOut: () => void; tab: SettingsTab }) {
   const t = useAppT();
   const s = t.settings;
-  const { isDirector } = useData();
+  const { isDirector, ask } = useData();
+  // Signing out on a shared computer by mistake is costly to undo: ask first.
+  const signOut = async () => { if (await ask({ title: s.signOutTitle, text: s.signOutText, confirmLabel: t.common.signOut, icon: "logout" })) onSignOut(); };
   // The three sections are chosen from the sidebar (task list); the language moved to the sidebar too.
   return <>
     <PageHeader eyebrow={s.eyebrow} title={s.title} description={s.description} />
@@ -86,7 +88,7 @@ export function Settings({ userId, signedInAs, onSignOut, tab }: { userId: strin
       <div className="settings-content">{isDirector ? (tab === "users" ? <UserSettings userId={userId} /> : tab === "activity" ? <ActivityLog /> : <><Subscription /><SchoolSettings /><StudentLimit /><DangerZone /></>) : null}
         <div className="settings-account panel">
           <span>{s.signedInAs(signedInAs)}</span>
-          <button className="settings-logout" onClick={onSignOut}><Icon name="logout" size={16} />{t.common.signOut}</button>
+          <button className="settings-logout" onClick={signOut}><Icon name="logout" size={16} />{t.common.signOut}</button>
         </div>
       </div>
     </div>
@@ -244,7 +246,7 @@ function StudentLimit() {
 function DangerZone() {
   const t = useAppT();
   const s = t.settings;
-  const { school, isDirector, students, studentById, enrollments, payments, teachers, courses, groups, rooms, notify, reload } = useData();
+  const { school, isDirector, students, studentById, enrollments, payments, teachers, courses, groups, rooms, notify, reload, ask } = useData();
   const [confirming, setConfirming] = useState(false);
   const [exporting, setExporting] = useState(false);
   if (!isDirector) return null;
@@ -286,6 +288,10 @@ function DangerZone() {
     }
     setExporting(false);
   };
+  // Deleting the school takes two confirmations: this warning, then the name + password form.
+  const askDelete = async () => {
+    if (await ask({ title: s.deleteFirstTitle(school.name), text: s.deleteFirstText, confirmLabel: s.deleteFirstConfirm, danger: true })) setConfirming(true);
+  };
   const cancel = async () => {
     const { error } = await supabase.rpc("cancel_school_deletion", { p_school_id: school.id });
     if (error) return notify(friendlyError(error, t.errors));
@@ -302,7 +308,7 @@ function DangerZone() {
       <div><strong>{s.deleteTitle}</strong><p className="form-hint">{school.delete_after ? s.deletePending(formatDate(school.delete_after, "long")) : s.deleteText}</p></div>
       {school.delete_after
         ? <Button variant="outline" icon="check" onClick={cancel}>{t.banner.cancelDeletion}</Button>
-        : <Button variant="danger" icon="trash" onClick={() => setConfirming(true)}>{s.deleteAction}</Button>}
+        : <Button variant="danger" icon="trash" onClick={askDelete}>{s.deleteAction}</Button>}
     </div>
     {confirming && <DeleteSchoolDialog onClose={() => setConfirming(false)} />}
   </Panel>;

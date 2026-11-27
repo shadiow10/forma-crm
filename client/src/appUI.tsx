@@ -2,14 +2,14 @@ import { useState } from "react";
 import type { ReactNode } from "react";
 import { useAppT } from "./appCopy";
 import { Button, COLORS, DAYS, Icon } from "./ui";
-import type { FieldDef, Option } from "./ui";
+import type { FieldDef, IconName, Option } from "./ui";
 
 // The pieces only the signed-in app uses. They live apart from ui.tsx so that the app copy
 // they read is downloaded with the app, not with the landing page.
 const optionValue = (option: Option) => (typeof option === "string" ? option : option.value);
 const optionLabel = (option: Option) => (typeof option === "string" ? option : option.label);
 
-export type Question = { title: string; text?: string; confirmLabel?: string; danger?: boolean };
+export type Question = { title: string; text?: string; confirmLabel?: string; danger?: boolean; icon?: IconName };
 
 // Long lists show 15 items, then 15 more per click on "Afficher plus". Only what is drawn is
 // limited: the data is already loaded, so search and filters still look through everything.
@@ -34,7 +34,7 @@ export function ConfirmDialog({ question, onAnswer }: { question: Question; onAn
   return <div className="drawer-layer confirm-layer" onClick={() => onAnswer(false)}>
     <div className="confirm-box" role="alertdialog" aria-labelledby="confirm-title" onClick={(event) => event.stopPropagation()}>
       <span className="confirm-icon" style={{ background: question.danger ? "var(--umber)" : COLORS.tealLight, color: question.danger ? "var(--sun)" : COLORS.teal }}>
-        <Icon name={question.danger ? "trash" : "warning"} size={19} />
+        <Icon name={question.icon ?? (question.danger ? "trash" : "warning")} size={19} />
       </span>
       <h2 id="confirm-title">{question.title}</h2>
       {question.text && <p>{question.text}</p>}
