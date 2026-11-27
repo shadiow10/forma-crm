@@ -421,7 +421,7 @@ type LogRow = { id: number; at: string; actor: string | null; actor_name: string
 // The log keeps no personal details, only the names of the fields that changed (see migration 0012),
 // so names are resolved against the live data and fall back once the record is gone.
 const LOG_KINDS = ["", "payments", "enrollments", "students", "school_members"];
-const LOG_ICONS: Record<string, IconName> = { payments: "wallet", enrollments: "file", students: "graduation", school_members: "lock" };
+const LOG_ICONS: Record<string, IconName> = { payments: "wallet", enrollments: "enrol", students: "graduation", school_members: "lock" };
 
 function ActivityLog() {
   const t = useAppT();

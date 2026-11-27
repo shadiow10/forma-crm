@@ -27,16 +27,16 @@ type Section = "daily" | "organisation" | "followUp" | "settings";
 const PAGES: { key: PageKey; path: string; icon: IconName; section: Section }[] = [
   { key: "dashboard", path: "/", icon: "grid", section: "daily" },
   { key: "students", path: "/etudiants", icon: "graduation", section: "daily" },
-  { key: "attendance", path: "/presences", icon: "check", section: "daily" },
+  { key: "attendance", path: "/presences", icon: "roll", section: "daily" },
   { key: "payments", path: "/paiements", icon: "wallet", section: "daily" },
-  { key: "enrollments", path: "/inscriptions", icon: "file", section: "organisation" },
-  { key: "formations", path: "/formations", icon: "checklist", section: "organisation" },
+  { key: "enrollments", path: "/inscriptions", icon: "enrol", section: "organisation" },
+  { key: "formations", path: "/formations", icon: "book", section: "organisation" },
   { key: "teachers", path: "/formateurs", icon: "teacher", section: "organisation" },
   { key: "groups", path: "/groupes", icon: "users", section: "organisation" },
   { key: "planning", path: "/planning", icon: "calendar", section: "organisation" },
-  { key: "rooms", path: "/salles", icon: "building", section: "organisation" },
+  { key: "rooms", path: "/salles", icon: "door", section: "organisation" },
   { key: "analytics", path: "/statistiques", icon: "chart", section: "followUp" },
-  { key: "certificates", path: "/certificats", icon: "print", section: "followUp" },
+  { key: "certificates", path: "/certificats", icon: "award", section: "followUp" },
   { key: "settings", path: "/parametres", icon: "settings", section: "settings" },
 ];
 const SECTIONS: Section[] = ["daily", "organisation", "followUp", "settings"];
